@@ -12,7 +12,7 @@ const money=(n:number)=>new Intl.NumberFormat('ar-IQ').format(Math.round(n))+' �
 
 export function AIAssistantScreen({listings,favorites,messagesCount,offersCount}:Props){
   const [text,setText]=useState('');
-  const [chat,setChat]=useState<Msg[]>([{id:'hello',role:'assistant',body:'مرحبًا، أنا مساعد عتيك الذكي. أستطيع تحليل السوق الحالي داخل التطبيق، مقارنة الأسعار وإظهار مؤشرات أولية للإعلانات التي تستحق تحققًا إضافيًا. المؤشر لا يعني أن الإعلان احتيالي.'}]);
+  const [chat,setChat]=useState<Msg[]>([{id:'hello',role:'assistant',body:'مرحبًا، أنا مساعد عتيك لتحليل بيانات السوق داخل التطبيق. أقارن الأسعار وأعرض مؤشرات احترازية للإعلانات التي تستحق تحققًا إضافيًا. لا أستخدم نموذج ذكاء اصطناعي خارجي حاليًا، ولا أرسل بياناتك إلى مزود خارجي.'}]);
   const stats=useMemo(()=>{
     const active=listings.filter(x=>x.status==='active');
     const avg=active.length?active.reduce((s,x)=>s+x.price,0)/active.length:0;
@@ -42,7 +42,7 @@ export function AIAssistantScreen({listings,favorites,messagesCount,offersCount}
   const send=()=>{const q=text.trim();if(!q)return;const a=answer(q);setChat(c=>[...c,{id:Date.now()+'u',role:'user',body:q},{id:Date.now()+'a',role:'assistant',body:a}]);setText('');};
   const chips=['لخص السوق','قارن الأسعار','افحص الإعلانات المشبوهة','ساعدني أبيع','نصائح شراء'];
   return <View style={s.root}>
-    <View style={s.hero}><View style={s.bot}><Ionicons name="sparkles" size={28} color={colors.gold}/></View><View style={{flex:1}}><Text style={s.title}>ATEEK AI</Text><Text style={s.sub}>تحليل السوق • مقارنة الأسعار • مؤشر أمان احترازي</Text></View></View>
+    <View style={s.hero}><View style={s.bot}><Ionicons name="sparkles" size={28} color={colors.gold}/></View><View style={{flex:1}}><Text style={s.title}>مساعد عتيك</Text><Text style={s.sub}>تحليل محلي لبيانات السوق • مقارنة أسعار • مؤشر أمان احترازي</Text></View></View>
     <FlatList data={chat} keyExtractor={x=>x.id} contentContainerStyle={s.chat} renderItem={({item})=><View style={[s.bubble,item.role==='user'?s.user:s.ai]}><Text style={[s.body,item.role==='user'&&{color:'#fff'}]}>{item.body}</Text></View>} ListFooterComponent={<View style={s.chips}>{chips.map(x=><Pressable key={x} onPress={()=>{const a=answer(x);setChat(c=>[...c,{id:Date.now()+x,role:'user',body:x},{id:Date.now()+x+'a',role:'assistant',body:a}]);}} style={s.chip}><Text style={s.chipText}>{x}</Text></Pressable>)}</View>}/>
     <View style={s.composer}><Pressable accessibilityRole="button" onPress={send} style={s.send}><Ionicons name="arrow-up" size={22} color="#fff"/></Pressable><TextInput value={text} onChangeText={setText} onSubmitEditing={send} placeholder="اسأل مساعد عتيك…" placeholderTextColor={colors.muted} style={s.input} textAlign="right"/></View>
   </View>;
