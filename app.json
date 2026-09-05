@@ -2,7 +2,7 @@
   "expo": {
     "name": "عتيك",
     "slug": "ateek-marketplace",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "assetBundlePatterns": ["**/*"],
@@ -14,7 +14,7 @@
     },
     "android": {
       "package": "com.yosef.ateek",
-      "versionCode": 3,
+      "versionCode": 4,
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "foregroundImage": "./assets/generated/adaptive-icon.png",
