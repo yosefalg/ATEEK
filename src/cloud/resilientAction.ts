@@ -31,7 +31,10 @@ export async function flushOfflineQueue(){
     for(let i=0;i<rows.length;i++){
       const row=rows[i]!;
       try{await action(row.name,row.payload);sent++;}
-      catch(e){pending.push(row,...rows.slice(i+1));if(looksNetworkError(e))break;}
+      catch(e){
+        pending.push(row);
+        if(looksNetworkError(e)){pending.push(...rows.slice(i+1));break;}
+      }
     }
     await writeQueue(pending);return {sent,pending:pending.length};
   }finally{flushing=false;}
