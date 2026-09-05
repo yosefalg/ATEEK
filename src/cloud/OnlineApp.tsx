@@ -11,6 +11,7 @@ import { Listing, TabId } from '../types';
 import { HomeScreen } from '../screens/HomeScreen';
 import { SearchScreen } from '../screens/SearchScreen';
 import { AddListingScreen } from '../screens/AddListingScreen';
+import { AIAssistantScreen } from '../screens/AIAssistantScreen';
 import { BottomNav } from '../components/BottomNav';
 import { ListingCard } from '../components/ListingCard';
 import { EmptyState } from '../components/EmptyState';
@@ -84,6 +85,7 @@ function Market({session}:{session:Session}) {
      tab==='search'?<SearchScreen key={category} initialCategory={category} listings={visible} favorites={m.favorites} onFavorite={toggle} onOpen={setSelected}/>:
      tab==='add'?<AddListingScreen onAdd={add} onDone={()=>setTab('home')}/>:
      tab==='chats'?<Chats m={m} thread={thread} setThread={setThread}/>:
+     tab==='ai'?<AIAssistantScreen listings={m.listings} favorites={m.favorites} messagesCount={m.messages.length} offersCount={m.offers.length}/>:
      <Account m={m} onOpen={setSelected}/>}
     </View>
     <BottomNav active={tab} onChange={setTab}/>
@@ -97,7 +99,7 @@ function Details({item,m,close,start}:{item:Listing;m:Cloud;close:()=>void;start
   return <SafeAreaView style={s.surface}><ScrollView contentContainerStyle={s.page}>
     <Button title="رجوع" onPress={close}/><View style={{flexDirection:'row',justifyContent:'center'}}><ListingCard item={item} favorite={m.favorites.includes(item.id)} onFavorite={()=>void attempt(()=>m.mutate('favorite',{id:item.id,saved:!m.favorites.includes(item.id)}))} onPress={()=>{}}/></View>
     <Text style={s.title}>{item.title}</Text><Text style={s.price}>{formatPrice(item.price)}</Text><Text style={s.note}>{item.location} • {item.condition} • {item.status==='active'?'متاح':item.status==='sold'?'تم الاتفاق عليه':'محذوف'}</Text>
-    <Text style={s.heading}>وصف السلعة</Text><Text style={s.body}>{item.description}</Text><Text style={s.heading}>{item.seller}</Text><Text style={s.note}>{average?'★ '+average+' من '+reviews.length+' تقييم':'لا توجد تقييمات بعد'}</Text>
+    <Text style={s.heading}>وصف السلعة</Text><Text style={s.body}>{item.description}</Text><Text style={s.heading}>{item.seller}{item.verified?' ✓':''}</Text><Text style={s.note}>{item.verified?'حساب موثّق من عتيك • ':''}{average?'★ '+average+' من '+reviews.length+' تقييم':'لا توجد تقييمات بعد'}</Text>
     {!item.owner&&item.status==='active'&&<Button title="مراسلة البائع والتفاوض" disabled={busy} onPress={()=>void attempt(async()=>{setBusy(true);try{await start(item);}finally{setBusy(false);}})}/>}
     {!item.owner&&<><Button title="الإبلاغ عن الإعلان" onPress={()=>setReporting(!reporting)}/>{reporting&&<><Input placeholder="سبب الإبلاغ" value={report} onChangeText={setReport} maxLength={1000}/><Button title="إرسال البلاغ" onPress={()=>void attempt(async()=>{await m.mutate('report',{id:item.id,reason:report});setReporting(false);Alert.alert('استُلم البلاغ','حُفظ للمراجعة الإدارية.');})}/></>}<Button title="حظر البائع" onPress={()=>Alert.alert('حظر هذا المستخدم؟','ستُمنع الرسائل والعروض بينكما.',[{text:'إلغاء'},{text:'حظر',style:'destructive',onPress:()=>void attempt(async()=>{await m.mutate('block',{id:item.sellerId,blocked:true});close();})}])}/></>}
     {reviews.map(r=><View style={s.card} key={r.id}><Text style={s.heading}>{'★'.repeat(r.stars)}</Text><Text style={s.body}>{r.body}</Text></View>)}
@@ -125,10 +127,11 @@ function Review({m,offerId}:{m:Cloud;offerId:string}) {
   return <View style={{gap:10}}><Text style={s.heading}>قيّم تجربتك</Text><View style={{flexDirection:'row',gap:9}}>{[1,2,3,4,5].map(n=><Pressable key={n} accessibilityLabel={n+' نجوم'} onPress={()=>setStars(n)}><Text style={{fontSize:30,color:colors.gold}}>{n<=stars?'★':'☆'}</Text></Pressable>)}</View><Input value={body} onChangeText={setBody} placeholder="تعليقك (اختياري)" maxLength={1000}/><Button title="نشر التقييم" disabled={busy} onPress={()=>void attempt(async()=>{setBusy(true);try{await m.mutate('review',{offer_id:offerId,stars,body});}finally{setBusy(false);}})}/></View>;
 }
 function Account({m,onOpen}:{m:Cloud;onOpen:(x:Listing)=>void}) {
-  const [section,setSection]=useState('إعلاناتي'),[name,setName]=useState(m.profiles.find(x=>x.id===m.user.id)?.name??'');
+  const profile=m.profiles.find(x=>x.id===m.user.id);
+  const [section,setSection]=useState('إعلاناتي'),[name,setName]=useState(profile?.name??'');
   const items=section==='المفضلة'?m.listings.filter(x=>m.favorites.includes(x.id)):m.listings.filter(x=>x.owner&&x.status!=='removed');
-  return <ScrollView contentContainerStyle={s.page}><Text style={s.title}>حسابي</Text><Text style={s.note}>{m.user.email}</Text><View style={{flexDirection:'row-reverse',gap:8,flexWrap:'wrap'}}>{['إعلاناتي','المفضلة','الإعدادات'].map(t=><Button key={t} title={t} onPress={()=>setSection(t)}/>)}</View>
-    {section==='الإعدادات'?<><Input value={name} onChangeText={setName} maxLength={60} placeholder="اسم العرض"/><Button title="حفظ الاسم" onPress={()=>void attempt(()=>m.mutate('profile',{name}))}/><Text style={s.heading}>المستخدمون المحظورون</Text>{m.blocks.map(b=><Button key={b.blocked_id} title={'إلغاء حظر '+(m.profiles.find(p=>p.id===b.blocked_id)?.name??'مستخدم')} onPress={()=>void attempt(()=>m.mutate('block',{id:b.blocked_id,blocked:false}))}/>)}<Text style={s.note}>صور الإعلانات عامة. المحادثات والعروض متاحة للمشاركين فقط. تستخدم بيانات حسابك لتشغيل السوق؛ لا توجد بوابة دفع أو ضمان مالي في عتيك.</Text><Button title="تسجيل الخروج" onPress={()=>void attempt(async()=>{const {error}=await supabase.auth.signOut();if(error)throw error;})}/></>:
+  return <ScrollView contentContainerStyle={s.page}><Text style={s.title}>{profile?.name||'حسابي'} {profile?.verified?'✓':''}</Text><Text style={s.note}>{m.user.email}</Text>{profile?.is_founder&&<View style={s.founder}><Text style={s.founderTitle}>مؤسس تطبيق عتيك</Text><Text style={s.founderText}>حساب رسمي موثّق • Designed & Developed by YOSEF HASON ALI</Text></View>}<View style={{flexDirection:'row-reverse',gap:8,flexWrap:'wrap'}}>{['إعلاناتي','المفضلة','الإعدادات'].map(t=><Button key={t} title={t} onPress={()=>setSection(t)}/>)}</View>
+    {section==='الإعدادات'?<><Input value={name} onChangeText={setName} maxLength={60} placeholder="اسم العرض"/><Button title="حفظ الاسم" onPress={()=>void attempt(()=>m.mutate('profile',{name}))}/><Text style={s.heading}>المستخدمون المحظورون</Text>{m.blocks.map(b=><Button key={b.blocked_id} title={'إلغاء حظر '+(m.profiles.find(p=>p.id===b.blocked_id)?.name??'مستخدم')} onPress={()=>void attempt(()=>m.mutate('block',{id:b.blocked_id,blocked:false}))}/>)}<Text style={s.note}>صور الإعلانات عامة. المحادثات والعروض متاحة للمشاركين فقط. مساعد ATEEK AI لا يحتاج كلمة مرورك ولا يشارك بيانات تسجيل الدخول مع أي نموذج خارجي.</Text><Button title="تسجيل الخروج" onPress={()=>void attempt(async()=>{const {error}=await supabase.auth.signOut();if(error)throw error;})}/></>:
     <>{!items.length&&<EmptyState icon="cube-outline" title="لا توجد عناصر" body="أضف إعلانًا أو احفظ سلعة في المفضلة."/>}{items.map(x=><View key={x.id} style={s.card}><Pressable onPress={()=>onOpen(x)}><Text style={s.heading}>{x.title}</Text><Text style={s.price}>{formatPrice(x.price)}</Text></Pressable>{section==='إعلاناتي'&&<Button title="حذف الإعلان" onPress={()=>Alert.alert('حذف الإعلان؟','سيختفي من السوق.',[{text:'إلغاء'},{text:'حذف',style:'destructive',onPress:()=>void attempt(()=>m.mutate('remove',{id:x.id}))}])}/>}</View>)}</>}
   </ScrollView>;
 }
@@ -139,5 +142,6 @@ const s=StyleSheet.create({
   input:{backgroundColor:colors.paper,borderRadius:15,borderWidth:1,borderColor:colors.line,padding:14,textAlign:'right',minHeight:52,color:colors.ink},
   button:{backgroundColor:colors.gold,borderRadius:16,padding:14,alignItems:'center',minHeight:48},buttonText:{fontWeight:'800',color:colors.forest},price:{fontSize:21,fontWeight:'900',color:colors.success,textAlign:'right'},
   card:{backgroundColor:colors.paper,borderRadius:19,padding:16,gap:10,borderWidth:1,borderColor:colors.line,marginVertical:5},
-  brand:{backgroundColor:colors.forest,borderRadius:30,alignItems:'center',padding:22,marginBottom:15},error:{backgroundColor:'#ffe5df',color:'#8b271a',padding:12,textAlign:'right',lineHeight:22}
+  brand:{backgroundColor:colors.forest,borderRadius:30,alignItems:'center',padding:22,marginBottom:15},error:{backgroundColor:'#ffe5df',color:'#8b271a',padding:12,textAlign:'right',lineHeight:22},
+  founder:{backgroundColor:colors.forest,borderRadius:20,padding:16,borderWidth:1,borderColor:colors.gold},founderTitle:{color:colors.gold,fontSize:18,fontWeight:'900',textAlign:'right'},founderText:{color:colors.goldSoft,fontSize:11,lineHeight:20,textAlign:'right'}
 });
