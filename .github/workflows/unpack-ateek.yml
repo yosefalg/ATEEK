@@ -3,7 +3,7 @@ name: ATEEK Android Release
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, build3-ultra-ui]
     paths-ignore: ['assets/generated/**']
 
 permissions:
