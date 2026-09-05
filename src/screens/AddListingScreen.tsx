@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import * as FileSystem from 'expo-file-system/legacy';
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
 import { Alert, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -8,42 +7,71 @@ import { categories } from '../data/seed';
 import { colors } from '../theme/colors';
 import { CategoryId, Listing, ListingCondition } from '../types';
 
-export function AddListingScreen({ onAdd, onDone }: { onAdd: (item: Listing) => void; onDone: () => void }) {
-  const [title, setTitle] = useState(''); const [price, setPrice] = useState(''); const [description, setDescription] = useState(''); const [location, setLocation] = useState('النجف');
-  const [category, setCategory] = useState<CategoryId>('antiques'); const [image, setImage] = useState('');
+export function AddListingScreen({ onAdd, onDone }: { onAdd: (item: Listing) => Promise<void>; onDone: () => void }) {
+  const [title, setTitle] = useState('');
+  const [price, setPrice] = useState('');
+  const [description, setDescription] = useState('');
+  const [location, setLocation] = useState('النجف');
+  const [category, setCategory] = useState<CategoryId>('antiques');
+  const [image, setImage] = useState('');
+  const [publishing, setPublishing] = useState(false);
+
   const pickImage = async () => {
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) { Alert.alert('صلاحية الصور', 'اسمح بالوصول للصور من إعدادات الهاتف لاختيار صورة.'); return; }
+      if (!permission.granted) {
+        Alert.alert('صلاحية الصور', 'اسمح بالوصول للصور من إعدادات الهاتف لاختيار صورة.');
+        return;
+      }
       const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.75, allowsEditing: true });
       if (!result.canceled && result.assets[0]) setImage(result.assets[0].uri);
-    } catch { Alert.alert('تعذّر فتح الصور', 'أعد المحاولة أو اختر صورة أخرى.'); }
+    } catch {
+      Alert.alert('تعذّر فتح الصور', 'أعد المحاولة أو اختر صورة أخرى.');
+    }
   };
-  const [publishing, setPublishing] = useState(false);
 
-  const publish = async () => { if (publishing) return; const amount = parsePrice(price); if (!title.trim() || !amount || !image) { Alert.alert('أكمل بيانات الإعلان', 'أضف صورة وعنوانًا وسعرًا صحيحًا.'); return; }
+  const publish = async () => {
+    if (publishing) return;
+    const amount = parsePrice(price);
+    if (!title.trim() || !amount || !image) {
+      Alert.alert('أكمل بيانات الإعلان', 'أضف صورة وعنوانًا وسعرًا صحيحًا.');
+      return;
+    }
+
     setPublishing(true);
     try {
-    if (!FileSystem.documentDirectory) throw new Error('Storage unavailable');
-    const dir = FileSystem.documentDirectory + 'listing-images/';
-    await FileSystem.makeDirectoryAsync(dir, { intermediates: true });
-    const extension = image.split('?')[0]?.split('.').pop();
-    const suffix = extension && /^(jpg|jpeg|png|webp|heic)$/i.test(extension) ? extension : 'jpg';
-    const savedImage = dir + Date.now() + '-' + Math.random().toString(36).slice(2) + '.' + suffix;
-    await FileSystem.copyAsync({ from: image, to: savedImage });
-    onAdd({ id: Date.now().toString(), title: title.trim(), price: amount, category, location: location.trim() || 'العراق', condition: 'مستعمل' as ListingCondition, age: 'الآن', image: savedImage, seller: 'يوسف', verified: false, description: description.trim() || 'لا يوجد وصف إضافي.', createdAt: Date.now() }); Alert.alert('تم النشر', 'أُضيف الإعلان إلى جهازك فقط، وليس إلى سوق عام.'); onDone();
-    } catch { Alert.alert('تعذّر حفظ الصورة', 'لم نضف الإعلان. تحقق من المساحة وأعد المحاولة.'); }
-    finally { setPublishing(false); }
+      await onAdd({
+        id: Date.now().toString(),
+        title: title.trim(),
+        price: amount,
+        category,
+        location: location.trim() || 'العراق',
+        condition: 'مستعمل' as ListingCondition,
+        age: 'الآن',
+        image,
+        seller: '',
+        verified: false,
+        description: description.trim() || 'لا يوجد وصف إضافي.',
+        createdAt: Date.now(),
+      });
+      Alert.alert('تم النشر', 'تم نشر إعلانك في سوق عتيك وأصبح ظاهرًا للمستخدمين المسجلين في التطبيق.');
+      onDone();
+    } catch (error: any) {
+      Alert.alert('تعذّر نشر الإعلان', error?.message || 'تحقق من اتصال الإنترنت ثم أعد المحاولة.');
+    } finally {
+      setPublishing(false);
+    }
   };
+
   return <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}><ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-    <View style={styles.heading}><Text style={styles.title}>أضف إعلانًا جديدًا</Text><Text style={styles.subtitle}>صورة واضحة ووصف دقيق يساعدانك على البيع أسرع</Text></View>
+    <View style={styles.heading}><Text style={styles.title}>أضف إعلانًا جديدًا</Text><Text style={styles.subtitle}>سيُنشر الإعلان في سوق عتيك بعد رفع الصورة وحفظ البيانات بنجاح</Text></View>
     <Pressable style={styles.imagePicker} onPress={pickImage}>{image ? <Image source={{ uri: image }} style={styles.preview} /> : <><View style={styles.camera}><Ionicons name="camera" size={27} color={colors.gold} /></View><Text style={styles.imageTitle}>أضف صورة السلعة</Text><Text style={styles.imageHint}>اضغط لاختيار صورة من الهاتف</Text></>}</Pressable>
     <Field label="عنوان الإعلان" value={title} onChangeText={setTitle} placeholder="مثال: ساعة جيب عتيقة" />
     <Field label="السعر بالدينار العراقي" value={price} onChangeText={setPrice} placeholder="مثال: 150000" keyboardType="number-pad" />
     <Text style={styles.label}>القسم</Text><ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.categoryScroll, styles.rtlScroll]}>{categories.map(item => <Pressable key={item.id} onPress={() => setCategory(item.id)} style={[styles.category, styles.rtlItem, category === item.id && styles.categoryActive]}><Text style={[styles.categoryText, category === item.id && styles.categoryTextActive]}>{item.label}</Text></Pressable>)}</ScrollView>
     <Field label="المحافظة" value={location} onChangeText={setLocation} placeholder="النجف" />
     <Field label="وصف السلعة" value={description} onChangeText={setDescription} placeholder="اذكر الحالة والعمر وأهم التفاصيل..." multiline />
-    <Pressable style={[styles.publish, publishing && { opacity: 0.5 }]} disabled={publishing} onPress={publish}><Ionicons name="paper-plane" size={19} color={colors.forest} /><Text style={styles.publishText}>{publishing ? 'جارٍ حفظ الإعلان…' : 'حفظ الإعلان محليًا'}</Text></Pressable>
+    <Pressable style={[styles.publish, publishing && { opacity: 0.5 }]} disabled={publishing} onPress={publish}><Ionicons name="paper-plane" size={19} color={colors.forest} /><Text style={styles.publishText}>{publishing ? 'جارٍ رفع الصورة ونشر الإعلان…' : 'نشر الإعلان في سوق عتيك'}</Text></Pressable>
   </ScrollView></KeyboardAvoidingView>;
 }
 
