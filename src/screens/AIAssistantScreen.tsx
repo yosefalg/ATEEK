@@ -3,6 +3,7 @@ import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-na
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import { Listing } from '../types';
+import { rankRiskyListings } from '../utils/riskScore';
 
 type Msg={id:string;role:'user'|'assistant';body:string};
 type Props={listings:Listing[];favorites:string[];messagesCount:number;offersCount:number};
@@ -11,7 +12,7 @@ const money=(n:number)=>new Intl.NumberFormat('ar-IQ').format(Math.round(n))+' �
 
 export function AIAssistantScreen({listings,favorites,messagesCount,offersCount}:Props){
   const [text,setText]=useState('');
-  const [chat,setChat]=useState<Msg[]>([{id:'hello',role:'assistant',body:'مرحبًا، أنا مساعد عتيك الذكي. أستطيع تحليل السوق الحالي داخل التطبيق، تلخيص إعلاناتك، مقارنة الأسعار واقتراح خطوات للبيع والشراء بدون إرسال كلمة مرورك لأي جهة.'}]);
+  const [chat,setChat]=useState<Msg[]>([{id:'hello',role:'assistant',body:'مرحبًا، أنا مساعد عتيك الذكي. أستطيع تحليل السوق الحالي داخل التطبيق، مقارنة الأسعار وإظهار مؤشرات أولية للإعلانات التي تستحق تحققًا إضافيًا. المؤشر لا يعني أن الإعلان احتيالي.'}]);
   const stats=useMemo(()=>{
     const active=listings.filter(x=>x.status==='active');
     const avg=active.length?active.reduce((s,x)=>s+x.price,0)/active.length:0;
@@ -19,23 +20,29 @@ export function AIAssistantScreen({listings,favorites,messagesCount,offersCount}
     const max=active.length?Math.max(...active.map(x=>x.price)):0;
     return {active,avg,min,max};
   },[listings]);
+  const risky=useMemo(()=>rankRiskyListings(listings),[listings]);
+  const flagged=useMemo(()=>risky.filter(x=>x.risk.level!=='low'),[risky]);
   const answer=(q:string)=>{
     const s=q.trim().toLowerCase();
     if(!s)return '';
-    if(/(لخص|ملخص|السوق|احصائ|إحصائ)/.test(s))return `يوجد الآن ${stats.active.length} إعلانًا نشطًا. متوسط السعر ${money(stats.avg)}، وأقل سعر ${money(stats.min)} وأعلى سعر ${money(stats.max)}. لديك ${favorites.length} عناصر في المفضلة، ${messagesCount} رسالة و${offersCount} عرضًا مسجلًا.`;
+    if(/(لخص|ملخص|السوق|احصائ|إحصائ)/.test(s))return `يوجد الآن ${stats.active.length} إعلانًا نشطًا. متوسط السعر ${money(stats.avg)}، وأقل سعر ${money(stats.min)} وأعلى سعر ${money(stats.max)}. لديك ${favorites.length} عناصر في المفضلة، ${messagesCount} رسالة و${offersCount} عرضًا. مؤشر الأمان وجد ${flagged.length} إعلانًا يحتاج تحققًا إضافيًا.`;
     if(/(سعر|اسعار|أسعار|مقارن)/.test(s)){
       const sorted=[...stats.active].sort((a,b)=>a.price-b.price).slice(0,5);
       return sorted.length?'أرخص الإعلانات الحالية:\n'+sorted.map((x,i)=>`${i+1}. ${x.title} — ${money(x.price)}`).join('\n'):'لا توجد إعلانات نشطة كافية للمقارنة الآن.';
     }
-    if(/(بيع|اعلان|إعلان|أبيع)/.test(s))return 'لرفع فرصة البيع: استخدم صورة واضحة بإضاءة جيدة، عنوانًا يذكر النوع والحالة، وصفًا صادقًا للعيوب، وسعرًا قريبًا من متوسط السوق. لا ترسل عربونًا أو بيانات حساسة خارج المحادثة.';
-    if(/(شراء|اشتري|أشتري)/.test(s))return 'قبل الشراء: قارن 3 إعلانات على الأقل، راجع حالة السلعة والصور، تفاوض داخل المحادثة، وافحص السلعة فعليًا قبل الدفع. السعر المنخفض جدًا مقارنة بالسوق إشارة تستحق التحقق.';
-    if(/(امان|أمان|احتيال|نصب)/.test(s))return 'علامات الخطر: استعجال الدفع، طلب تحويل خارج المنصة، رفض الفحص، صور مسروقة أو وصف متناقض. استخدم الإبلاغ والحظر عند الشك ولا تشارك رمز التحقق أو كلمة المرور.';
-    return `أستطيع مساعدتك بأفضل شكل في: تلخيص السوق، مقارنة الأسعار، تحسين إعلان للبيع، نصائح الشراء، أو الأمان. اكتب مثلًا: «لخص السوق» أو «قارن الأسعار».`;
+    if(/(افحص|فحص|مشبوه|احتيال|نصب|امان|أمان)/.test(s)){
+      const top=flagged.slice(0,5);
+      if(!top.length)return 'لم يظهر حاليًا أي إعلان بمؤشر خطر متوسط أو مرتفع. مع ذلك افحص السلعة قبل الدفع ولا تشارك رمز التحقق أو كلمة المرور.';
+      return 'إعلانات تحتاج تحققًا إضافيًا:\n'+top.map(({listing,risk},i)=>`${i+1}. ${listing.title} — مؤشر ${risk.score}/100\n${risk.reasons.slice(0,2).join(' • ')}`).join('\n\n')+'\n\nهذا مؤشر احترازي فقط وليس حكمًا على البائع.';
+    }
+    if(/(بيع|اعلان|إعلان|أبيع)/.test(s))return 'لرفع فرصة البيع: استخدم صورة واضحة بإضاءة جيدة، عنوانًا يذكر النوع والحالة، وصفًا صادقًا للعيوب، وسعرًا قريبًا من متوسط السوق. لا تطلب من المشتري مشاركة رموز تحقق أو بيانات حساسة.';
+    if(/(شراء|اشتري|أشتري)/.test(s))return 'قبل الشراء: قارن 3 إعلانات على الأقل، راجع حالة السلعة والصور، تفاوض داخل المحادثة، وافحص السلعة فعليًا قبل الدفع. السعر المنخفض جدًا مقارنة بالسوق يستحق تحققًا إضافيًا.';
+    return 'أستطيع مساعدتك في: تلخيص السوق، مقارنة الأسعار، فحص مؤشرات الخطر، تحسين إعلان للبيع، أو نصائح الشراء. اكتب مثلًا: «افحص الإعلانات المشبوهة».';
   };
   const send=()=>{const q=text.trim();if(!q)return;const a=answer(q);setChat(c=>[...c,{id:Date.now()+'u',role:'user',body:q},{id:Date.now()+'a',role:'assistant',body:a}]);setText('');};
-  const chips=['لخص السوق','قارن الأسعار','ساعدني أبيع','نصائح شراء','تجنب الاحتيال'];
+  const chips=['لخص السوق','قارن الأسعار','افحص الإعلانات المشبوهة','ساعدني أبيع','نصائح شراء'];
   return <View style={s.root}>
-    <View style={s.hero}><View style={s.bot}><Ionicons name="sparkles" size={28} color={colors.gold}/></View><View style={{flex:1}}><Text style={s.title}>ATEEK AI</Text><Text style={s.sub}>مساعد السوق الذكي • يعمل على بيانات عتيك الحالية</Text></View></View>
+    <View style={s.hero}><View style={s.bot}><Ionicons name="sparkles" size={28} color={colors.gold}/></View><View style={{flex:1}}><Text style={s.title}>ATEEK AI</Text><Text style={s.sub}>تحليل السوق • مقارنة الأسعار • مؤشر أمان احترازي</Text></View></View>
     <FlatList data={chat} keyExtractor={x=>x.id} contentContainerStyle={s.chat} renderItem={({item})=><View style={[s.bubble,item.role==='user'?s.user:s.ai]}><Text style={[s.body,item.role==='user'&&{color:'#fff'}]}>{item.body}</Text></View>} ListFooterComponent={<View style={s.chips}>{chips.map(x=><Pressable key={x} onPress={()=>{const a=answer(x);setChat(c=>[...c,{id:Date.now()+x,role:'user',body:x},{id:Date.now()+x+'a',role:'assistant',body:a}]);}} style={s.chip}><Text style={s.chipText}>{x}</Text></Pressable>)}</View>}/>
     <View style={s.composer}><Pressable accessibilityRole="button" onPress={send} style={s.send}><Ionicons name="arrow-up" size={22} color="#fff"/></Pressable><TextInput value={text} onChangeText={setText} onSubmitEditing={send} placeholder="اسأل مساعد عتيك…" placeholderTextColor={colors.muted} style={s.input} textAlign="right"/></View>
   </View>;
