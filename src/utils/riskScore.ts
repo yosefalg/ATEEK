@@ -8,22 +8,27 @@ export type ListingRisk = {
 
 const riskyWords = /(عربون|حوّل|تحويل|واتساب|خارج التطبيق|مستعجل|سريع جدًا|بدون فحص)/i;
 
+function medianOf(values: number[]): number {
+  const sorted = values
+    .filter((value) => Number.isFinite(value) && value > 0)
+    .sort((a, b) => a - b);
+  if (sorted.length === 0) return 0;
+  const middle = Math.floor(sorted.length / 2);
+  if (sorted.length % 2 === 1) return sorted[middle] ?? 0;
+  const left = sorted[middle - 1] ?? 0;
+  const right = sorted[middle] ?? left;
+  return (left + right) / 2;
+}
+
 export function scoreListingRisk(listing: Listing, peerPrices: number[]): ListingRisk {
   let score = 0;
   const reasons: string[] = [];
-
-  const validPeers = peerPrices.filter((value) => Number.isFinite(value) && value > 0).sort((a, b) => a - b);
-  const median = validPeers.length
-    ? validPeers.length % 2
-      ? validPeers[(validPeers.length - 1) / 2]
-      : (validPeers[validPeers.length / 2 - 1] + validPeers[validPeers.length / 2]) / 2
-    : 0;
+  const median = medianOf(peerPrices);
 
   if (!listing.verified) {
     score += 18;
     reasons.push('البائع غير موثّق');
   }
-
   if (median > 0 && listing.price < median * 0.45) {
     score += 38;
     reasons.push('السعر أقل بكثير من المعتاد في الفئة');
@@ -31,28 +36,21 @@ export function scoreListingRisk(listing: Listing, peerPrices: number[]): Listin
     score += 20;
     reasons.push('السعر أقل من متوسط السوق بشكل ملحوظ');
   }
-
   if (listing.description.trim().length < 35) {
     score += 12;
     reasons.push('الوصف قصير ولا يوضح تفاصيل كافية');
   }
-
   if (riskyWords.test(`${listing.title} ${listing.description}`)) {
     score += 28;
     reasons.push('النص يتضمن طلبات أو عبارات تستحق التحقق');
   }
-
   if (listing.price <= 0 || !Number.isFinite(listing.price)) {
     score = 100;
     reasons.push('السعر غير صالح');
   }
 
   score = Math.min(100, Math.max(0, score));
-  return {
-    score,
-    level: score >= 60 ? 'high' : score >= 30 ? 'medium' : 'low',
-    reasons,
-  };
+  return { score, level: score >= 60 ? 'high' : score >= 30 ? 'medium' : 'low', reasons };
 }
 
 export function rankRiskyListings(listings: Listing[]) {
