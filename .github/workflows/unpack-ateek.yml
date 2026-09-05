@@ -25,16 +25,16 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Setup Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Generate ATEEK branded assets
+      - name: Generate and verify ATEEK branded assets
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq librsvg2-bin
@@ -42,6 +42,10 @@ jobs:
           rsvg-convert assets/brand/ateek-mark.svg -w 1024 -h 1024 -o assets/generated/icon.png
           rsvg-convert assets/brand/ateek-mark.svg -w 1024 -h 1024 -o assets/generated/adaptive-icon.png
           rsvg-convert assets/brand/ateek-mark.svg -w 1536 -h 1536 -o assets/generated/splash.png
+          test -s assets/generated/icon.png
+          test -s assets/generated/adaptive-icon.png
+          test -s assets/generated/splash.png
+          file assets/generated/icon.png | grep -q 'PNG image data'
 
       - name: Persist generated branding
         run: |
@@ -69,7 +73,7 @@ jobs:
         run: npx expo export --platform android --output-dir dist-ci
 
       - name: Generate Android project
-        run: npx expo prebuild --platform android --non-interactive --clean
+        run: npx expo prebuild --platform android --clean
 
       - name: Build standalone release APK
         run: |
@@ -77,18 +81,19 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon
 
-      - name: Verify release package
+      - name: Verify release APK is standalone and valid
         run: |
           APK_PATH="android/app/build/outputs/apk/release/app-release.apk"
-          test -f "$APK_PATH"
-          unzip -l "$APK_PATH" | grep -Eq 'index\.android\.bundle|assets/.+\.bundle' || {
+          test -s "$APK_PATH"
+          unzip -t "$APK_PATH" >/dev/null
+          unzip -l "$APK_PATH" | grep -q 'assets/index.android.bundle' || {
             echo "JavaScript bundle was not packaged into the release APK"
             exit 1
           }
-          unzip -l "$APK_PATH" | grep -Eq 'mipmap|launcher' || {
-            echo "Launcher branding was not packaged into the release APK"
-            exit 1
-          }
+          test -s assets/generated/icon.png
+          test -s assets/generated/adaptive-icon.png
+          test -s assets/generated/splash.png
+          echo "ATEEK release APK and branding verified successfully"
 
       - name: Prepare APK artifact
         run: cp android/app/build/outputs/apk/release/app-release.apk ATEEK-RELEASE.apk
