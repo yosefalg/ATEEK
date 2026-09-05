@@ -1,4 +1,4 @@
-name: ATEEK validation
+name: ATEEK Android CI
 
 on:
   workflow_dispatch:
@@ -10,9 +10,9 @@ permissions:
   contents: read
 
 jobs:
-  validate:
+  build-apk:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -22,6 +22,12 @@ jobs:
         with:
           node-version: 20
           cache: npm
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
 
       - name: Install dependencies
         run: npm ci
@@ -37,3 +43,23 @@ jobs:
 
       - name: Validate Android bundle
         run: npx expo export --platform android --output-dir dist-ci
+
+      - name: Generate Android project
+        run: npx expo prebuild --platform android --non-interactive
+
+      - name: Build debug APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Prepare APK artifact
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk ATEEK.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ATEEK-APK
+          path: ATEEK.apk
+          if-no-files-found: error
+          retention-days: 30
