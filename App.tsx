@@ -1,1 +1,1 @@
-export { default } from './src/cloud/OnlineApp';
+export { default } from './src/AppShell';
