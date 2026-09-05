@@ -2,6 +2,9 @@ name: Unpack ATEEK archive
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/unpack-ateek.yml'
 
 permissions:
   contents: write
@@ -24,6 +27,7 @@ jobs:
             cp -a /tmp/ateek-unpack/. ./
           fi
           rm -f ATEEK-ONLINE-FINAL.zip
+          rm -f .github/workflows/build-apk.yml
 
       - name: Commit extracted project
         run: |
