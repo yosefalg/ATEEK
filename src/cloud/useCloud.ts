@@ -18,12 +18,15 @@ export function useCloud(session: Session) {
       }));
       const failure = results.find(r => r.error); if (failure?.error) throw failure.error;
       const rows = Object.fromEntries(names.map((n,i) => [n,results[i]?.data ?? []])) as Record<string, Row[]>;
-      const listings = rows.listings!.map(x => ({
-        ...x, id: x.id, title: x.title, description: x.description, category: x.category, price: Number(x.price), location: x.location, condition: x.condition,
-        seller: rows.profiles!.find(p => p.id === x.seller_id)?.name ?? 'بائع', sellerId: x.seller_id, owner: x.seller_id === session.user.id,
-        verified: false, image: supabase.storage.from('ateek-images').getPublicUrl(x.image).data.publicUrl,
-        createdAt: Date.parse(x.created_at), age: new Date(x.created_at).toLocaleDateString('ar-IQ')
-      })) as Listing[];
+      const listings = rows.listings!.map(x => {
+        const sellerProfile=rows.profiles!.find(p=>p.id===x.seller_id);
+        return ({
+          ...x, id: x.id, title: x.title, description: x.description, category: x.category, price: Number(x.price), location: x.location, condition: x.condition,
+          seller: sellerProfile?.name ?? 'بائع', sellerId: x.seller_id, owner: x.seller_id === session.user.id,
+          verified: Boolean(sellerProfile?.verified), image: supabase.storage.from('ateek-images').getPublicUrl(x.image).data.publicUrl,
+          createdAt: Date.parse(x.created_at), age: new Date(x.created_at).toLocaleDateString('ar-IQ')
+        });
+      }) as Listing[];
       if (alive.current) { setData({ listings, profiles: rows.profiles!, threads: rows.threads!, messages: rows.messages!.reverse(), offers: rows.offers!, notifications: rows.notifications!, reviews: rows.reviews!, blocks: rows.blocks!, favorites: rows.favorites!.map(x => x.listing_id) }); setError(''); }
     } catch (e: any) { if (alive.current) setError(e.message || 'تعذّر الاتصال. أعد المحاولة.'); }
     finally { busy.current = false; if (alive.current) setLoading(false); }
