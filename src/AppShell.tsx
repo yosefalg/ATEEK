@@ -1,65 +1,10 @@
 import React from 'react';
-import { Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { Pressable,SafeAreaView,StyleSheet,Text,View } from 'react-native';
 import OnlineApp from './cloud/OnlineApp';
+import { DynamicBackground } from './components/DynamicBackground';
 import { colors } from './theme/colors';
 import { BUILD_INFO } from './config/buildInfo';
-
-type State = { failed: boolean };
-
-class AppErrorBoundary extends React.Component<React.PropsWithChildren, State> {
-  state: State = { failed: false };
-
-  static getDerivedStateFromError(): State {
-    return { failed: true };
-  }
-
-  componentDidCatch(error: unknown) {
-    console.error('ATEEK UI error', error);
-  }
-
-  reset = () => this.setState({ failed: false });
-
-  render() {
-    if (!this.state.failed) return this.props.children;
-    return (
-      <SafeAreaView style={styles.root}>
-        <View style={styles.card}>
-          <Text style={styles.brand}>ATEEK • عتيك</Text>
-          <Text style={styles.title}>حدث خطأ غير متوقع في الواجهة</Text>
-          <Text style={styles.body}>بيانات حسابك محفوظة في الخدمة السحابية. جرّب إعادة فتح الواجهة، وإن استمر الخطأ أغلق التطبيق وافتحه مجددًا.</Text>
-          <Pressable accessibilityRole="button" onPress={this.reset} style={styles.button}>
-            <Text style={styles.buttonText}>إعادة فتح الواجهة</Text>
-          </Pressable>
-          <Text style={styles.footer}>الإصدار {BUILD_INFO.versionName} • البناء {BUILD_INFO.versionCode} • {BUILD_INFO.shortSha}</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-}
-
-export default function AppShell() {
-  return (
-    <AppErrorBoundary>
-      <View style={styles.shell}>
-        <OnlineApp />
-        <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.buildBadge}>
-          <Text style={styles.buildBadgeText}>ATEEK {BUILD_INFO.versionName} • #{BUILD_INFO.versionCode} • {BUILD_INFO.shortSha}</Text>
-        </View>
-      </View>
-    </AppErrorBoundary>
-  );
-}
-
-const styles = StyleSheet.create({
-  shell: { flex: 1 },
-  root: { flex: 1, backgroundColor: colors.forest, justifyContent: 'center', padding: 20 },
-  card: { backgroundColor: colors.paper, borderRadius: 26, padding: 22, gap: 14, borderWidth: 1, borderColor: colors.line },
-  brand: { color: colors.gold, fontWeight: '900', textAlign: 'right', fontSize: 16 },
-  title: { color: colors.forest, fontWeight: '900', textAlign: 'right', fontSize: 22 },
-  body: { color: colors.ink, textAlign: 'right', lineHeight: 24, fontSize: 14 },
-  button: { minHeight: 50, backgroundColor: colors.gold, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  buttonText: { color: colors.forest, fontWeight: '900' },
-  footer: { color: colors.muted, textAlign: 'center', fontSize: 10, marginTop: 4 },
-  buildBadge: { position: 'absolute', left: 8, bottom: 3, backgroundColor: 'rgba(11,31,26,0.92)', borderRadius: 7, paddingHorizontal: 7, paddingVertical: 3, borderWidth: 1, borderColor: colors.gold },
-  buildBadgeText: { color: colors.goldSoft, fontSize: 9, fontWeight: '800' },
-});
+type State={failed:boolean};
+class AppErrorBoundary extends React.Component<React.PropsWithChildren,State>{state:State={failed:false};static getDerivedStateFromError():State{return{failed:true}}componentDidCatch(error:unknown){console.error('ATEEK UI error',error)}reset=()=>this.setState({failed:false});render(){if(!this.state.failed)return this.props.children;return <SafeAreaView style={styles.root}><View style={styles.card}><Text style={styles.brand}>ATEEK • عتيك</Text><Text style={styles.title}>حدث خطأ غير متوقع في الواجهة</Text><Text style={styles.body}>بيانات حسابك محفوظة في الخدمة السحابية. جرّب إعادة فتح الواجهة، وإن استمر الخطأ أغلق التطبيق وافتحه مجددًا.</Text><Pressable accessibilityRole="button" accessibilityLabel="إعادة فتح واجهة عتيك" onPress={this.reset} style={styles.button}><Text style={styles.buttonText}>إعادة فتح الواجهة</Text></Pressable><Text style={styles.footer}>الإصدار {BUILD_INFO.versionName} • البناء {BUILD_INFO.versionCode} • {BUILD_INFO.shortSha}</Text></View></SafeAreaView>}}
+export default function AppShell(){return <AppErrorBoundary><View style={styles.shell}><DynamicBackground/><OnlineApp/><View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.buildBadge}><Text style={styles.buildBadgeText}>ATEEK {BUILD_INFO.versionName} • #{BUILD_INFO.versionCode} • {BUILD_INFO.shortSha}</Text></View></View></AppErrorBoundary>}
+const styles=StyleSheet.create({shell:{flex:1,backgroundColor:colors.forest},root:{flex:1,backgroundColor:colors.forest,justifyContent:'center',padding:20},card:{backgroundColor:colors.glassStrong,borderRadius:26,padding:22,gap:14,borderWidth:1,borderColor:colors.line},brand:{color:colors.gold,fontWeight:'900',textAlign:'right',fontSize:16},title:{color:colors.ink,fontWeight:'900',textAlign:'right',fontSize:22},body:{color:colors.ink,textAlign:'right',lineHeight:24,fontSize:14},button:{minHeight:50,backgroundColor:colors.gold,borderRadius:16,alignItems:'center',justifyContent:'center'},buttonText:{color:colors.forest,fontWeight:'900'},footer:{color:colors.muted,textAlign:'center',fontSize:10,marginTop:4},buildBadge:{position:'absolute',left:8,bottom:3,backgroundColor:'rgba(4,16,12,.92)',borderRadius:7,paddingHorizontal:7,paddingVertical:3,borderWidth:1,borderColor:colors.gold},buildBadgeText:{color:colors.goldSoft,fontSize:9,fontWeight:'800'}});
