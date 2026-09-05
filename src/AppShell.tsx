@@ -30,7 +30,7 @@ class AppErrorBoundary extends React.Component<React.PropsWithChildren, State> {
           <Pressable accessibilityRole="button" onPress={this.reset} style={styles.button}>
             <Text style={styles.buttonText}>إعادة فتح الواجهة</Text>
           </Pressable>
-          <Text style={styles.footer}>{ATEEK_BRAND.founderName} • {ATEEK_BRAND.release}</Text>
+          <Text style={styles.footer}>{ATEEK_BRAND.appName} • {ATEEK_BRAND.release}</Text>
         </View>
       </SafeAreaView>
     );
