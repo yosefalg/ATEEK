@@ -1,45 +1,15 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback,useEffect,useRef,useState } from 'react';
 import { AppState } from 'react-native';
 import { Session } from '@supabase/supabase-js';
-import { action, supabase } from './client';
+import { action,supabase } from './client';
 import { Listing } from '../types';
-export type Row = Record<string, any>;
-export function useCloud(session: Session) {
-  const [data, setData] = useState<{ listings: Listing[]; profiles: Row[]; threads: Row[]; messages: Row[]; offers: Row[]; notifications: Row[]; reviews: Row[]; blocks: Row[]; favorites: string[] }>({ listings: [], profiles: [], threads: [], messages: [], offers: [], notifications: [], reviews: [], blocks: [], favorites: [] });
-  const [error, setError] = useState(''), [loading, setLoading] = useState(true);
-  const busy = useRef(false), alive = useRef(true);
-  const refresh = useCallback(async () => {
-    if (busy.current) return; busy.current = true;
-    try {
-      const names = ['profiles','listings','threads','messages','offers','notifications','reviews','blocks','favorites'];
-      const results = await Promise.all(names.map(n => {
-        const q = supabase.from('ateek_' + n).select('*');
-        return ['profiles','blocks','favorites'].includes(n) ? q.limit(500) : q.order('created_at', { ascending: false }).limit(300);
-      }));
-      const failure = results.find(r => r.error); if (failure?.error) throw failure.error;
-      const rows = Object.fromEntries(names.map((n,i) => [n,results[i]?.data ?? []])) as Record<string, Row[]>;
-      const listings = rows.listings!.map(x => {
-        const sellerProfile=rows.profiles!.find(p=>p.id===x.seller_id);
-        return ({
-          ...x, id: x.id, title: x.title, description: x.description, category: x.category, price: Number(x.price), location: x.location, condition: x.condition,
-          seller: sellerProfile?.name ?? 'بائع', sellerId: x.seller_id, owner: x.seller_id === session.user.id,
-          verified: Boolean(sellerProfile?.verified), image: supabase.storage.from('ateek-images').getPublicUrl(x.image).data.publicUrl,
-          createdAt: Date.parse(x.created_at), age: new Date(x.created_at).toLocaleDateString('ar-IQ')
-        });
-      }) as Listing[];
-      if (alive.current) { setData({ listings, profiles: rows.profiles!, threads: rows.threads!, messages: rows.messages!.reverse(), offers: rows.offers!, notifications: rows.notifications!, reviews: rows.reviews!, blocks: rows.blocks!, favorites: rows.favorites!.map(x => x.listing_id) }); setError(''); }
-    } catch (e: any) { if (alive.current) setError(e.message || 'تعذّر الاتصال. أعد المحاولة.'); }
-    finally { busy.current = false; if (alive.current) setLoading(false); }
-  }, [session.user.id]);
-  useEffect(() => {
-    alive.current = true; void refresh();
-    const channel = supabase.channel('market-' + session.user.id);
-    for (const table of ['messages','offers','notifications','listings']) channel.on('postgres_changes', { event: '*', schema: 'public', table: 'ateek_' + table }, () => void refresh());
-    channel.subscribe();
-    const timer = setInterval(() => { if (AppState.currentState === 'active') void refresh(); }, 15000);
-    return () => { alive.current = false; clearInterval(timer); void supabase.removeChannel(channel); };
-  }, [refresh,session.user.id]);
-  const mutate = async (name: string, payload: Record<string, unknown>) => { const result = await action(name,payload); await refresh(); return result; };
-  return { ...data, error, loading, refresh, mutate, user: session.user };
+export type Row=Record<string,any>;
+export function useCloud(session:Session){
+ const [data,setData]=useState<{listings:Listing[];profiles:Row[];threads:Row[];messages:Row[];offers:Row[];notifications:Row[];reviews:Row[];blocks:Row[];favorites:string[]}>({listings:[],profiles:[],threads:[],messages:[],offers:[],notifications:[],reviews:[],blocks:[],favorites:[]});
+ const [error,setError]=useState(''),[loading,setLoading]=useState(true);const busy=useRef(false),alive=useRef(true);
+ const refresh=useCallback(async()=>{if(busy.current)return;busy.current=true;try{const names=['profiles','listings','threads','messages','offers','notifications','reviews','blocks','favorites'];const results=await Promise.all(names.map(n=>{const q=supabase.from('ateek_'+n).select('*');return ['profiles','blocks','favorites'].includes(n)?q.limit(500):q.order('created_at',{ascending:false}).limit(300);}));const failure=results.find(r=>r.error);if(failure?.error)throw failure.error;const rows=Object.fromEntries(names.map((n,i)=>[n,results[i]?.data??[]])) as Record<string,Row[]>;const listings=rows.listings!.map(x=>{const p=rows.profiles!.find(v=>v.id===x.seller_id);return {...x,id:x.id,title:x.title,description:x.description,category:x.category,price:Number(x.price),location:x.location,condition:x.condition,seller:p?.name??'بائع',sellerId:x.seller_id,owner:x.seller_id===session.user.id,verified:Boolean(p?.verified),image:supabase.storage.from('ateek-images').getPublicUrl(x.image).data.publicUrl,createdAt:Date.parse(x.created_at),age:new Date(x.created_at).toLocaleDateString('ar-IQ'),latitude:x.latitude==null?null:Number(x.latitude),longitude:x.longitude==null?null:Number(x.longitude),viewsToday:x.views_date===new Date().toISOString().slice(0,10)?Number(x.views_today||0):0};}) as Listing[];if(alive.current){setData({listings,profiles:rows.profiles!,threads:rows.threads!,messages:rows.messages!.reverse(),offers:rows.offers!,notifications:rows.notifications!,reviews:rows.reviews!,blocks:rows.blocks!,favorites:rows.favorites!.map(x=>x.listing_id)});setError('');}}catch(e:any){if(alive.current)setError(e.message||'تعذّر الاتصال. أعد المحاولة.');}finally{busy.current=false;if(alive.current)setLoading(false);}},[session.user.id]);
+ useEffect(()=>{alive.current=true;void refresh();const channel=supabase.channel('market-'+session.user.id);for(const table of ['messages','offers','notifications','listings'])channel.on('postgres_changes',{event:'*',schema:'public',table:'ateek_'+table},()=>void refresh());channel.subscribe();const timer=setInterval(()=>{if(AppState.currentState==='active')void refresh();},15000);return()=>{alive.current=false;clearInterval(timer);void supabase.removeChannel(channel);};},[refresh,session.user.id]);
+ const mutate=async(name:string,payload:Record<string,unknown>)=>{const result=await action(name,payload);await refresh();return result;};
+ return {...data,error,loading,refresh,mutate,user:session.user};
 }
-export type Cloud = ReturnType<typeof useCloud>;
+export type Cloud=ReturnType<typeof useCloud>;
