@@ -2,7 +2,7 @@ import React from 'react';
 import { Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import OnlineApp from './cloud/OnlineApp';
 import { colors } from './theme/colors';
-import { ATEEK_BRAND } from './config/brand';
+import { BUILD_INFO } from './config/buildInfo';
 
 type State = { failed: boolean };
 
@@ -30,7 +30,7 @@ class AppErrorBoundary extends React.Component<React.PropsWithChildren, State> {
           <Pressable accessibilityRole="button" onPress={this.reset} style={styles.button}>
             <Text style={styles.buttonText}>إعادة فتح الواجهة</Text>
           </Pressable>
-          <Text style={styles.footer}>{ATEEK_BRAND.appName} • {ATEEK_BRAND.release}</Text>
+          <Text style={styles.footer}>الإصدار {BUILD_INFO.versionName} • البناء {BUILD_INFO.versionCode} • {BUILD_INFO.shortSha}</Text>
         </View>
       </SafeAreaView>
     );
@@ -38,10 +38,20 @@ class AppErrorBoundary extends React.Component<React.PropsWithChildren, State> {
 }
 
 export default function AppShell() {
-  return <AppErrorBoundary><OnlineApp /></AppErrorBoundary>;
+  return (
+    <AppErrorBoundary>
+      <View style={styles.shell}>
+        <OnlineApp />
+        <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.buildBadge}>
+          <Text style={styles.buildBadgeText}>ATEEK {BUILD_INFO.versionName} • #{BUILD_INFO.versionCode} • {BUILD_INFO.shortSha}</Text>
+        </View>
+      </View>
+    </AppErrorBoundary>
+  );
 }
 
 const styles = StyleSheet.create({
+  shell: { flex: 1 },
   root: { flex: 1, backgroundColor: colors.forest, justifyContent: 'center', padding: 20 },
   card: { backgroundColor: colors.paper, borderRadius: 26, padding: 22, gap: 14, borderWidth: 1, borderColor: colors.line },
   brand: { color: colors.gold, fontWeight: '900', textAlign: 'right', fontSize: 16 },
@@ -50,4 +60,6 @@ const styles = StyleSheet.create({
   button: { minHeight: 50, backgroundColor: colors.gold, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   buttonText: { color: colors.forest, fontWeight: '900' },
   footer: { color: colors.muted, textAlign: 'center', fontSize: 10, marginTop: 4 },
+  buildBadge: { position: 'absolute', left: 8, bottom: 3, backgroundColor: 'rgba(11,31,26,0.92)', borderRadius: 7, paddingHorizontal: 7, paddingVertical: 3, borderWidth: 1, borderColor: colors.gold },
+  buildBadgeText: { color: colors.goldSoft, fontSize: 9, fontWeight: '800' },
 });
