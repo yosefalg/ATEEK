@@ -5,14 +5,16 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - 'assets/generated/**'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build-apk:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 45
     env:
       NODE_ENV: production
       CI: true
@@ -31,6 +33,25 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+
+      - name: Generate ATEEK branded assets
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq librsvg2-bin
+          mkdir -p assets/generated
+          rsvg-convert assets/brand/ateek-mark.svg -w 1024 -h 1024 -o assets/generated/icon.png
+          rsvg-convert assets/brand/ateek-mark.svg -w 1024 -h 1024 -o assets/generated/adaptive-icon.png
+          rsvg-convert assets/brand/ateek-mark.svg -w 1536 -h 1536 -o assets/generated/splash.png
+
+      - name: Persist generated branding
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/generated
+          if ! git diff --cached --quiet; then
+            git commit -m "Generate ATEEK app branding assets"
+            git push
+          fi
 
       - name: Install dependencies
         run: npm ci
@@ -56,12 +77,16 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon
 
-      - name: Verify JS bundle is packaged
+      - name: Verify release package
         run: |
           APK_PATH="android/app/build/outputs/apk/release/app-release.apk"
           test -f "$APK_PATH"
           unzip -l "$APK_PATH" | grep -Eq 'index\.android\.bundle|assets/.+\.bundle' || {
             echo "JavaScript bundle was not packaged into the release APK"
+            exit 1
+          }
+          unzip -l "$APK_PATH" | grep -Eq 'mipmap|launcher' || {
+            echo "Launcher branding was not packaged into the release APK"
             exit 1
           }
 
