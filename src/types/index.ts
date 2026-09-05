@@ -27,4 +27,4 @@ export interface Offer {
   status: 'قيد التفاوض' | 'مقبول' | 'مرفوض';
 }
 
-export type TabId = 'home' | 'search' | 'add' | 'chats' | 'profile';
+export type TabId = 'home' | 'search' | 'add' | 'chats' | 'ai' | 'profile';
