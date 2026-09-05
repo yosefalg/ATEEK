@@ -1,51 +1,41 @@
-import { useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useState } from 'react';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import { Listing } from '../types';
-import { rankRiskyListings } from '../utils/riskScore';
+import { supabase } from '../cloud/client';
 
 type Msg={id:string;role:'user'|'assistant';body:string};
 type Props={listings:Listing[];favorites:string[];messagesCount:number;offersCount:number};
 
-const money=(n:number)=>new Intl.NumberFormat('ar-IQ').format(Math.round(n))+' د.ع';
-
 export function AIAssistantScreen({listings,favorites,messagesCount,offersCount}:Props){
   const [text,setText]=useState('');
-  const [chat,setChat]=useState<Msg[]>([{id:'hello',role:'assistant',body:'مرحبًا، أنا مساعد عتيك لتحليل بيانات السوق داخل التطبيق. أقارن الأسعار وأعرض مؤشرات احترازية للإعلانات التي تستحق تحققًا إضافيًا. لا أستخدم نموذج ذكاء اصطناعي خارجي حاليًا، ولا أرسل بياناتك إلى مزود خارجي.'}]);
-  const stats=useMemo(()=>{
-    const active=listings.filter(x=>x.status==='active');
-    const avg=active.length?active.reduce((s,x)=>s+x.price,0)/active.length:0;
-    const min=active.length?Math.min(...active.map(x=>x.price)):0;
-    const max=active.length?Math.max(...active.map(x=>x.price)):0;
-    return {active,avg,min,max};
-  },[listings]);
-  const risky=useMemo(()=>rankRiskyListings(listings),[listings]);
-  const flagged=useMemo(()=>risky.filter(x=>x.risk.level!=='low'),[risky]);
-  const answer=(q:string)=>{
-    const s=q.trim().toLowerCase();
-    if(!s)return '';
-    if(/(لخص|ملخص|السوق|احصائ|إحصائ)/.test(s))return `يوجد الآن ${stats.active.length} إعلانًا نشطًا. متوسط السعر ${money(stats.avg)}، وأقل سعر ${money(stats.min)} وأعلى سعر ${money(stats.max)}. لديك ${favorites.length} عناصر في المفضلة، ${messagesCount} رسالة و${offersCount} عرضًا. مؤشر الأمان وجد ${flagged.length} إعلانًا يحتاج تحققًا إضافيًا.`;
-    if(/(سعر|اسعار|أسعار|مقارن)/.test(s)){
-      const sorted=[...stats.active].sort((a,b)=>a.price-b.price).slice(0,5);
-      return sorted.length?'أرخص الإعلانات الحالية:\n'+sorted.map((x,i)=>`${i+1}. ${x.title} — ${money(x.price)}`).join('\n'):'لا توجد إعلانات نشطة كافية للمقارنة الآن.';
-    }
-    if(/(افحص|فحص|مشبوه|احتيال|نصب|امان|أمان)/.test(s)){
-      const top=flagged.slice(0,5);
-      if(!top.length)return 'لم يظهر حاليًا أي إعلان بمؤشر خطر متوسط أو مرتفع. مع ذلك افحص السلعة قبل الدفع ولا تشارك رمز التحقق أو كلمة المرور.';
-      return 'إعلانات تحتاج تحققًا إضافيًا:\n'+top.map(({listing,risk},i)=>`${i+1}. ${listing.title} — مؤشر ${risk.score}/100\n${risk.reasons.slice(0,2).join(' • ')}`).join('\n\n')+'\n\nهذا مؤشر احترازي فقط وليس حكمًا على البائع.';
-    }
-    if(/(بيع|اعلان|إعلان|أبيع)/.test(s))return 'لرفع فرصة البيع: استخدم صورة واضحة بإضاءة جيدة، عنوانًا يذكر النوع والحالة، وصفًا صادقًا للعيوب، وسعرًا قريبًا من متوسط السوق. لا تطلب من المشتري مشاركة رموز تحقق أو بيانات حساسة.';
-    if(/(شراء|اشتري|أشتري)/.test(s))return 'قبل الشراء: قارن 3 إعلانات على الأقل، راجع حالة السلعة والصور، تفاوض داخل المحادثة، وافحص السلعة فعليًا قبل الدفع. السعر المنخفض جدًا مقارنة بالسوق يستحق تحققًا إضافيًا.';
-    return 'أستطيع مساعدتك في: تلخيص السوق، مقارنة الأسعار، فحص مؤشرات الخطر، تحسين إعلان للبيع، أو نصائح الشراء. اكتب مثلًا: «افحص الإعلانات المشبوهة».';
+  const [busy,setBusy]=useState(false);
+  const [chat,setChat]=useState<Msg[]>([{id:'hello',role:'assistant',body:'مرحبًا، أنا مساعد عتيك الذكي. أستخدم خدمة ذكاء اصطناعي سحابية لتحليل بيانات السوق المتاحة لك، ومقارنة الأسعار وتقديم إرشادات عملية. لا ترسل كلمات مرور أو رموز تحقق أو بيانات حساسة.'}]);
+
+  const ask=async(q:string)=>{
+    if(!q||busy)return;
+    const uid=Date.now()+'u';
+    setChat(c=>[...c,{id:uid,role:'user',body:q}]);
+    setText(''); setBusy(true);
+    try{
+      const market=listings.filter(x=>x.status!=='removed').slice(0,80).map(x=>({title:x.title,price:x.price,category:x.category,location:x.location,condition:x.condition,status:x.status,description:x.description,verified:x.verified}));
+      const {data,error}=await supabase.functions.invoke('ateek-assistant',{body:{question:q,listings:market,favoritesCount:favorites.length,messagesCount,offersCount}});
+      if(error)throw new Error(error.message);
+      if(!data?.answer)throw new Error(data?.message||'لم يصل رد من خدمة الذكاء الاصطناعي');
+      setChat(c=>[...c,{id:Date.now()+'a',role:'assistant',body:String(data.answer)}]);
+    }catch(e){
+      const message=e instanceof Error?e.message:'تعذر الاتصال بخدمة الذكاء الاصطناعي';
+      setChat(c=>[...c,{id:Date.now()+'e',role:'assistant',body:`تعذر إكمال الطلب الآن: ${message}. تحقق من الإنترنت وحاول مجددًا.`}]);
+    }finally{setBusy(false);}
   };
-  const send=()=>{const q=text.trim();if(!q)return;const a=answer(q);setChat(c=>[...c,{id:Date.now()+'u',role:'user',body:q},{id:Date.now()+'a',role:'assistant',body:a}]);setText('');};
-  const chips=['لخص السوق','قارن الأسعار','افحص الإعلانات المشبوهة','ساعدني أبيع','نصائح شراء'];
+  const send=()=>ask(text.trim());
+  const chips=['لخص السوق','قارن الأسعار','حلل أفضل فرص الشراء','ساعدني أسعّر إعلانًا','نصائح بيع آمنة'];
   return <View style={s.root}>
-    <View style={s.hero}><View style={s.bot}><Ionicons name="sparkles" size={28} color={colors.gold}/></View><View style={{flex:1}}><Text style={s.title}>مساعد عتيك</Text><Text style={s.sub}>تحليل محلي لبيانات السوق • مقارنة أسعار • مؤشر أمان احترازي</Text></View></View>
-    <FlatList data={chat} keyExtractor={x=>x.id} contentContainerStyle={s.chat} renderItem={({item})=><View style={[s.bubble,item.role==='user'?s.user:s.ai]}><Text style={[s.body,item.role==='user'&&{color:'#fff'}]}>{item.body}</Text></View>} ListFooterComponent={<View style={s.chips}>{chips.map(x=><Pressable key={x} onPress={()=>{const a=answer(x);setChat(c=>[...c,{id:Date.now()+x,role:'user',body:x},{id:Date.now()+x+'a',role:'assistant',body:a}]);}} style={s.chip}><Text style={s.chipText}>{x}</Text></Pressable>)}</View>}/>
-    <View style={s.composer}><Pressable accessibilityRole="button" onPress={send} style={s.send}><Ionicons name="arrow-up" size={22} color="#fff"/></Pressable><TextInput value={text} onChangeText={setText} onSubmitEditing={send} placeholder="اسأل مساعد عتيك…" placeholderTextColor={colors.muted} style={s.input} textAlign="right"/></View>
+    <View style={s.hero}><View style={s.bot}><Ionicons name="sparkles" size={28} color={colors.gold}/></View><View style={{flex:1}}><Text style={s.title}>مساعد عتيك AI</Text><Text style={s.sub}>ذكاء اصطناعي سحابي • تحليل السوق • مقارنة الأسعار</Text></View></View>
+    <FlatList data={chat} keyExtractor={x=>x.id} contentContainerStyle={s.chat} renderItem={({item})=><View style={[s.bubble,item.role==='user'?s.user:s.ai]}><Text style={[s.body,item.role==='user'&&{color:'#fff'}]}>{item.body}</Text></View>} ListFooterComponent={<><View style={s.chips}>{chips.map(x=><Pressable disabled={busy} key={x} onPress={()=>ask(x)} style={[s.chip,busy&&{opacity:.55}]}><Text style={s.chipText}>{x}</Text></Pressable>)}</View>{busy?<View style={s.loading}><ActivityIndicator/><Text style={s.loadingText}>مساعد عتيك يحلل البيانات…</Text></View>:null}</>}/>
+    <View style={s.composer}><Pressable accessibilityRole="button" disabled={busy} onPress={send} style={[s.send,busy&&{opacity:.55}]}>{busy?<ActivityIndicator color="#fff"/>:<Ionicons name="arrow-up" size={22} color="#fff"/>}</Pressable><TextInput editable={!busy} value={text} onChangeText={setText} onSubmitEditing={send} placeholder="اسأل مساعد عتيك…" placeholderTextColor={colors.muted} style={s.input} textAlign="right"/></View>
   </View>;
 }
 
-const s=StyleSheet.create({root:{flex:1,backgroundColor:colors.cream},hero:{margin:16,padding:16,borderRadius:22,backgroundColor:colors.forest,flexDirection:'row-reverse',alignItems:'center',gap:12},bot:{width:52,height:52,borderRadius:18,alignItems:'center',justifyContent:'center',backgroundColor:'rgba(216,169,78,.12)',borderWidth:1,borderColor:'rgba(216,169,78,.35)'},title:{fontSize:24,fontWeight:'900',color:'#fff',textAlign:'right'},sub:{fontSize:11,color:colors.goldSoft,textAlign:'right',marginTop:3},chat:{paddingHorizontal:16,paddingBottom:20,gap:10},bubble:{maxWidth:'88%',padding:13,borderRadius:18},user:{alignSelf:'flex-end',backgroundColor:colors.forest,borderBottomRightRadius:5},ai:{alignSelf:'flex-start',backgroundColor:colors.paper,borderWidth:1,borderColor:colors.line,borderBottomLeftRadius:5},body:{fontSize:14,lineHeight:22,color:colors.ink,textAlign:'right'},chips:{flexDirection:'row-reverse',flexWrap:'wrap',gap:8,marginTop:8},chip:{paddingHorizontal:12,paddingVertical:8,borderRadius:999,backgroundColor:colors.paper,borderWidth:1,borderColor:colors.line},chipText:{fontSize:11,fontWeight:'700',color:colors.forest},composer:{flexDirection:'row',alignItems:'center',padding:12,borderTopWidth:1,borderTopColor:colors.line,backgroundColor:colors.paper,gap:8},input:{flex:1,minHeight:46,borderRadius:16,backgroundColor:colors.cream,paddingHorizontal:14,color:colors.ink},send:{width:46,height:46,borderRadius:16,backgroundColor:colors.forest,alignItems:'center',justifyContent:'center'}});
+const s=StyleSheet.create({root:{flex:1,backgroundColor:colors.cream},hero:{margin:16,padding:16,borderRadius:22,backgroundColor:colors.forest,flexDirection:'row-reverse',alignItems:'center',gap:12},bot:{width:52,height:52,borderRadius:18,alignItems:'center',justifyContent:'center',backgroundColor:'rgba(216,169,78,.12)',borderWidth:1,borderColor:'rgba(216,169,78,.35)'},title:{fontSize:24,fontWeight:'900',color:'#fff',textAlign:'right'},sub:{fontSize:11,color:colors.goldSoft,textAlign:'right',marginTop:3},chat:{paddingHorizontal:16,paddingBottom:20,gap:10},bubble:{maxWidth:'88%',padding:13,borderRadius:18},user:{alignSelf:'flex-end',backgroundColor:colors.forest,borderBottomRightRadius:5},ai:{alignSelf:'flex-start',backgroundColor:colors.paper,borderWidth:1,borderColor:colors.line,borderBottomLeftRadius:5},body:{fontSize:14,lineHeight:22,color:colors.ink,textAlign:'right'},chips:{flexDirection:'row-reverse',flexWrap:'wrap',gap:8,marginTop:8},chip:{paddingHorizontal:12,paddingVertical:8,borderRadius:999,backgroundColor:colors.paper,borderWidth:1,borderColor:colors.line},chipText:{fontSize:11,fontWeight:'700',color:colors.forest},loading:{marginTop:12,flexDirection:'row-reverse',alignItems:'center',gap:8},loadingText:{fontSize:12,color:colors.muted},composer:{flexDirection:'row',alignItems:'center',padding:12,borderTopWidth:1,borderTopColor:colors.line,backgroundColor:colors.paper,gap:8},input:{flex:1,minHeight:46,borderRadius:16,backgroundColor:colors.cream,paddingHorizontal:14,color:colors.ink},send:{width:46,height:46,borderRadius:16,backgroundColor:colors.forest,alignItems:'center',justifyContent:'center'}});
