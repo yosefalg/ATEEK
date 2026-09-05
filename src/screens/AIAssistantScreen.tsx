@@ -8,6 +8,22 @@ import { supabase } from '../cloud/client';
 type Msg={id:string;role:'user'|'assistant';body:string};
 type Props={listings:Listing[];favorites:string[];messagesCount:number;offersCount:number};
 
+type FunctionErrorLike={message?:string;context?:Response};
+
+async function readableFunctionError(error:unknown){
+  const e=error as FunctionErrorLike;
+  const fallback=e?.message||'تعذر الاتصال بخدمة الذكاء الاصطناعي';
+  const response=e?.context;
+  if(!response) return fallback;
+  try{
+    const body=await response.clone().json() as {message?:string;providerStatus?:number;providerCode?:string;providerType?:string;providerRequestId?:string|null;code?:string};
+    const details=[body.providerStatus?`HTTP ${body.providerStatus}`:'',body.providerCode&&body.providerCode!=='unknown'?body.providerCode:'',body.providerType&&body.providerType!=='unknown'?body.providerType:'',body.code||''].filter(Boolean).join(' • ');
+    return `${body.message||fallback}${details?` (${details})`:''}`;
+  }catch{
+    try{const text=await response.clone().text();return text||fallback}catch{return fallback}
+  }
+}
+
 export function AIAssistantScreen({listings,favorites,messagesCount,offersCount}:Props){
   const [text,setText]=useState('');
   const [busy,setBusy]=useState(false);
@@ -21,12 +37,12 @@ export function AIAssistantScreen({listings,favorites,messagesCount,offersCount}
     try{
       const market=listings.filter(x=>x.status!=='removed').slice(0,80).map(x=>({title:x.title,price:x.price,category:x.category,location:x.location,condition:x.condition,status:x.status,description:x.description,verified:x.verified}));
       const {data,error}=await supabase.functions.invoke('ateek-assistant',{body:{question:q,listings:market,favoritesCount:favorites.length,messagesCount,offersCount}});
-      if(error)throw new Error(error.message);
+      if(error)throw error;
       if(!data?.answer)throw new Error(data?.message||'لم يصل رد من خدمة الذكاء الاصطناعي');
       setChat(c=>[...c,{id:Date.now()+'a',role:'assistant',body:String(data.answer)}]);
     }catch(e){
-      const message=e instanceof Error?e.message:'تعذر الاتصال بخدمة الذكاء الاصطناعي';
-      setChat(c=>[...c,{id:Date.now()+'e',role:'assistant',body:`تعذر إكمال الطلب الآن: ${message}. تحقق من الإنترنت وحاول مجددًا.`}]);
+      const message=await readableFunctionError(e);
+      setChat(c=>[...c,{id:Date.now()+'e',role:'assistant',body:`تعذر إكمال الطلب الآن: ${message}`}]);
     }finally{setBusy(false);}
   };
   const send=()=>ask(text.trim());
