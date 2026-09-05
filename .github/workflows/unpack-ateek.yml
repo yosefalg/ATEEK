@@ -1,4 +1,4 @@
-name: ATEEK Android CI
+name: ATEEK Android Release
 
 on:
   workflow_dispatch:
@@ -12,7 +12,10 @@ permissions:
 jobs:
   build-apk:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
+    env:
+      NODE_ENV: production
+      CI: true
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -41,25 +44,34 @@ jobs:
       - name: Expo doctor
         run: npx expo-doctor@latest
 
-      - name: Validate Android bundle
+      - name: Validate production Android bundle
         run: npx expo export --platform android --output-dir dist-ci
 
       - name: Generate Android project
-        run: npx expo prebuild --platform android --non-interactive
+        run: npx expo prebuild --platform android --non-interactive --clean
 
-      - name: Build debug APK
+      - name: Build standalone release APK
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleRelease --no-daemon
+
+      - name: Verify JS bundle is packaged
+        run: |
+          APK_PATH="android/app/build/outputs/apk/release/app-release.apk"
+          test -f "$APK_PATH"
+          unzip -l "$APK_PATH" | grep -Eq 'index\.android\.bundle|assets/.+\.bundle' || {
+            echo "JavaScript bundle was not packaged into the release APK"
+            exit 1
+          }
 
       - name: Prepare APK artifact
-        run: cp android/app/build/outputs/apk/debug/app-debug.apk ATEEK.apk
+        run: cp android/app/build/outputs/apk/release/app-release.apk ATEEK-RELEASE.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: ATEEK-APK
-          path: ATEEK.apk
+          name: ATEEK-RELEASE-APK
+          path: ATEEK-RELEASE.apk
           if-no-files-found: error
           retention-days: 30
