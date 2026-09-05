@@ -1,0 +1,34 @@
+{
+  "expo": {
+    "name": "عتيك",
+    "slug": "ateek-marketplace",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "android": {
+      "package": "com.yosef.ateek",
+      "adaptiveIcon": {
+        "backgroundColor": "#102A23"
+      },
+      "permissions": [
+        "READ_MEDIA_IMAGES"
+      ]
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.yosef.ateek"
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "يحتاج عتيك للوصول إلى الصور لإضافتها إلى إعلانك."
+        }
+      ],
+      "expo-secure-store"
+    ]
+  }
+}
