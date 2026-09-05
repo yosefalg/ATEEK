@@ -2,15 +2,15 @@
   "expo": {
     "name": "عتيك",
     "slug": "ateek-marketplace",
-    "version": "1.3.0",
+    "version": "1.4.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "automatic",
     "assetBundlePatterns": ["**/*"],
     "icon": "./assets/generated/icon.png",
     "splash": {"image": "./assets/generated/splash.png", "resizeMode": "contain", "backgroundColor": "#07130F"},
     "android": {
       "package": "com.yosef.ateek",
-      "versionCode": 6,
+      "versionCode": 7,
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {"foregroundImage": "./assets/generated/adaptive-icon.png", "backgroundColor": "#07130F"},
       "permissions": ["READ_MEDIA_IMAGES", "ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"]
