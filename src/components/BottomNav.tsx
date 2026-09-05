@@ -8,7 +8,7 @@ const tabs: { id: TabId; label: string; icon: keyof typeof Ionicons.glyphMap }[]
   { id: 'search', label: 'البحث', icon: 'search-outline' },
   { id: 'add', label: 'أضف', icon: 'add' },
   { id: 'chats', label: 'المحادثات', icon: 'chatbubble-ellipses-outline' },
-  { id: 'ai', label: 'ATEEK AI', icon: 'sparkles-outline' },
+  { id: 'ai', label: 'مساعد عتيك', icon: 'sparkles-outline' },
   { id: 'profile', label: 'حسابي', icon: 'person-outline' }
 ];
 
