@@ -29,5 +29,7 @@
   "reels.retry": "Yeniden dene",
   "reels.liveAuction": "Canlı açık artırma",
   "reels.bid": "Teklif ver",
-  "reels.bidPlaceholder": "Teklifiniz"
+  "reels.bidPlaceholder": "Teklifiniz",
+  "reels.videoFailed": "Video güvenli biçimde oynatılamadı",
+  "reels.videoInvalid": "Video bağlantısı geçersiz veya güvenli değil"
 }
