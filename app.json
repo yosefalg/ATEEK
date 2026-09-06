@@ -5,6 +5,7 @@
     "version": "2.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
+    "jsEngine": "hermes",
     "assetBundlePatterns": ["**/*"],
     "icon": "./assets/generated/icon.png",
     "splash": {"image": "./assets/generated/splash.png", "resizeMode": "contain", "backgroundColor": "#090A0F"},
