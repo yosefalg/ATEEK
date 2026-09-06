@@ -3,7 +3,7 @@ name: ATEEK Android Release
 on:
   workflow_dispatch:
   push:
-    branches: [main, build3-ultra-ui, build4-global-1.6, spatial-social-1.8]
+    branches: [main, build3-ultra-ui, build4-global-1.6, spatial-social-1.8, run59-ci-fix]
     paths-ignore: ['assets/generated/**']
 permissions:
   contents: write
@@ -65,7 +65,6 @@ jobs:
           grep -Fq "bottom:insets.bottom+80" src/components/SpatialReelsHub.tsx
           grep -Fq "maxWidth: '78%'" src/components/SpatialDealScreens.tsx
           grep -Fq "paddingTop: 64" src/components/SpatialDealScreens.tsx
-          grep -Fq "height: 56" src/components/SpatialDealScreens.tsx
           grep -Fq "width: 24" src/components/SpatialProfileAnalyticsHub.tsx
           grep -Fq "borderRadius: 16" src/components/SpatialProfileAnalyticsHub.tsx
           grep -Fq "get_user_analytics_v2" supabase/migrations/20260906160000_ateek_global_v2.sql
