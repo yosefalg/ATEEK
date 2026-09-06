@@ -29,5 +29,7 @@
   "reels.retry": "تلاش دوباره",
   "reels.liveAuction": "مزایده زنده",
   "reels.bid": "پیشنهاد بده",
-  "reels.bidPlaceholder": "پیشنهاد شما"
+  "reels.bidPlaceholder": "پیشنهاد شما",
+  "reels.videoFailed": "پخش امن ویدیو ممکن نشد",
+  "reels.videoInvalid": "نشانی ویدیو نامعتبر یا ناامن است"
 }
