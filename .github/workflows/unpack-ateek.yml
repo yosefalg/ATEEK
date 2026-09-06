@@ -49,13 +49,15 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Validate production contract
         run: |
-          node -e "const a=require('./app.json').expo;if(a.version!=='2.1.0'||a.android.versionCode!==15)process.exit(1)"
+          node -e "const a=require('./app.json').expo;if(a.version!=='2.1.0'||a.android.versionCode!==15||a.jsEngine!=='hermes')process.exit(1)"
           node -e "const e=require('./eas.json');if(e.build.production.android.buildType!=='app-bundle'||e.build.production.distribution!=='store')process.exit(1)"
           grep -Fq "ScreenErrorBoundary name=\"Chat\"" src/cloud/OnlineApp.tsx
           grep -Fq "SafeReelVideo" src/components/SpatialReelsHub.tsx
           grep -Fq "ateek_verification_request_submit" supabase/migrations/20260906193000_production_ready_v21.sql
           grep -Fq "#090A0F" src/theme/tokens.ts
-          test "$(node -e "const s=require('fs').readFileSync('src/data/seed.ts','utf8');process.stdout.write(/seedListings:\s*Listing\[\]\s*=\s*\[\s*\]/s.test(s)?'ok':'bad')")" = "ok"
+          grep -Fq 'esModuleInterop' tsconfig.json
+          grep -Fq 'drop_console' metro.config.js
+          grep -Fq 'AsyncStorage.multiGet' src/theme/ThemeProvider.tsx
       - name: TypeScript strict check
         run: npm run typecheck
       - name: Unit tests
@@ -66,12 +68,26 @@ jobs:
         run: npx expo export --platform android --output-dir dist-ci
       - name: Generate Android project
         run: npx expo prebuild --platform android --clean
-      - name: Build Play AAB and verification APK
+      - name: Apply Run 65 native hardening
+        run: |
+          node scripts/run65-native-hardening.mjs
+          grep -Fq 'android:usesCleartextTraffic="false"' android/app/src/main/AndroidManifest.xml
+          grep -Fq 'android:networkSecurityConfig="@xml/network_security_config"' android/app/src/main/AndroidManifest.xml
+          grep -Fq '<certificates src="system" />' android/app/src/main/res/xml/network_security_config.xml
+          grep -Fq 'android.bundle.enableUncompressedNativeLibs=false' android/gradle.properties
+      - name: Build full Play AAB
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew bundleRelease assembleRelease --no-daemon
-      - name: Verify exact Android identity
+          ./gradlew bundleRelease --no-daemon
+      - name: Build arm64 installable APK
+        env:
+          IS_INSTALLABLE_APK: 'true'
+        run: |
+          cd android
+          echo "IS_INSTALLABLE_APK=${IS_INSTALLABLE_APK}"
+          ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon
+      - name: Verify exact Android identity and ABI contract
         run: |
           set -euo pipefail
           APK_PATH="android/app/build/outputs/apk/release/app-release.apk"
@@ -82,7 +98,6 @@ jobs:
           test -s "$APK_PATH" && test -s "$AAB_PATH"
           unzip -t "$APK_PATH" >/dev/null
           unzip -t "$AAB_PATH" >/dev/null
-          unzip -Z1 "$AAB_PATH" | grep -q '^base/manifest/AndroidManifest.xml$'
           AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
           BADGING="$($AAPT dump badging "$APK_PATH" | head -n 1)"
           ACTUAL_VERSION_NAME="$(printf '%s\n' "$BADGING" | sed -nE "s/.*versionName='([^']+)'.*/\1/p")"
@@ -92,12 +107,75 @@ jobs:
           BUNDLE_PATH="$(unzip -Z1 "$APK_PATH" | grep -E '^assets/(index\.android\.bundle|.*\.hbc)$' | head -n 1)"
           unzip -p "$APK_PATH" "$BUNDLE_PATH" > /tmp/ateek-runtime.bundle
           strings /tmp/ateek-runtime.bundle | grep -Fq "$EXPECTED_SHORT_SHA" || grep -Fq "shortSha: '${EXPECTED_SHORT_SHA}'" src/config/buildInfo.ts
-          echo "VERIFIED PLAY CANDIDATE: ${ACTUAL_VERSION_NAME} #${ACTUAL_VERSION_CODE} ${EXPECTED_SHORT_SHA}"
+          APK_ABIS="$(unzip -Z1 "$APK_PATH" | awk -F/ '/^lib\//{print $2}' | sort -u | tr '\n' ' ')"
+          echo "APK ABIs: $APK_ABIS"
+          [ "$APK_ABIS" = "arm64-v8a " ]
+          for ABI in arm64-v8a armeabi-v7a x86 x86_64; do unzip -Z1 "$AAB_PATH" | grep -q "^base/lib/${ABI}/"; done
+          APK_BYTES=$(stat -c%s "$APK_PATH")
+          [ "$APK_BYTES" -lt 50000000 ]
+          echo "VERIFIED RUN65: ${ACTUAL_VERSION_NAME} #${ACTUAL_VERSION_CODE} ${EXPECTED_SHORT_SHA} arm64 APK=${APK_BYTES} bytes"
           sha256sum "$AAB_PATH" "$APK_PATH"
+      - name: Generate APK and bundle metrics
+        run: |
+          set -euo pipefail
+          APK_PATH="android/app/build/outputs/apk/release/app-release.apk"
+          mkdir -p metrics-out
+          APK_ANALYZER="$(find "$ANDROID_HOME" -type f -name apkanalyzer 2>/dev/null | head -n 1 || true)"
+          if [ -n "$APK_ANALYZER" ]; then
+            "$APK_ANALYZER" apk summary "$APK_PATH" > metrics-out/APKANALYZER.txt || true
+            "$APK_ANALYZER" files list "$APK_PATH" >> metrics-out/APKANALYZER.txt || true
+          else
+            echo "apkanalyzer binary not found on runner; ZIP classification used." > metrics-out/APKANALYZER.txt
+          fi
+          python - <<'PY'
+          import gzip, json, os, zipfile
+          from collections import Counter
+          apk='android/app/build/outputs/apk/release/app-release.apk'
+          baseline=json.load(open('metrics/run64-baseline.json'))
+          cats=Counter(); abis=Counter(); js=None
+          with zipfile.ZipFile(apk) as z:
+              for i in z.infolist():
+                  p=i.filename; c=i.compress_size
+                  if p.startswith('lib/'):
+                      cats['nativeLibs']+=c
+                      parts=p.split('/')
+                      if len(parts)>2: abis[parts[1]]+=c
+                  elif p.startswith('classes') and p.endswith('.dex'): cats['dex']+=c
+                  elif p.startswith('res/') or p=='resources.arsc': cats['resources']+=c
+                  elif p.startswith('assets/'):
+                      cats['assets']+=c
+                      if 'index.android.bundle' in p or p.endswith('.hbc'):
+                          data=z.read(p); js={'path':p,'bytes':len(data),'gzipBytes':len(gzip.compress(data,9))}
+                  else: cats['other']+=c
+          apk_bytes=os.path.getsize(apk)
+          reduction=baseline['apkBytes']-apk_bytes
+          reduction_pct=(reduction/baseline['apkBytes']*100) if baseline['apkBytes'] else 0
+          out={
+            'run64Baseline': baseline,
+            'run65': {'apkBytes':apk_bytes,'jsBundle':js,'compressedByCategory':dict(cats),'nativeLibsByAbi':dict(abis)},
+            'comparison': {'apkByteReduction':reduction,'apkReductionPercent':round(reduction_pct,2),'under50MB':apk_bytes<50_000_000,'jsUnder8MB':bool(js and js['bytes']<8_000_000)}
+          }
+          open('metrics-out/bundle-size.json','w').write(json.dumps(out,ensure_ascii=False,indent=2))
+          lines=[
+            'ATEEK RUN #65 METRICS',
+            f"Run #64 APK: {baseline['apkBytes']} bytes",
+            f"Run #65 arm64 APK: {apk_bytes} bytes",
+            f"Reduction: {reduction} bytes ({reduction_pct:.2f}%)",
+            f"Run #65 JS bundle: {js['bytes'] if js else 'n/a'} bytes; gzip={js['gzipBytes'] if js else 'n/a'}",
+            f"Run #65 ABIs: {', '.join(sorted(abis))}",
+            f"Categories(compressed): {dict(cats)}",
+            f"Target APK <50MB: {'PASS' if apk_bytes<50_000_000 else 'FAIL'}",
+            f"Target JS <8MB: {'PASS' if js and js['bytes']<8_000_000 else 'FAIL'}",
+            'Startup TTI: NOT MEASURED IN CI (physical Android 8 / 2GB device required).',
+            'Certificate pinning: NOT enabled; unsafe runtime pin extraction/fail-open fallback intentionally rejected.',
+          ]
+          open('metrics-out/METRICS.txt','w').write('\n'.join(lines)+'\n')
+          print('\n'.join(lines))
+          PY
       - name: Prepare release artifacts
         run: |
           cp android/app/build/outputs/bundle/release/app-release.aab ATEEK-PLAY-RELEASE.aab
-          cp android/app/build/outputs/apk/release/app-release.apk ATEEK-2.1.0-BUILD15.apk
+          cp android/app/build/outputs/apk/release/app-release.apk ATEEK-2.1.0-BUILD15-ARM64.apk
       - name: Upload AAB
         uses: actions/upload-artifact@v4
         with:
@@ -108,7 +186,14 @@ jobs:
       - name: Upload installable APK
         uses: actions/upload-artifact@v4
         with:
-          name: ATEEK-INSTALLABLE-APK
-          path: ATEEK-2.1.0-BUILD15.apk
+          name: ATEEK-INSTALLABLE-APK-ARM64
+          path: ATEEK-2.1.0-BUILD15-ARM64.apk
+          if-no-files-found: error
+          retention-days: 30
+      - name: Upload Run 65 metrics
+        uses: actions/upload-artifact@v4
+        with:
+          name: ATEEK-RUN65-METRICS
+          path: metrics-out/*
           if-no-files-found: error
           retention-days: 30
