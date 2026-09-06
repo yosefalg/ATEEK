@@ -29,5 +29,7 @@
   "reels.retry": "Retry",
   "reels.liveAuction": "Live auction",
   "reels.bid": "Bid",
-  "reels.bidPlaceholder": "Your bid"
+  "reels.bidPlaceholder": "Your bid",
+  "reels.videoFailed": "Could not play the video securely",
+  "reels.videoInvalid": "The video URL is invalid or unsafe"
 }
