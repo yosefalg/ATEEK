@@ -29,5 +29,7 @@
   "reels.retry": "إعادة المحاولة",
   "reels.liveAuction": "مزاد مباشر",
   "reels.bid": "زايد",
-  "reels.bidPlaceholder": "مزايدتك"
+  "reels.bidPlaceholder": "مزايدتك",
+  "reels.videoFailed": "تعذر تشغيل الفيديو بأمان",
+  "reels.videoInvalid": "رابط الفيديو غير صالح أو غير آمن"
 }
