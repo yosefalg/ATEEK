@@ -2,24 +2,14 @@
   "expo": {
     "name": "عتيك",
     "slug": "ateek-marketplace",
-    "version": "1.3.0",
+    "version": "2.0.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "automatic",
     "assetBundlePatterns": ["**/*"],
     "icon": "./assets/generated/icon.png",
-    "splash": {"image": "./assets/generated/splash.png", "resizeMode": "contain", "backgroundColor": "#07130F"},
-    "android": {
-      "package": "com.yosef.ateek",
-      "versionCode": 6,
-      "softwareKeyboardLayoutMode": "resize",
-      "adaptiveIcon": {"foregroundImage": "./assets/generated/adaptive-icon.png", "backgroundColor": "#07130F"},
-      "permissions": ["READ_MEDIA_IMAGES", "ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"]
-    },
-    "ios": {"supportsTablet": true, "bundleIdentifier": "com.yosef.ateek", "buildNumber": "3"},
-    "plugins": [
-      ["expo-image-picker", {"photosPermission": "يحتاج عتيك للوصول إلى الصور لإضافتها إلى إعلانك."}],
-      ["expo-location", {"locationWhenInUsePermission": "يستخدم عتيك موقعك أثناء الاستخدام لعرض الإعلانات الأقرب إليك وإضافة موقع تقريبي لإعلانك."}],
-      "expo-secure-store"
-    ]
+    "splash": {"image": "./assets/generated/splash.png", "resizeMode": "contain", "backgroundColor": "#090A0F"},
+    "android": {"package": "com.yosef.ateek","versionCode": 14,"softwareKeyboardLayoutMode": "resize","adaptiveIcon": {"foregroundImage": "./assets/generated/adaptive-icon.png", "backgroundColor": "#090A0F"},"permissions": ["READ_MEDIA_IMAGES","READ_MEDIA_VIDEO","ACCESS_COARSE_LOCATION","ACCESS_FINE_LOCATION"]},
+    "ios": {"supportsTablet": true, "bundleIdentifier": "com.yosef.ateek", "buildNumber": "14"},
+    "plugins": [["expo-image-picker", {"photosPermission": "يحتاج عتيك للوصول إلى الصور والفيديوهات لإضافتها إلى الإعلانات والريلز."}],["expo-location", {"locationWhenInUsePermission": "يستخدم عتيك موقعك أثناء الاستخدام لعرض الإعلانات الأقرب إليك وإضافة موقع تقريبي لإعلانك."}],"expo-secure-store","expo-video"]
   }
 }
