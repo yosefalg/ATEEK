@@ -58,8 +58,8 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Validate Spatial Social release contract
         run: |
-          node -e "const a=require('./app.json').expo;if(a.version!=='1.8.0'||a.android.versionCode!==11)process.exit(1)"
-          node -e "const p=require('./package.json');if(p.version!=='1.8.0')process.exit(1)"
+          node -e "const a=require('./app.json').expo;if(a.version!=='1.9.0'||a.android.versionCode!==12)process.exit(1)"
+          node -e "const p=require('./package.json');if(p.version!=='1.9.0')process.exit(1)"
           grep -Fq "Spatial Social • #" src/AppShell.tsx
           test "$(node -e "const s=require('fs').readFileSync('src/data/seed.ts','utf8');process.stdout.write(/seedListings:\s*Listing\[\]\s*=\s*\[\s*\]/s.test(s)?'ok':'bad')")" = "ok"
       - name: TypeScript check
@@ -81,8 +81,8 @@ jobs:
         run: |
           set -euo pipefail
           APK_PATH="android/app/build/outputs/apk/release/app-release.apk"
-          EXPECTED_VERSION_NAME="1.8.0"
-          EXPECTED_VERSION_CODE="11"
+          EXPECTED_VERSION_NAME="1.9.0"
+          EXPECTED_VERSION_CODE="12"
           EXPECTED_SHORT_SHA="${GITHUB_SHA::7}"
 
           test -s "$APK_PATH"
@@ -107,9 +107,6 @@ jobs:
           test -n "$BUNDLE_PATH"
           unzip -p "$APK_PATH" "$BUNDLE_PATH" > /tmp/ateek-runtime.bundle
 
-          # Hermes bytecode may not preserve source strings contiguously. Accept the SHA when
-          # present in printable runtime strings; otherwise validate the generated build-info
-          # source used by the successful release bundle instead of requiring a brittle text match.
           if strings /tmp/ateek-runtime.bundle | grep -Fq "$EXPECTED_SHORT_SHA"; then
             echo "Commit SHA located in runtime bundle strings: $EXPECTED_SHORT_SHA"
           else
