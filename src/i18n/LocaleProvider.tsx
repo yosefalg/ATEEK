@@ -1,21 +1,18 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Asset } from 'expo-asset';
-import * as FileSystem from 'expo-file-system/legacy';
 import { getCalendars, getLocales } from 'expo-localization';
 import { I18n } from 'i18n-js';
 import React, { createContext, PropsWithChildren, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { AppState, I18nManager } from 'react-native';
+import ar from './locale/ar.json';
+import en from './locale/en.json';
+import tr from './locale/tr.json';
+import fa from './locale/fa.json';
 
 export type LocaleCode = 'ar' | 'en' | 'tr' | 'fa';
 const LOCALE_KEY = 'ateek.locale.v2';
 const RTL = new Set<LocaleCode>(['ar', 'fa']);
-const resources: Record<LocaleCode, number> = {
-  ar: require('./locale/ar.json'),
-  en: require('./locale/en.json'),
-  tr: require('./locale/tr.json'),
-  fa: require('./locale/fa.json'),
-};
-const i18n = new I18n({});
+const catalogs = { ar, en, tr, fa } as const;
+const i18n = new I18n(catalogs);
 i18n.defaultLocale = 'ar';
 i18n.enableFallback = true;
 
@@ -25,14 +22,6 @@ function normalize(code?: string | null): LocaleCode {
   if (v.startsWith('tr')) return 'tr';
   if (v.startsWith('en')) return 'en';
   return 'ar';
-}
-async function loadCatalog(locale: LocaleCode) {
-  if (i18n.translations[locale]) return;
-  const asset = Asset.fromModule(resources[locale]);
-  await asset.downloadAsync();
-  if (!asset.localUri) throw new Error(`Locale asset unavailable: ${locale}`);
-  const text = await FileSystem.readAsStringAsync(asset.localUri);
-  i18n.store({ [locale]: JSON.parse(text) as Record<string, string> });
 }
 
 type Ctx = {
@@ -54,11 +43,10 @@ export function LocaleProvider({ children }: PropsWithChildren) {
   const [ready, setReady] = useState(false);
   const [switching, setSwitching] = useState(false);
   const [lastSwitchMs, setLastSwitchMs] = useState<number | null>(null);
+
   const apply = useCallback(async (next: LocaleCode, persist = true) => {
     const start = globalThis.performance?.now?.() ?? Date.now();
     setSwitching(true);
-    await loadCatalog(next);
-    const nextRTL = RTL.has(next);
     I18nManager.allowRTL(true);
     i18n.locale = next;
     setLocaleState(next);
@@ -66,17 +54,15 @@ export function LocaleProvider({ children }: PropsWithChildren) {
     const elapsed = (globalThis.performance?.now?.() ?? Date.now()) - start;
     setLastSwitchMs(elapsed);
     setSwitching(false);
-    if (__DEV__) console.info(`[ATEEK i18n] ${locale}->${next} ${elapsed.toFixed(2)}ms rtl=${nextRTL}`);
+    if (__DEV__) console.info(`[ATEEK i18n] switch=${next} elapsed=${elapsed.toFixed(2)}ms rtl=${RTL.has(next)}`);
     return elapsed;
-  }, [locale]);
+  }, []);
 
   useEffect(() => {
     let active = true;
     void (async () => {
-      const stored = normalize(await AsyncStorage.getItem(LOCALE_KEY));
-      const detected = stored || normalize(getLocales()[0]?.languageCode);
-      await loadCatalog('ar');
-      await loadCatalog(detected);
+      const storedRaw = await AsyncStorage.getItem(LOCALE_KEY);
+      const detected = storedRaw ? normalize(storedRaw) : normalize(getLocales()[0]?.languageCode);
       if (!active) return;
       i18n.locale = detected;
       I18nManager.allowRTL(true);
@@ -90,7 +76,7 @@ export function LocaleProvider({ children }: PropsWithChildren) {
     const sub = AppState.addEventListener('change', state => {
       if (state !== 'active') return;
       const system = normalize(getLocales()[0]?.languageCode);
-      void loadCatalog(system);
+      void Promise.resolve(system);
     });
     return () => sub.remove();
   }, []);
