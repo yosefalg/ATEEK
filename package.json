@@ -1,6 +1,6 @@
 {
   "name": "ateek-marketplace",
-  "version": "1.9.0",
+  "version": "2.0.0",
   "private": true,
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {"start":"expo start","android":"expo start --android","web":"expo start --web","typecheck":"tsc --noEmit","test":"node --test tests/*.test.cjs"},
@@ -20,6 +20,7 @@
     "expo-network": "~8.0.8",
     "expo-secure-store": "~15.0.8",
     "expo-status-bar": "~3.0.0",
+    "expo-video": "~3.0.16",
     "react": "19.1.0",
     "react-native": "0.81.5",
     "react-native-reanimated": "~4.1.1",

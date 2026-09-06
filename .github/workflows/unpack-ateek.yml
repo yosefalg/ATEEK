@@ -5,10 +5,8 @@ on:
   push:
     branches: [main, build3-ultra-ui, build4-global-1.6, spatial-social-1.8]
     paths-ignore: ['assets/generated/**']
-
 permissions:
   contents: write
-
 jobs:
   build-apk:
     runs-on: ubuntu-latest
@@ -53,16 +51,20 @@ jobs:
           cat > src/config/buildInfo.ts <<EOF
           export const BUILD_INFO = { versionName: '${VERSION_NAME}', versionCode: ${VERSION_CODE}, shortSha: '${SHORT_SHA}' } as const;
           EOF
-          echo "Embedding ATEEK ${VERSION_NAME} Spatial Social (#${VERSION_CODE}) commit ${SHORT_SHA}"
+          echo "Embedding ATEEK ${VERSION_NAME} Global (#${VERSION_CODE}) commit ${SHORT_SHA}"
       - name: Install dependencies
         run: npm install --no-audit --no-fund
-      - name: Validate Spatial Social release contract
+      - name: Validate ATEEK Global v2 release contract
         run: |
-          node -e "const a=require('./app.json').expo;if(a.version!=='1.9.0'||a.android.versionCode!==12)process.exit(1)"
-          node -e "const p=require('./package.json');if(p.version!=='1.9.0')process.exit(1)"
-          grep -Fq "Spatial Social • #" src/AppShell.tsx
+          node -e "const a=require('./app.json').expo;if(a.version!=='2.0.0'||a.android.versionCode!==13)process.exit(1)"
+          node -e "const p=require('./package.json');if(p.version!=='2.0.0'||p.dependencies['expo-video']!=='~3.0.16')process.exit(1)"
+          grep -Fq "get_user_analytics_v2" supabase/migrations/20260906160000_ateek_global_v2.sql
+          grep -Fq "create table if not exists public.reels" supabase/migrations/20260906160000_ateek_global_v2.sql
+          grep -Fq "create table if not exists public.live_auctions" supabase/migrations/20260906160000_ateek_global_v2.sql
+          grep -Fq "create table if not exists public.escrow_deals" supabase/migrations/20260906160000_ateek_global_v2.sql
+          grep -Fq "SpatialReelsHub" src/screens/AIAssistantScreen.tsx
           test "$(node -e "const s=require('fs').readFileSync('src/data/seed.ts','utf8');process.stdout.write(/seedListings:\s*Listing\[\]\s*=\s*\[\s*\]/s.test(s)?'ok':'bad')")" = "ok"
-      - name: TypeScript check
+      - name: TypeScript strict check
         run: npm run typecheck
       - name: Unit tests
         run: npm test
@@ -81,40 +83,21 @@ jobs:
         run: |
           set -euo pipefail
           APK_PATH="android/app/build/outputs/apk/release/app-release.apk"
-          EXPECTED_VERSION_NAME="1.9.0"
-          EXPECTED_VERSION_CODE="12"
+          EXPECTED_VERSION_NAME="2.0.0"
+          EXPECTED_VERSION_CODE="13"
           EXPECTED_SHORT_SHA="${GITHUB_SHA::7}"
-
           test -s "$APK_PATH"
           unzip -t "$APK_PATH" >/dev/null
-          unzip -l "$APK_PATH" | grep -qE 'assets/(index\.android\.bundle|.*\.hbc)'
-
           AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
-          test -x "$AAPT"
           BADGING="$($AAPT dump badging "$APK_PATH" | head -n 1)"
-
           ACTUAL_VERSION_NAME="$(printf '%s\n' "$BADGING" | sed -nE "s/.*versionName='([^']+)'.*/\1/p")"
           ACTUAL_VERSION_CODE="$(printf '%s\n' "$BADGING" | sed -nE "s/.*versionCode='([0-9]+)'.*/\1/p")"
-
-          printf 'APK badging: %s\n' "$BADGING"
-          printf 'Expected versionName=%s versionCode=%s sha=%s\n' "$EXPECTED_VERSION_NAME" "$EXPECTED_VERSION_CODE" "$EXPECTED_SHORT_SHA"
-          printf 'Actual   versionName=%s versionCode=%s\n' "$ACTUAL_VERSION_NAME" "$ACTUAL_VERSION_CODE"
-
           [ "$ACTUAL_VERSION_NAME" = "$EXPECTED_VERSION_NAME" ]
           [ "$ACTUAL_VERSION_CODE" = "$EXPECTED_VERSION_CODE" ]
-
           BUNDLE_PATH="$(unzip -Z1 "$APK_PATH" | grep -E '^assets/(index\.android\.bundle|.*\.hbc)$' | head -n 1)"
-          test -n "$BUNDLE_PATH"
           unzip -p "$APK_PATH" "$BUNDLE_PATH" > /tmp/ateek-runtime.bundle
-
-          if strings /tmp/ateek-runtime.bundle | grep -Fq "$EXPECTED_SHORT_SHA"; then
-            echo "Commit SHA located in runtime bundle strings: $EXPECTED_SHORT_SHA"
-          else
-            grep -Fq "shortSha: '${EXPECTED_SHORT_SHA}'" src/config/buildInfo.ts
-            echo "Commit SHA validated from generated build identity source: $EXPECTED_SHORT_SHA"
-          fi
-
-          echo "VERIFIED FINAL APK: ${ACTUAL_VERSION_NAME} Spatial Social #${ACTUAL_VERSION_CODE} ${EXPECTED_SHORT_SHA}"
+          if strings /tmp/ateek-runtime.bundle | grep -Fq "$EXPECTED_SHORT_SHA"; then echo "Commit SHA located in runtime bundle strings: $EXPECTED_SHORT_SHA"; else grep -Fq "shortSha: '${EXPECTED_SHORT_SHA}'" src/config/buildInfo.ts; fi
+          echo "VERIFIED FINAL APK: ${ACTUAL_VERSION_NAME} ATEEK Global #${ACTUAL_VERSION_CODE} ${EXPECTED_SHORT_SHA}"
           sha256sum "$APK_PATH"
       - name: Prepare APK artifact
         run: cp android/app/build/outputs/apk/release/app-release.apk ATEEK-RELEASE.apk
