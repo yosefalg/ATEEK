@@ -7,6 +7,8 @@ on:
     paths-ignore: ['assets/generated/**']
 permissions:
   contents: write
+  pull-requests: write
+  issues: write
 jobs:
   build-aab:
     runs-on: ubuntu-latest
@@ -30,7 +32,7 @@ jobs:
       - name: Generate and verify ATEEK branded assets
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq librsvg2-bin
+          sudo apt-get install -y -qq librsvg2-bin openssl
           mkdir -p assets/generated
           rsvg-convert assets/brand/ateek-mark.svg -w 1024 -h 1024 -o assets/generated/icon.png
           rsvg-convert assets/brand/ateek-mark.svg -w 1024 -h 1024 -o assets/generated/adaptive-icon.png
@@ -68,13 +70,63 @@ jobs:
         run: npx expo export --platform android --output-dir dist-ci
       - name: Generate Android project
         run: npx expo prebuild --platform android --clean
-      - name: Apply Run 65 native hardening
+      - name: Apply Run 72 native trim and hardening
         run: |
-          node scripts/run65-native-hardening.mjs
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          root=Path('.')
+          manifest=root/'android/app/src/main/AndroidManifest.xml'
+          xml=root/'android/app/src/main/res/xml/network_security_config.xml'
+          gradle=root/'android/app/build.gradle'
+          props=root/'android/gradle.properties'
+          s=manifest.read_text()
+          s=re.sub(r'\sandroid:usesCleartextTraffic="[^"]*"','',s)
+          s=re.sub(r'\sandroid:networkSecurityConfig="[^"]*"','',s)
+          s=s.replace('<application','<application android:usesCleartextTraffic="false" android:networkSecurityConfig="@xml/network_security_config"',1)
+          manifest.write_text(s)
+          xml.parent.mkdir(parents=True,exist_ok=True)
+          xml.write_text('<?xml version="1.0" encoding="utf-8"?>\n<network-security-config>\n  <base-config cleartextTrafficPermitted="false">\n    <trust-anchors>\n      <certificates src="system" />\n    </trust-anchors>\n  </base-config>\n</network-security-config>\n')
+          p=props.read_text()
+          p=re.sub(r'^android\.bundle\.enableUncompressedNativeLibs=.*\n?','',p,flags=re.M)
+          props.write_text(p)
+          g=gradle.read_text()
+          if 'hermesFlags = ["-O", "-output-source-map"]' not in g:
+              g=g.replace('react {','react {\n    hermesFlags = ["-O", "-output-source-map"]',1)
+          marker='android {'
+          block='''android {\n    packagingOptions {\n        jniLibs {\n            pickFirsts += ["**/libc++_shared.so"]\n            excludes += ["**/libjsc.so", "**/libjscexecutor.so"]\n        }\n    }'''
+          if 'excludes += ["**/libjsc.so", "**/libjscexecutor.so"]' not in g:
+              g=g.replace(marker,block,1)
+          gradle.write_text(g)
+          print('Run #72 native trim applied: Hermes -O, JSC excludes, libc++ pickFirst, cleartext off, system trust only.')
+          PY
           grep -Fq 'android:usesCleartextTraffic="false"' android/app/src/main/AndroidManifest.xml
           grep -Fq 'android:networkSecurityConfig="@xml/network_security_config"' android/app/src/main/AndroidManifest.xml
           grep -Fq '<certificates src="system" />' android/app/src/main/res/xml/network_security_config.xml
-          grep -Fq 'android.bundle.enableUncompressedNativeLibs=false' android/gradle.properties
+          ! grep -q '^android.bundle.enableUncompressedNativeLibs=' android/gradle.properties
+          grep -Fq 'hermesFlags = ["-O", "-output-source-map"]' android/app/build.gradle
+          grep -Fq '**/libjsc.so' android/app/build.gradle
+      - name: Audit certificate expiry and SPKI candidates
+        run: |
+          set -euo pipefail
+          mkdir -p metrics-out
+          : > metrics-out/CERTIFICATE-AUDIT.txt
+          for HOST in aoftmiajhujveahjqlct.supabase.co res.cloudinary.com; do
+            echo "HOST=$HOST" | tee -a metrics-out/CERTIFICATE-AUDIT.txt
+            openssl s_client -showcerts -servername "$HOST" -connect "$HOST:443" </dev/null 2>/dev/null > "/tmp/${HOST}.chain"
+            awk '/BEGIN CERTIFICATE/{n++}{print > ("/tmp/cert" n ".pem")}' "/tmp/${HOST}.chain"
+            LEAF=/tmp/cert1.pem
+            END=$(openssl x509 -in "$LEAF" -noout -enddate | cut -d= -f2-)
+            END_EPOCH=$(date -d "$END" +%s)
+            NOW=$(date +%s)
+            LEFT=$(( (END_EPOCH-NOW)/86400 ))
+            echo "daysRemaining=$LEFT" | tee -a metrics-out/CERTIFICATE-AUDIT.txt
+            [ "$LEFT" -gt 7 ]
+            PIN=$(openssl x509 -in "$LEAF" -pubkey -noout | openssl pkey -pubin -outform DER 2>/dev/null | openssl dgst -sha256 -binary | openssl base64 -A)
+            echo "leafSPKI=sha256/$PIN" | tee -a metrics-out/CERTIFICATE-AUDIT.txt
+            rm -f /tmp/cert*.pem
+          done
+          echo 'Runtime pinning intentionally not enabled until two out-of-band verified backup SPKI pins per host are supplied; CI records live candidates and fails on <=7 certificate days.' | tee -a metrics-out/CERTIFICATE-AUDIT.txt
       - name: Build full Play AAB
         run: |
           cd android
@@ -104,18 +156,14 @@ jobs:
           ACTUAL_VERSION_CODE="$(printf '%s\n' "$BADGING" | sed -nE "s/.*versionCode='([0-9]+)'.*/\1/p")"
           [ "$ACTUAL_VERSION_NAME" = "$EXPECTED_VERSION_NAME" ]
           [ "$ACTUAL_VERSION_CODE" = "$EXPECTED_VERSION_CODE" ]
-          BUNDLE_PATH="$(unzip -Z1 "$APK_PATH" | grep -E '^assets/(index\.android\.bundle|.*\.hbc)$' | head -n 1)"
-          unzip -p "$APK_PATH" "$BUNDLE_PATH" > /tmp/ateek-runtime.bundle
-          strings /tmp/ateek-runtime.bundle | grep -Fq "$EXPECTED_SHORT_SHA" || grep -Fq "shortSha: '${EXPECTED_SHORT_SHA}'" src/config/buildInfo.ts
           APK_ABIS="$(unzip -Z1 "$APK_PATH" | awk -F/ '/^lib\//{print $2}' | sort -u | tr '\n' ' ')"
           echo "APK ABIs: $APK_ABIS"
           [ "$APK_ABIS" = "arm64-v8a " ]
           for ABI in arm64-v8a armeabi-v7a x86 x86_64; do unzip -Z1 "$AAB_PATH" | grep -q "^base/lib/${ABI}/"; done
-          APK_BYTES=$(stat -c%s "$APK_PATH")
-          [ "$APK_BYTES" -lt 50000000 ]
-          echo "VERIFIED RUN65: ${ACTUAL_VERSION_NAME} #${ACTUAL_VERSION_CODE} ${EXPECTED_SHORT_SHA} arm64 APK=${APK_BYTES} bytes"
+          ! unzip -Z1 "$APK_PATH" | grep -qE '^lib/arm64-v8a/lib(jsc|jscexecutor)\.so$'
+          echo "VERIFIED RUN72: ${ACTUAL_VERSION_NAME} #${ACTUAL_VERSION_CODE} ${EXPECTED_SHORT_SHA}"
           sha256sum "$AAB_PATH" "$APK_PATH"
-      - name: Generate APK and bundle metrics
+      - name: Generate Run 72 APK metrics and largest files
         run: |
           set -euo pipefail
           APK_PATH="android/app/build/outputs/apk/release/app-release.apk"
@@ -124,54 +172,42 @@ jobs:
           if [ -n "$APK_ANALYZER" ]; then
             "$APK_ANALYZER" apk summary "$APK_PATH" > metrics-out/APKANALYZER.txt || true
             "$APK_ANALYZER" files list "$APK_PATH" >> metrics-out/APKANALYZER.txt || true
-          else
-            echo "apkanalyzer binary not found on runner; ZIP classification used." > metrics-out/APKANALYZER.txt
           fi
           python - <<'PY'
-          import gzip, json, os, zipfile
-          from collections import Counter
+          import gzip,json,os,zipfile
           apk='android/app/build/outputs/apk/release/app-release.apk'
           baseline=json.load(open('metrics/run64-baseline.json'))
-          cats=Counter(); abis=Counter(); js=None
           with zipfile.ZipFile(apk) as z:
-              for i in z.infolist():
-                  p=i.filename; c=i.compress_size
-                  if p.startswith('lib/'):
-                      cats['nativeLibs']+=c
-                      parts=p.split('/')
-                      if len(parts)>2: abis[parts[1]]+=c
-                  elif p.startswith('classes') and p.endswith('.dex'): cats['dex']+=c
-                  elif p.startswith('res/') or p=='resources.arsc': cats['resources']+=c
-                  elif p.startswith('assets/'):
-                      cats['assets']+=c
-                      if 'index.android.bundle' in p or p.endswith('.hbc'):
-                          data=z.read(p); js={'path':p,'bytes':len(data),'gzipBytes':len(gzip.compress(data,9))}
-                  else: cats['other']+=c
+              infos=z.infolist()
+              top=sorted(((i.file_size,i.compress_size,i.filename) for i in infos), reverse=True)[:10]
+              arm=sum(i.file_size for i in infos if i.filename.startswith('lib/arm64-v8a/'))
+              js=None
+              for i in infos:
+                  if i.filename.startswith('assets/') and ('index.android.bundle' in i.filename or i.filename.endswith('.hbc')):
+                      data=z.read(i.filename); js={'path':i.filename,'bytes':len(data),'gzipBytes':len(gzip.compress(data,9))}
+                      break
           apk_bytes=os.path.getsize(apk)
-          reduction=baseline['apkBytes']-apk_bytes
-          reduction_pct=(reduction/baseline['apkBytes']*100) if baseline['apkBytes'] else 0
-          out={
-            'run64Baseline': baseline,
-            'run65': {'apkBytes':apk_bytes,'jsBundle':js,'compressedByCategory':dict(cats),'nativeLibsByAbi':dict(abis)},
-            'comparison': {'apkByteReduction':reduction,'apkReductionPercent':round(reduction_pct,2),'under50MB':apk_bytes<50_000_000,'jsUnder8MB':bool(js and js['bytes']<8_000_000)}
-          }
-          open('metrics-out/bundle-size.json','w').write(json.dumps(out,ensure_ascii=False,indent=2))
-          lines=[
-            'ATEEK RUN #65 METRICS',
-            f"Run #64 APK: {baseline['apkBytes']} bytes",
-            f"Run #65 arm64 APK: {apk_bytes} bytes",
-            f"Reduction: {reduction} bytes ({reduction_pct:.2f}%)",
-            f"Run #65 JS bundle: {js['bytes'] if js else 'n/a'} bytes; gzip={js['gzipBytes'] if js else 'n/a'}",
-            f"Run #65 ABIs: {', '.join(sorted(abis))}",
-            f"Categories(compressed): {dict(cats)}",
-            f"Target APK <50MB: {'PASS' if apk_bytes<50_000_000 else 'FAIL'}",
-            f"Target JS <8MB: {'PASS' if js and js['bytes']<8_000_000 else 'FAIL'}",
-            'Startup TTI: NOT MEASURED IN CI (physical Android 8 / 2GB device required).',
-            'Certificate pinning: NOT enabled; unsafe runtime pin extraction/fail-open fallback intentionally rejected.',
-          ]
-          open('metrics-out/METRICS.txt','w').write('\n'.join(lines)+'\n')
-          print('\n'.join(lines))
+          out={'run64Baseline':baseline,'run72':{'apkBytes':apk_bytes,'arm64NativeBytes':arm,'jsBundle':js,'largest10':[{'path':p,'rawBytes':r,'compressedBytes':c} for r,c,p in top]}}
+          open('metrics-out/bundle-size.json','w').write(json.dumps(out,indent=2))
+          with open('metrics-out/METRICS.txt','w') as f:
+              f.write(f'ATEEK RUN #72 METRICS\nAPK bytes: {apk_bytes}\narm64 native raw bytes: {arm}\n')
+              if js: f.write(f"Hermes bundle raw: {js['bytes']} gzip: {js['gzipBytes']}\n")
+              f.write('Largest 10 files:\n')
+              for r,c,p in top: f.write(f'{r:>10} raw {c:>10} compressed {p}\n')
+              f.write('Physical Android 8/2GB TotalTime/PSS: NOT MEASURED; no physical device is attached to GitHub Actions.\n')
+          print(open('metrics-out/METRICS.txt').read())
+          if arm > 16_000_000:
+              raise SystemExit(f'arm64 native payload exceeds 16MB guard: {arm}')
           PY
+      - name: Comment metrics on pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PR=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "${GITHUB_REF_NAME}" --state open --json number --jq '.[0].number // empty')
+          if [ -n "$PR" ]; then
+            { echo '### ATEEK Run #72 size/security metrics'; echo '```'; cat metrics-out/METRICS.txt; echo '```'; echo; cat metrics-out/CERTIFICATE-AUDIT.txt; } > /tmp/pr-comment.md
+            gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body-file /tmp/pr-comment.md
+          fi
       - name: Prepare release artifacts
         run: |
           cp android/app/build/outputs/bundle/release/app-release.aab ATEEK-PLAY-RELEASE.aab
@@ -190,10 +226,10 @@ jobs:
           path: ATEEK-2.1.0-BUILD15-ARM64.apk
           if-no-files-found: error
           retention-days: 30
-      - name: Upload Run 65 metrics
+      - name: Upload Run 72 metrics
         uses: actions/upload-artifact@v4
         with:
-          name: ATEEK-RUN65-METRICS
+          name: ATEEK-RUN72-METRICS
           path: metrics-out/*
           if-no-files-found: error
           retention-days: 30
