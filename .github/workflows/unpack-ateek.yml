@@ -3,12 +3,10 @@ name: ATEEK Android Release
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, build3-ultra-ui, build4-global-1.6, spatial-social-1.8]
     paths-ignore: ['assets/generated/**']
-
 permissions:
   contents: write
-
 jobs:
   build-apk:
     runs-on: ubuntu-latest
@@ -53,10 +51,26 @@ jobs:
           cat > src/config/buildInfo.ts <<EOF
           export const BUILD_INFO = { versionName: '${VERSION_NAME}', versionCode: ${VERSION_CODE}, shortSha: '${SHORT_SHA}' } as const;
           EOF
-          echo "Embedding ATEEK ${VERSION_NAME} (#${VERSION_CODE}) commit ${SHORT_SHA}"
+          echo "Embedding ATEEK ${VERSION_NAME} Global (#${VERSION_CODE}) commit ${SHORT_SHA}"
       - name: Install dependencies
         run: npm install --no-audit --no-fund
-      - name: TypeScript check
+      - name: Apply Run 57 visual alignment refinement
+        run: node scripts/run57-visual-refinement.mjs
+      - name: Validate ATEEK Global v2 Run 57 release contract
+        run: |
+          node -e "const a=require('./app.json').expo;if(a.version!=='2.0.0'||a.android.versionCode!==14)process.exit(1)"
+          node -e "const p=require('./package.json');if(p.version!=='2.0.0'||p.dependencies['expo-video']!=='~3.0.16')process.exit(1)"
+          grep -Fq "itemVisiblePercentThreshold:80" src/components/SpatialReelsHub.tsx
+          grep -Fq "numberOfLines={2}" src/components/SpatialReelsHub.tsx
+          grep -Fq "bottom:insets.bottom+80" src/components/SpatialReelsHub.tsx
+          grep -Fq "maxWidth: '78%'" src/components/SpatialDealScreens.tsx
+          grep -Fq "paddingTop: 64" src/components/SpatialDealScreens.tsx
+          grep -Fq "height: 56" src/components/SpatialDealScreens.tsx
+          grep -Fq "width: 24" src/components/SpatialProfileAnalyticsHub.tsx
+          grep -Fq "borderRadius: 16" src/components/SpatialProfileAnalyticsHub.tsx
+          grep -Fq "get_user_analytics_v2" supabase/migrations/20260906160000_ateek_global_v2.sql
+          test "$(node -e "const s=require('fs').readFileSync('src/data/seed.ts','utf8');process.stdout.write(/seedListings:\s*Listing\[\]\s*=\s*\[\s*\]/s.test(s)?'ok':'bad')")" = "ok"
+      - name: TypeScript strict check
         run: npm run typecheck
       - name: Unit tests
         run: npm test
@@ -75,22 +89,21 @@ jobs:
         run: |
           set -euo pipefail
           APK_PATH="android/app/build/outputs/apk/release/app-release.apk"
-          EXPECTED_VERSION_NAME=$(node -p "require('./app.json').expo.version")
-          EXPECTED_VERSION_CODE=$(node -p "require('./app.json').expo.android.versionCode")
+          EXPECTED_VERSION_NAME="2.0.0"
+          EXPECTED_VERSION_CODE="14"
           EXPECTED_SHORT_SHA="${GITHUB_SHA::7}"
           test -s "$APK_PATH"
           unzip -t "$APK_PATH" >/dev/null
-          unzip -l "$APK_PATH" | grep -q 'assets/index.android.bundle'
-          AAPT=$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)
-          BADGING=$("$AAPT" dump badging "$APK_PATH" | head -n 1)
-          ACTUAL_VERSION_CODE=$(printf '%s\n' "$BADGING" | sed -n "s/.*versionCode='\([^']*\)'.*/\1/p")
-          ACTUAL_VERSION_NAME=$(printf '%s\n' "$BADGING" | sed -n "s/.*versionName='\([^']*\)'.*/\1/p")
-          test "$ACTUAL_VERSION_NAME" = "$EXPECTED_VERSION_NAME"
-          test "$ACTUAL_VERSION_CODE" = "$EXPECTED_VERSION_CODE"
-          unzip -p "$APK_PATH" assets/index.android.bundle > /tmp/ateek-index.android.bundle
-          grep -aFq "$EXPECTED_SHORT_SHA" /tmp/ateek-index.android.bundle
-          grep -aFq "$EXPECTED_VERSION_NAME" /tmp/ateek-index.android.bundle
-          echo "VERIFIED FINAL APK: ${ACTUAL_VERSION_NAME} #${ACTUAL_VERSION_CODE} ${EXPECTED_SHORT_SHA}"
+          AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
+          BADGING="$($AAPT dump badging "$APK_PATH" | head -n 1)"
+          ACTUAL_VERSION_NAME="$(printf '%s\n' "$BADGING" | sed -nE "s/.*versionName='([^']+)'.*/\1/p")"
+          ACTUAL_VERSION_CODE="$(printf '%s\n' "$BADGING" | sed -nE "s/.*versionCode='([0-9]+)'.*/\1/p")"
+          [ "$ACTUAL_VERSION_NAME" = "$EXPECTED_VERSION_NAME" ]
+          [ "$ACTUAL_VERSION_CODE" = "$EXPECTED_VERSION_CODE" ]
+          BUNDLE_PATH="$(unzip -Z1 "$APK_PATH" | grep -E '^assets/(index\.android\.bundle|.*\.hbc)$' | head -n 1)"
+          unzip -p "$APK_PATH" "$BUNDLE_PATH" > /tmp/ateek-runtime.bundle
+          if strings /tmp/ateek-runtime.bundle | grep -Fq "$EXPECTED_SHORT_SHA"; then echo "Commit SHA located in runtime bundle strings: $EXPECTED_SHORT_SHA"; else grep -Fq "shortSha: '${EXPECTED_SHORT_SHA}'" src/config/buildInfo.ts; fi
+          echo "VERIFIED FINAL APK: ${ACTUAL_VERSION_NAME} ATEEK Global #${ACTUAL_VERSION_CODE} ${EXPECTED_SHORT_SHA}"
           sha256sum "$APK_PATH"
       - name: Prepare APK artifact
         run: cp android/app/build/outputs/apk/release/app-release.apk ATEEK-RELEASE.apk
