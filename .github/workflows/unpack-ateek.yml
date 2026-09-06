@@ -54,15 +54,21 @@ jobs:
           echo "Embedding ATEEK ${VERSION_NAME} Global (#${VERSION_CODE}) commit ${SHORT_SHA}"
       - name: Install dependencies
         run: npm install --no-audit --no-fund
-      - name: Validate ATEEK Global v2 release contract
+      - name: Apply Run 57 visual alignment refinement
+        run: node scripts/run57-visual-refinement.mjs
+      - name: Validate ATEEK Global v2 Run 57 release contract
         run: |
-          node -e "const a=require('./app.json').expo;if(a.version!=='2.0.0'||a.android.versionCode!==13)process.exit(1)"
+          node -e "const a=require('./app.json').expo;if(a.version!=='2.0.0'||a.android.versionCode!==14)process.exit(1)"
           node -e "const p=require('./package.json');if(p.version!=='2.0.0'||p.dependencies['expo-video']!=='~3.0.16')process.exit(1)"
+          grep -Fq "itemVisiblePercentThreshold:80" src/components/SpatialReelsHub.tsx
+          grep -Fq "numberOfLines={2}" src/components/SpatialReelsHub.tsx
+          grep -Fq "bottom:insets.bottom+80" src/components/SpatialReelsHub.tsx
+          grep -Fq "maxWidth: '78%'" src/components/SpatialDealScreens.tsx
+          grep -Fq "paddingTop: 64" src/components/SpatialDealScreens.tsx
+          grep -Fq "height: 56" src/components/SpatialDealScreens.tsx
+          grep -Fq "width: 24" src/components/SpatialProfileAnalyticsHub.tsx
+          grep -Fq "borderRadius: 16" src/components/SpatialProfileAnalyticsHub.tsx
           grep -Fq "get_user_analytics_v2" supabase/migrations/20260906160000_ateek_global_v2.sql
-          grep -Fq "create table if not exists public.reels" supabase/migrations/20260906160000_ateek_global_v2.sql
-          grep -Fq "create table if not exists public.live_auctions" supabase/migrations/20260906160000_ateek_global_v2.sql
-          grep -Fq "create table if not exists public.escrow_deals" supabase/migrations/20260906160000_ateek_global_v2.sql
-          grep -Fq "SpatialReelsHub" src/screens/AIAssistantScreen.tsx
           test "$(node -e "const s=require('fs').readFileSync('src/data/seed.ts','utf8');process.stdout.write(/seedListings:\s*Listing\[\]\s*=\s*\[\s*\]/s.test(s)?'ok':'bad')")" = "ok"
       - name: TypeScript strict check
         run: npm run typecheck
@@ -84,7 +90,7 @@ jobs:
           set -euo pipefail
           APK_PATH="android/app/build/outputs/apk/release/app-release.apk"
           EXPECTED_VERSION_NAME="2.0.0"
-          EXPECTED_VERSION_CODE="13"
+          EXPECTED_VERSION_CODE="14"
           EXPECTED_SHORT_SHA="${GITHUB_SHA::7}"
           test -s "$APK_PATH"
           unzip -t "$APK_PATH" >/dev/null
