@@ -80,6 +80,7 @@ jobs:
           EXPECTED_VERSION_CODE="15"
           EXPECTED_SHORT_SHA="${GITHUB_SHA::7}"
           test -s "$APK_PATH" && test -s "$AAB_PATH"
+          unzip -t "$APK_PATH" >/dev/null
           unzip -t "$AAB_PATH" >/dev/null
           unzip -Z1 "$AAB_PATH" | grep -q '^base/manifest/AndroidManifest.xml$'
           AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
@@ -93,12 +94,21 @@ jobs:
           strings /tmp/ateek-runtime.bundle | grep -Fq "$EXPECTED_SHORT_SHA" || grep -Fq "shortSha: '${EXPECTED_SHORT_SHA}'" src/config/buildInfo.ts
           echo "VERIFIED PLAY CANDIDATE: ${ACTUAL_VERSION_NAME} #${ACTUAL_VERSION_CODE} ${EXPECTED_SHORT_SHA}"
           sha256sum "$AAB_PATH" "$APK_PATH"
-      - name: Prepare AAB artifact
-        run: cp android/app/build/outputs/bundle/release/app-release.aab ATEEK-PLAY-RELEASE.aab
+      - name: Prepare release artifacts
+        run: |
+          cp android/app/build/outputs/bundle/release/app-release.aab ATEEK-PLAY-RELEASE.aab
+          cp android/app/build/outputs/apk/release/app-release.apk ATEEK-2.1.0-BUILD15.apk
       - name: Upload AAB
         uses: actions/upload-artifact@v4
         with:
           name: ATEEK-PLAY-AAB
           path: ATEEK-PLAY-RELEASE.aab
+          if-no-files-found: error
+          retention-days: 30
+      - name: Upload installable APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ATEEK-INSTALLABLE-APK
+          path: ATEEK-2.1.0-BUILD15.apk
           if-no-files-found: error
           retention-days: 30
