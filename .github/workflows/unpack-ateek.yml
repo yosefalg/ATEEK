@@ -59,7 +59,7 @@ jobs:
       - name: Validate ATEEK Global v2 Run 57 release contract
         run: |
           node -e "const a=require('./app.json').expo;if(a.version!=='2.0.0'||a.android.versionCode!==14)process.exit(1)"
-          node -e "const p=require('./package.json');if(p.version!=='2.0.0'||p.dependencies['expo-video']!=='~3.0.16')process.exit(1)"
+          node -e "const p=require('./package.json');if(p.version!=='2.0.0'||p.dependencies['expo-video']!=='~3.0.16'||p.dependencies['react-native-safe-area-context']!=='~5.6.0')process.exit(1)"
           grep -Fq "itemVisiblePercentThreshold:80" src/components/SpatialReelsHub.tsx
           grep -Fq "numberOfLines={2}" src/components/SpatialReelsHub.tsx
           grep -Fq "bottom:insets.bottom+80" src/components/SpatialReelsHub.tsx
