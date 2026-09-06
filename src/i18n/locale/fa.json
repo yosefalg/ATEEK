@@ -31,5 +31,6 @@
   "reels.bid": "پیشنهاد بده",
   "reels.bidPlaceholder": "پیشنهاد شما",
   "reels.videoFailed": "پخش امن ویدیو ممکن نشد",
-  "reels.videoInvalid": "نشانی ویدیو نامعتبر یا ناامن است"
+  "reels.videoInvalid": "نشانی ویدیو نامعتبر یا ناامن است",
+  "reels.skip": "رد کردن"
 }

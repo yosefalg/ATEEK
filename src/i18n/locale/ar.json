@@ -31,5 +31,6 @@
   "reels.bid": "زايد",
   "reels.bidPlaceholder": "مزايدتك",
   "reels.videoFailed": "تعذر تشغيل الفيديو بأمان",
-  "reels.videoInvalid": "رابط الفيديو غير صالح أو غير آمن"
+  "reels.videoInvalid": "رابط الفيديو غير صالح أو غير آمن",
+  "reels.skip": "تخطي"
 }

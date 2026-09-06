@@ -1,75 +1,19 @@
-import { useEffect, useRef } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useEffect,useRef,useState } from 'react';
+import { Image,Pressable,StyleSheet,Text,View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useEvent } from 'expo';
-import { VideoView, useVideoPlayer } from 'expo-video';
-import { ReelVideoInput, resolveReelVideoSource } from '../services/videoSafety';
+import { VideoView,useVideoPlayer } from 'expo-video';
+import { cloudinary720,ReelVideoInput,resolveReelVideoSource } from '../services/videoSafety';
 import { useLocale } from '../i18n/LocaleProvider';
+import { supabase } from '../cloud/client';
 import { ui } from '../theme/tokens';
-
-type Props = { reel: ReelVideoInput; active: boolean };
-
-function GuardedPlayer({ uri, active, failedLabel }: { uri: string; active: boolean; failedLabel: string }) {
-  const startedAt = useRef(globalThis.performance?.now?.() ?? Date.now());
-  const reportedReady = useRef(false);
-  const sought = useRef(false);
-  const player = useVideoPlayer(uri, (p) => { p.loop = true; });
-  const { status } = useEvent(player, 'statusChange', { status: player.status });
-
-  useEffect(() => {
-    if (status === 'readyToPlay' && !reportedReady.current) {
-      reportedReady.current = true;
-      const elapsed = (globalThis.performance?.now?.() ?? Date.now()) - startedAt.current;
-      if (__DEV__) console.info(`[ATEEK reels] first-video-ready=${elapsed.toFixed(2)}ms`);
-    }
-  }, [status]);
-
-  useEffect(() => {
-    if (active && status === 'readyToPlay' && !sought.current) {
-      sought.current = true;
-      player.currentTime = 2;
-    }
-    if (active) player.play(); else player.pause();
-    return () => player.pause();
-  }, [active, player, status]);
-
-  return (
-    <View style={StyleSheet.absoluteFill}>
-      <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} surfaceType="textureView" />
-      {status !== 'readyToPlay' && status !== 'error' ? <VideoSkeleton /> : null}
-      {status === 'error' ? <InvalidVideo label={failedLabel} /> : null}
-    </View>
-  );
-}
-
-function VideoSkeleton() {
-  return (
-    <View style={[StyleSheet.absoluteFill, s.skeleton]}>
-      <View style={s.skeletonBar} />
-      <View style={[s.skeletonBar, { width: '54%' }]} />
-    </View>
-  );
-}
-
-function InvalidVideo({ label }: { label: string }) {
-  return (
-    <View style={[StyleSheet.absoluteFill, s.invalid]}>
-      <Ionicons name="videocam-off-outline" size={38} color={ui.colors.muted} />
-      <Text style={s.invalidText}>{label}</Text>
-    </View>
-  );
-}
-
-export function SafeReelVideo({ reel, active }: Props) {
-  const { t } = useLocale();
-  const source = resolveReelVideoSource(reel);
-  if (!source) return <InvalidVideo label={t('reels.videoInvalid')} />;
-  return <GuardedPlayer key={source.uri} uri={source.uri} active={active} failedLabel={t('reels.videoFailed')} />;
-}
-
-const s = StyleSheet.create({
-  skeleton: { backgroundColor: ui.colors.card, justifyContent: 'flex-end', gap: 10, padding: ui.spacing.standard },
-  skeletonBar: { height: 12, width: '78%', borderRadius: 8, backgroundColor: 'rgba(255,255,255,.10)' },
-  invalid: { alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: ui.colors.card },
-  invalidText: { color: ui.colors.muted, fontWeight: '700', textAlign: 'center', writingDirection: 'auto' },
-});
+type Props={reel:ReelVideoInput;active:boolean;nextReel?:ReelVideoInput|null;onSkip?:()=>void};type Quality='auto'|'720p'|'1080p';
+function logVideoError(reelId:string|undefined|null,message:string){void(async()=>{try{await supabase.rpc('ateek_client_error_log',{p_scope:'reel_video',p_entity_id:reelId??null,p_message:message.slice(0,1200)})}catch{}})()}
+function chooseInitial(uri:string,quality:Quality){if(quality==='720p')return cloudinary720(uri)??uri;return uri}
+function ReelsPreloader({reel,quality}:{reel?:ReelVideoInput|null;quality:Quality}){const source=reel?resolveReelVideoSource(reel):null;const uri=source?chooseInitial(source.uri,quality==='1080p'?'auto':quality):null;useVideoPlayer(uri,p=>{p.muted=true;p.bufferOptions={preferredForwardBufferDuration:2,minBufferForPlayback:1,maxBufferBytes:8*1024*1024,prioritizeTimeOverSizeThreshold:false}});return null}
+function GuardedPlayer({reel,uri,active,failedLabel,skipLabel,onSkip}:{reel:ReelVideoInput;uri:string;active:boolean;failedLabel:string;skipLabel:string;onSkip?:()=>void}){const startedAt=useRef(globalThis.performance?.now?.()??Date.now()),reportedReady=useRef(false),sought=useRef(false),attempts=useRef(0);const[failed,setFailed]=useState(false);const player=useVideoPlayer(uri,p=>{p.loop=true;p.bufferOptions={preferredForwardBufferDuration:5,minBufferForPlayback:1.5,maxBufferBytes:18*1024*1024,prioritizeTimeOverSizeThreshold:false}});const event=useEvent(player,'statusChange',{status:player.status});const status=event.status;const error=(event as any).error;const retryUri=cloudinary720(uri);useEffect(()=>{if(status==='readyToPlay'&&!reportedReady.current){reportedReady.current=true;const elapsed=(globalThis.performance?.now?.()??Date.now())-startedAt.current;if(__DEV__)console.info(`[ATEEK reels] first-video-ready=${elapsed.toFixed(2)}ms`)}},[status]);useEffect(()=>{if(status!=='error')return;const msg=String(error?.message??error??'VIDEO_PLAYER_ERROR');logVideoError(reel.id,msg);if(attempts.current===0&&retryUri&&retryUri!==uri){attempts.current=1;void player.replaceAsync(retryUri).catch(e=>{logVideoError(reel.id,String(e));setFailed(true)});return}attempts.current=2;setFailed(true)},[status,error,reel.id,retryUri,uri,player]);useEffect(()=>{if(failed)return;if(active&&status==='readyToPlay'&&!sought.current){sought.current=true;player.currentTime=2}if(active)player.play();else player.pause();return()=>player.pause()},[active,player,status,failed]);if(failed)return <FallbackCard reel={reel} label={failedLabel} skipLabel={skipLabel} onSkip={onSkip}/>;return <View style={StyleSheet.absoluteFill}><VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} surfaceType="textureView"/>{status!=='readyToPlay'&&status!=='error'?<VideoSkeleton/>:null}</View>}
+function VideoSkeleton(){return <View style={[StyleSheet.absoluteFill,s.skeleton]}><View style={s.skeletonBar}/><View style={[s.skeletonBar,{width:'54%'}]}/></View>}
+function FallbackCard({reel,label,onSkip,skipLabel}:{reel:ReelVideoInput;label:string;onSkip?:()=>void;skipLabel:string}){return <View style={[StyleSheet.absoluteFill,s.invalid]}>{reel.thumbnail_url?<Image source={{uri:reel.thumbnail_url}} style={StyleSheet.absoluteFill} resizeMode="cover"/>:null}<View style={s.fallbackShade}/><Ionicons name="videocam-off-outline" size={38} color={ui.colors.muted}/><Text style={s.invalidText}>{label}</Text>{!!reel.caption&&<Text numberOfLines={3} style={s.caption}>{reel.caption}</Text>}{onSkip&&<Pressable accessibilityRole="button" onPress={onSkip} style={s.skip}><Text style={s.skipText}>{skipLabel}</Text><Ionicons name="play-skip-forward" size={18} color={ui.colors.background}/></Pressable>}</View>}
+export function SafeReelVideo({reel,active,nextReel,onSkip}:Props){const{t}=useLocale();const[quality,setQuality]=useState<Quality>('auto');useEffect(()=>{let alive=true;void AsyncStorage.getItem('ateek.stream.quality').then(v=>{if(alive&&(v==='auto'||v==='720p'||v==='1080p'))setQuality(v)}).catch(()=>{});return()=>{alive=false}},[]);const source=resolveReelVideoSource(reel);if(!source)return <FallbackCard reel={reel} label={t('reels.videoInvalid')} skipLabel={t('reels.skip')} onSkip={onSkip}/>;const initial=chooseInitial(source.uri,quality);return <><GuardedPlayer key={`${initial}-${quality}`} reel={reel} uri={initial} active={active} failedLabel={t('reels.videoFailed')} skipLabel={t('reels.skip')} onSkip={onSkip}/>{active&&nextReel?<ReelsPreloader reel={nextReel} quality={quality}/>:null}</>}
+const s=StyleSheet.create({skeleton:{backgroundColor:ui.colors.card,justifyContent:'flex-end',gap:10,padding:ui.spacing.standard},skeletonBar:{height:12,width:'78%',borderRadius:8,backgroundColor:'rgba(255,255,255,.10)'},invalid:{alignItems:'center',justifyContent:'center',gap:10,backgroundColor:ui.colors.card,padding:24},fallbackShade:{...StyleSheet.absoluteFillObject,backgroundColor:'rgba(9,10,15,.72)'},invalidText:{color:ui.colors.muted,fontWeight:'700',textAlign:'center',writingDirection:'auto',zIndex:2},caption:{color:ui.colors.text,textAlign:'center',lineHeight:20,zIndex:2},skip:{zIndex:2,minHeight:44,borderRadius:14,backgroundColor:ui.colors.accent,paddingHorizontal:18,flexDirection:'row-reverse',gap:8,alignItems:'center',justifyContent:'center'},skipText:{color:ui.colors.background,fontWeight:'900'}});

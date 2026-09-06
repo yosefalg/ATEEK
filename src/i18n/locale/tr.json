@@ -31,5 +31,6 @@
   "reels.bid": "Teklif ver",
   "reels.bidPlaceholder": "Teklifiniz",
   "reels.videoFailed": "Video güvenli biçimde oynatılamadı",
-  "reels.videoInvalid": "Video bağlantısı geçersiz veya güvenli değil"
+  "reels.videoInvalid": "Video bağlantısı geçersiz veya güvenli değil",
+  "reels.skip": "Atla"
 }
