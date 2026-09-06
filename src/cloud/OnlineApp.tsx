@@ -22,19 +22,16 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import * as Location from 'expo-location';
 import { decode } from 'base64-arraybuffer';
 import { supabase } from './client';
-import { Cloud, useCloud } from './useCloud';
+import { useCloud } from './useCloud';
 import { Listing, TabId } from '../types';
 import { HomeScreen } from '../screens/HomeScreen';
 import { SearchScreen } from '../screens/SearchScreen';
 import { AddListingScreen } from '../screens/AddListingScreen';
 import { AIAssistantScreen } from '../screens/AIAssistantScreen';
 import { BottomNav } from '../components/BottomNav';
-import { EmptyState } from '../components/EmptyState';
-import { OwnerListingTools } from '../components/Build2Tools';
 import { SpatialDMHub, SpatialListingDetails } from '../components/SpatialDealScreens';
+import { SpatialProfileAnalyticsHub } from '../components/SpatialProfileAnalyticsHub';
 import { colors } from '../theme/colors';
-import { formatPrice } from '../data/seed';
-import { BUILD_INFO } from '../config/buildInfo';
 
 function Button({ title, onPress, disabled = false }: { title: string; onPress: () => void; disabled?: boolean }) {
   return (
@@ -336,7 +333,7 @@ function Market({ session }: { session: Session }) {
             offersCount={m.offers.length}
           />
         ) : (
-          <Account m={m} onOpen={setSelected} />
+          <SpatialProfileAnalyticsHub m={m} onOpen={setSelected} />
         )}
       </View>
 
@@ -383,77 +380,6 @@ function Market({ session }: { session: Session }) {
   );
 }
 
-function Account({ m, onOpen }: { m: Cloud; onOpen: (x: Listing) => void }) {
-  const profile = m.profiles.find((x) => x.id === m.user.id);
-  const [section, setSection] = useState('إعلاناتي');
-  const [name, setName] = useState(profile?.name ?? '');
-  const items = section === 'المفضلة'
-    ? m.listings.filter((x) => m.favorites.includes(x.id))
-    : m.listings.filter((x) => x.owner && x.status !== 'removed');
-
-  return (
-    <ScrollView contentContainerStyle={s.page}>
-      <Text style={s.title}>{profile?.name || 'حسابي'} {profile?.verified ? '✓' : ''}</Text>
-      {profile?.is_founder && (
-        <View style={s.founder}>
-          <Text style={s.founderTitle}>مؤسس تطبيق عتيك</Text>
-          <Text style={s.founderText}>حساب رسمي موثّق</Text>
-        </View>
-      )}
-      <View style={{ flexDirection: 'row-reverse', gap: 8, flexWrap: 'wrap' }}>
-        {['إعلاناتي', 'المفضلة', 'الإعدادات'].map((item) => (
-          <Button key={item} title={item} onPress={() => setSection(item)} />
-        ))}
-      </View>
-      {section === 'الإعدادات' ? (
-        <>
-          <View style={s.buildInfo}>
-            <Text style={s.buildInfoTitle}>عن عتيك</Text>
-            <Text style={s.buildInfoText}>ATEEK {BUILD_INFO.versionName} • #{BUILD_INFO.versionCode} • {BUILD_INFO.shortSha}</Text>
-          </View>
-          <Input value={name} onChangeText={setName} maxLength={60} placeholder="اسم العرض" />
-          <Button title="حفظ الاسم" onPress={() => void attempt(() => m.mutate('profile', { name }))} />
-          <Button
-            title="تسجيل الخروج"
-            onPress={() => void attempt(async () => {
-              const { error } = await supabase.auth.signOut();
-              if (error) throw error;
-            })}
-          />
-        </>
-      ) : (
-        <>
-          {!items.length && <EmptyState icon="cube-outline" title="لا توجد عناصر" body="أضف إعلانًا أو احفظ سلعة في المفضلة." />}
-          {items.map((item) => (
-            <View key={item.id} style={s.card}>
-              <Pressable accessibilityRole="button" accessibilityLabel={`فتح ${item.title}`} onPress={() => onOpen(item)}>
-                <Text style={s.heading}>{item.title}</Text>
-                <Text style={s.price}>{formatPrice(item.price)}</Text>
-              </Pressable>
-              {section === 'إعلاناتي' && (
-                <>
-                  <OwnerListingTools item={item} refresh={m.refresh} />
-                  <Button
-                    title="حذف الإعلان"
-                    onPress={() => Alert.alert('حذف الإعلان؟', 'سيختفي من السوق.', [
-                      { text: 'إلغاء' },
-                      {
-                        text: 'حذف',
-                        style: 'destructive',
-                        onPress: () => void attempt(() => m.mutate('remove', { id: item.id })),
-                      },
-                    ])}
-                  />
-                </>
-              )}
-            </View>
-          ))}
-        </>
-      )}
-    </ScrollView>
-  );
-}
-
 const s = StyleSheet.create({
   root: {
     flex: 1,
@@ -483,7 +409,6 @@ const s = StyleSheet.create({
     minHeight: 48,
   },
   buttonText: { fontWeight: '800', color: colors.forest },
-  price: { fontSize: 21, fontWeight: '900', color: colors.gold, textAlign: 'right' },
   card: {
     backgroundColor: colors.glass,
     borderRadius: 19,
@@ -507,23 +432,4 @@ const s = StyleSheet.create({
     textAlign: 'right',
     lineHeight: 22,
   },
-  founder: {
-    backgroundColor: colors.glassStrong,
-    borderRadius: 20,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: colors.gold,
-  },
-  founderTitle: { color: colors.gold, fontSize: 18, fontWeight: '900', textAlign: 'right' },
-  founderText: { color: colors.goldSoft, fontSize: 11, lineHeight: 20, textAlign: 'right' },
-  buildInfo: {
-    backgroundColor: colors.glassStrong,
-    borderRadius: 20,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: colors.gold,
-    gap: 7,
-  },
-  buildInfoTitle: { color: colors.gold, fontSize: 18, fontWeight: '900', textAlign: 'right' },
-  buildInfoText: { color: colors.goldSoft, fontSize: 16, fontWeight: '900', textAlign: 'center' },
 });
