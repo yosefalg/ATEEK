@@ -3,7 +3,7 @@ name: ATEEK Android Release
 on:
   workflow_dispatch:
   push:
-    branches: [main, build3-ultra-ui, build4-global-1.6]
+    branches: [main, build3-ultra-ui, build4-global-1.6, spatial-social-1.8]
     paths-ignore: ['assets/generated/**']
 
 permissions:
@@ -53,14 +53,15 @@ jobs:
           cat > src/config/buildInfo.ts <<EOF
           export const BUILD_INFO = { versionName: '${VERSION_NAME}', versionCode: ${VERSION_CODE}, shortSha: '${SHORT_SHA}' } as const;
           EOF
-          echo "Embedding ATEEK ${VERSION_NAME} Global (#${VERSION_CODE}) commit ${SHORT_SHA}"
+          echo "Embedding ATEEK ${VERSION_NAME} Spatial Social (#${VERSION_CODE}) commit ${SHORT_SHA}"
       - name: Install dependencies
         run: npm install --no-audit --no-fund
-      - name: Validate Global release contract
+      - name: Validate Spatial Social release contract
         run: |
-          node -e "const a=require('./app.json').expo;if(a.version!=='1.6.0'||a.android.versionCode!==9)process.exit(1)"
-          node -e "const p=require('./package.json');if(p.version!=='1.6.0')process.exit(1)"
-          grep -Fq "Global • #" src/AppShell.tsx
+          node -e "const a=require('./app.json').expo;if(a.version!=='1.8.0'||a.android.versionCode!==11)process.exit(1)"
+          node -e "const p=require('./package.json');if(p.version!=='1.8.0')process.exit(1)"
+          grep -Fq "Spatial Social • #" src/AppShell.tsx
+          test "$(node -e "const s=require('fs').readFileSync('src/data/seed.ts','utf8');process.stdout.write(/seedListings:\s*Listing\[\]\s*=\s*\[\s*\]/s.test(s)?'ok':'bad')")" = "ok"
       - name: TypeScript check
         run: npm run typecheck
       - name: Unit tests
@@ -95,8 +96,8 @@ jobs:
           unzip -p "$APK_PATH" assets/index.android.bundle > /tmp/ateek-index.android.bundle
           grep -aFq "$EXPECTED_SHORT_SHA" /tmp/ateek-index.android.bundle
           grep -aFq "$EXPECTED_VERSION_NAME" /tmp/ateek-index.android.bundle
-          grep -aFq "Global" /tmp/ateek-index.android.bundle
-          echo "VERIFIED FINAL APK: ${ACTUAL_VERSION_NAME} Global #${ACTUAL_VERSION_CODE} ${EXPECTED_SHORT_SHA}"
+          grep -aFq "Spatial Social" /tmp/ateek-index.android.bundle
+          echo "VERIFIED FINAL APK: ${ACTUAL_VERSION_NAME} Spatial Social #${ACTUAL_VERSION_CODE} ${EXPECTED_SHORT_SHA}"
           sha256sum "$APK_PATH"
       - name: Prepare APK artifact
         run: cp android/app/build/outputs/apk/release/app-release.apk ATEEK-RELEASE.apk
