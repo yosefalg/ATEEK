@@ -2,11 +2,11 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 
-test('production release contract is APK-only 2.1.0 #15', () => {
+test('production release contract is APK-only 2.2.0 #16', () => {
   const app = JSON.parse(fs.readFileSync('app.json','utf8')).expo;
   const eas = JSON.parse(fs.readFileSync('eas.json','utf8'));
-  assert.equal(app.version, '2.1.0');
-  assert.equal(app.android.versionCode, 15);
+  assert.equal(app.version, '2.2.0');
+  assert.equal(app.android.versionCode, 16);
   assert.equal(app.android.softwareKeyboardLayoutMode, 'resize');
   assert.equal(eas.build.production.android.buildType, 'apk');
   assert.equal(eas.build.production.distribution, 'internal');
@@ -27,13 +27,13 @@ test('screen isolation and reel fallback are wired', () => {
   assert.match(guard, /u\.protocol !== 'https:'/);
 });
 
-test('Run 98 visual tokens remain exact', () => {
+test('ATEEK 2.2 visual tokens remain exact', () => {
   const tokens = fs.readFileSync('src/theme/tokens.ts','utf8');
-  assert.match(tokens, /#07090D/);
-  assert.match(tokens, /#10151C/);
-  assert.match(tokens, /#D6B36C/);
-  assert.match(tokens, /#F7F9FC/);
-  assert.match(tokens, /#98A2B3/);
+  assert.match(tokens, /#0A0E17/);
+  assert.match(tokens, /#131824/);
+  assert.match(tokens, /#6C8DFF/);
+  assert.match(tokens, /#F1F5F9/);
+  assert.match(tokens, /#94A3B8/);
   assert.match(tokens, /micro: 8/);
   assert.match(tokens, /standard: 16/);
   assert.match(tokens, /section: 24/);
@@ -50,9 +50,11 @@ test('home and dynamic root background contract is wired', () => {
   assert.match(home, /أحدث الريلز/);
   assert.match(nav, /onLongPress/);
   assert.match(bg, /Gyroscope/);
-  assert.match(bg, /10000/);
-  assert.match(bg, /7000/);
-  assert.match(bg, /5000/);
+  assert.match(bg, /LinearGradient/);
+  assert.match(bg, /particleSeed/);
+  assert.match(bg, /18000/);
+  assert.match(bg, /24000/);
+  assert.match(bg, /!lowData&&animationsEnabled&&particles\.map/);
 });
 
 test('Run 100 secure AI client and assistant screen are present', () => {
