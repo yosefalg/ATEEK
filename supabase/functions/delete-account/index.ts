@@ -1,0 +1,4 @@
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
+const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{"content-type":"application/json"}});
+Deno.serve(async(req)=>{if(req.method!=="POST")return json({error:"METHOD_NOT_ALLOWED"},405);const url=Deno.env.get("SUPABASE_URL")!,anon=Deno.env.get("SUPABASE_ANON_KEY")!,auth=req.headers.get("authorization")||"";const client=createClient(url,anon,{global:{headers:{Authorization:auth}}});const{data:{user},error:ue}=await client.auth.getUser();if(ue||!user)return json({error:"AUTH_REQUIRED"},401);const{data,error}=await client.rpc("ateek_delete_account_request");if(error)return json({error:error.message},400);return json({ok:true,request:data,note:"Deletion is queued with a 30-day retention window; shared records are not destructively removed at request time."});});

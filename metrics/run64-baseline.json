@@ -1,0 +1,20 @@
+{
+  "run": 64,
+  "artifactId": 9994802890,
+  "apkSha256": "296f3d6fbd8ee807cb9f121c7824af50ca67cc0924502849a7d8fcf7c85efbf7",
+  "apkBytes": 74587074,
+  "jsBundleBytes": 2787712,
+  "compressedByCategory": {
+    "nativeLibs": 57984088,
+    "dex": 8991532,
+    "resources": 3985080,
+    "assets": 2791830,
+    "other": 158269
+  },
+  "nativeLibsByAbi": {
+    "arm64-v8a": 15428736,
+    "armeabi-v7a": 10553604,
+    "x86": 16165660,
+    "x86_64": 15836088
+  }
+}
