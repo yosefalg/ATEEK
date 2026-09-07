@@ -1,0 +1,48 @@
+name: ATEEK Run104 Lockfile Sync
+
+on:
+  push:
+    branches: [run104-lockfile-reproducibility]
+
+permissions:
+  contents: read
+
+jobs:
+  sync-lockfile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Regenerate lockfile only
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Verify root lock contract
+        run: |
+          node - <<'NODE'
+          const p=require('./package.json');
+          const l=require('./package-lock.json');
+          const root=l.packages?.[''];
+          if(!root) throw new Error('lockfile root package missing');
+          if(l.name!==p.name||root.name!==p.name) throw new Error('lockfile name mismatch');
+          if(l.version!==p.version||root.version!==p.version) throw new Error(`lockfile version mismatch: ${l.version}/${root.version} vs ${p.version}`);
+          for(const section of ['dependencies','devDependencies']){
+            const a=p[section]||{}, b=root[section]||{};
+            const missing=Object.keys(a).filter(k=>b[k]!==a[k]);
+            const extra=Object.keys(b).filter(k=>!(k in a));
+            if(missing.length||extra.length) throw new Error(`${section} mismatch missing/changed=${missing.join(',')} extra=${extra.join(',')}`);
+          }
+          console.log(`LOCKFILE_SYNC_OK ${p.name}@${p.version}`);
+          NODE
+      - name: Verify npm clean install contract
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Upload synchronized lockfile
+        uses: actions/upload-artifact@v4
+        with:
+          name: RUN104-PACKAGE-LOCK
+          path: package-lock.json
+          if-no-files-found: error
+          retention-days: 2
