@@ -6,9 +6,9 @@
       "android": { "buildType": "apk" }
     },
     "production": {
-      "distribution": "store",
+      "distribution": "internal",
       "autoIncrement": false,
-      "android": { "buildType": "app-bundle" }
+      "android": { "buildType": "apk" }
     }
   }
 }
