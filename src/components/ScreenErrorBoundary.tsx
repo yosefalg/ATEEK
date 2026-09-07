@@ -45,9 +45,9 @@ export class ScreenErrorBoundary extends React.Component<Props, State> {
     return (
       <View style={s.root} accessibilityRole="alert">
         <View style={s.card}>
-          <Ionicons name="shield-checkmark-outline" size={36} color={ui.colors.accent} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
+          <Ionicons name="shield-checkmark-outline" size={36} color={ui.colors.accent} />
           <Text style={s.title}>تعذر تشغيل {this.props.name}</Text>
-          <Text style={s.body}>تم حفظ تقرير تقني لمحاولة تحديد السبب. يمكنك إعادة فتح هذه الشاشة دون إغلاق التطبيق.</Text>
+          <Text style={s.body}>تم احتواء المشكلة، وحاول عتيك تسجيل تفاصيلها التقنية. يمكنك إعادة فتح هذه الشاشة دون إغلاق التطبيق.</Text>
           <Pressable accessibilityRole="button" accessibilityLabel="إعادة فتح الشاشة" onPress={this.retry} style={s.button}>
             <Ionicons name="refresh" size={ui.icon} color={ui.colors.background} />
             <Text style={s.buttonText}>إعادة فتح الشاشة</Text>
