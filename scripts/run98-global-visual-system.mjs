@@ -30,19 +30,20 @@ const replacements=[
   ['Choice label="Titanium Grey"','Choice label="تيتانيوم"']
 ];
 for(const [from,to] of replacements){
-  if(!account.includes(from))throw new Error(`Run98 account anchor missing: ${from}`);
-  account=account.replace(from,to);
+  if(account.includes(from)) account=account.replace(from,to);
+  else if(!account.includes(to)) throw new Error(`Run98 account anchor missing: ${from}`);
 }
 fs.writeFileSync(accountFile,account);
 
 const reelsFile='src/components/SpatialReelsHub.tsx';
 let reels=fs.readFileSync(reelsFile,'utf8');
 const onViewAnchor="  const onView = useRef(({ viewableItems }: { viewableItems: Array<{ item: Reel }> }) => setActive(viewableItems[0]?.item.id ?? null)).current;";
-if(!reels.includes(onViewAnchor))throw new Error('Run98 Reels onView anchor missing');
-reels=reels.replace(onViewAnchor,`${onViewAnchor}\n  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 80 }).current;`);
+if(reels.includes(onViewAnchor)&&!reels.includes('const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 80 }).current;')){
+  reels=reels.replace(onViewAnchor,`${onViewAnchor}\n  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 80 }).current;`);
+}
 const inlineViewability='viewabilityConfig={{ itemVisiblePercentThreshold: 80 }}';
-if(!reels.includes(inlineViewability))throw new Error('Run98 inline Reels viewability config missing');
-reels=reels.replace(inlineViewability,'viewabilityConfig={viewabilityConfig}');
+if(reels.includes(inlineViewability))reels=reels.replace(inlineViewability,'viewabilityConfig={viewabilityConfig}');
+if(!reels.includes('viewabilityConfig={viewabilityConfig}'))throw new Error('Run98 stable Reels viewability config missing');
 const activeAnchor='setReels(r); setActive((v) => v ?? r[0]?.id ?? null);';
 if(reels.includes(activeAnchor))reels=reels.replace(activeAnchor,"setReels(r); setActive((v) => (v && r.some((x) => x.id === v) ? v : r[0]?.id ?? null));");
 fs.writeFileSync(reelsFile,reels);
@@ -58,9 +59,11 @@ const required=[
   [authPortal,"behavior={Platform.OS === 'ios' ? 'padding' : 'height'}",'Android auth keyboard avoidance'],
   [account,"['premium','عتيك بلس','diamond-outline']",'Arabic premium tab'],
   [palette,"gold:'#D6B36C'",'global accent palette'],
-  [tokens,"background: '#07090D'",'global background token'],
+  [tokens,"background: '#0A0E17'",'ATEEK 2.2 global background token'],
+  [tokens,"accent: '#6C8DFF'",'ATEEK 2.2 primary accent token'],
+  [tokens,"accent2: '#A78BFA'",'ATEEK 2.2 secondary accent token'],
   [reels,'viewabilityConfig={viewabilityConfig}','stable Reels viewability config']
 ];
 for(const [source,needle,label] of required){if(!source.includes(needle))throw new Error(`Run98 contract missing: ${label}`)}
 
-console.log('Run #98 global visual system applied: premium auth portal, Arabic account labels, unified palette, stable Reels viewability, preserved Supabase Auth flow and notification helper.');
+console.log('Run #98 compatibility transform applied: premium auth portal, Arabic account labels, ATEEK 2.2 palette, stable Reels viewability, preserved Supabase Auth flow and notification helper.');
