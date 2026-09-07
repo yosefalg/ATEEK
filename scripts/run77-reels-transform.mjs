@@ -22,3 +22,4 @@ await import('./run91-ai-navigation-polish.mjs');
 await import('./run93-video-qa-fixes.mjs');
 await import('./run95-data-refresh-hardening.mjs');
 await import('./run96-notifications-ux.mjs');
+await import('./run98-global-visual-system.mjs');
