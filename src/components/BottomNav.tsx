@@ -1,41 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors } from '../theme/colors';
+import { useEffect,useRef,useState } from 'react';
+import { Animated,Pressable,StyleSheet,Text,View } from 'react-native';
+import { useAteekTheme } from '../theme/ThemeProvider';
 import { TabId } from '../types';
-
-const tabs: { id: TabId; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { id: 'home', label: 'الرئيسية', icon: 'home-outline' },
-  { id: 'search', label: 'البحث', icon: 'search-outline' },
-  { id: 'add', label: 'أضف', icon: 'add' },
-  { id: 'chats', label: 'المحادثات', icon: 'chatbubble-ellipses-outline' },
-  { id: 'ai', label: 'مساعد عتيك', icon: 'sparkles-outline' },
-  { id: 'profile', label: 'حسابي', icon: 'person-outline' }
-];
-
-export function BottomNav({ active, onChange }: { active: TabId; onChange: (tab: TabId) => void }) {
-  return (
-    <View style={styles.bar}>
-      {tabs.map(tab => {
-        const selected = active === tab.id;
-        const add = tab.id === 'add';
-        return (
-          <Pressable key={tab.id} style={styles.tab} onPress={() => onChange(tab.id)}>
-            <View style={add ? styles.addButton : undefined}>
-              <Ionicons name={selected && !add ? (tab.icon as string).replace('-outline', '') as keyof typeof Ionicons.glyphMap : tab.icon} size={add ? 30 : 21} color={add ? colors.forest : selected ? colors.gold : colors.muted} />
-            </View>
-            <Text numberOfLines={1} style={[styles.label, selected && styles.selected, add && styles.addLabel]}>{tab.label}</Text>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  bar: { height: 76, backgroundColor: colors.paper, borderTopWidth: 1, borderTopColor: colors.line, flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-around', paddingBottom: 7 },
-  tab: { flex: 1, minWidth: 0, alignItems: 'center', justifyContent: 'center', gap: 4 },
-  label: { fontSize: 9, color: colors.muted, fontWeight: '600' },
-  selected: { color: colors.forest, fontWeight: '800' },
-  addButton: { width: 55, height: 55, borderRadius: 20, backgroundColor: colors.gold, alignItems: 'center', justifyContent: 'center', marginTop: -31, borderWidth: 5, borderColor: colors.cream },
-  addLabel: { marginTop: -1, color: colors.forest, fontWeight: '800' }
-});
+const tabs:{id:TabId;label:string;icon:keyof typeof Ionicons.glyphMap}[]=[{id:'home',label:'الرئيسية',icon:'home-outline'},{id:'add',label:'الإضافة',icon:'add-circle-outline'},{id:'notifications',label:'الإشعارات',icon:'notifications-outline'},{id:'chats',label:'المحادثات',icon:'chatbubble-ellipses-outline'},{id:'profile',label:'الحساب',icon:'person-outline'}];
+function NavItem({tab,selected,onPress,onHint}:{tab:(typeof tabs)[number];selected:boolean;onPress:()=>void;onHint:(label:string)=>void}){const{colors,animationsEnabled}=useAteekTheme();const scale=useRef(new Animated.Value(1)).current;const press=()=>{if(animationsEnabled)Animated.sequence([Animated.spring(scale,{toValue:.86,useNativeDriver:true,speed:45,bounciness:3}),Animated.spring(scale,{toValue:1,useNativeDriver:true,speed:30,bounciness:8})]).start();onPress()};const icon=selected?(tab.icon as string).replace('-outline','') as keyof typeof Ionicons.glyphMap:tab.icon;return <Pressable accessibilityRole="tab" accessibilityState={{selected}} accessibilityLabel={tab.label} accessibilityHint={selected?'التبويب الحالي':`الانتقال إلى ${tab.label}`} onLongPress={()=>onHint(tab.label)} delayLongPress={350} style={styles.tab} onPress={press}><Animated.View style={[styles.iconShell,{transform:[{scale}],backgroundColor:selected?'rgba(201,168,108,.12)':'transparent',borderColor:selected?colors.gold:'transparent'}]}><Ionicons name={icon} size={24} color={selected?colors.gold:colors.muted}/></Animated.View></Pressable>}
+export function BottomNav({active,onChange}:{active:TabId;onChange:(tab:TabId)=>void}){const{colors}=useAteekTheme();const[hint,setHint]=useState('');const timer=useRef<ReturnType<typeof setTimeout>|null>(null);useEffect(()=>()=>{if(timer.current){clearTimeout(timer.current);timer.current=null}},[]);const showHint=(label:string)=>{setHint(label);if(timer.current)clearTimeout(timer.current);timer.current=setTimeout(()=>{setHint('');timer.current=null},1200)};return <View accessibilityRole="tablist" style={[styles.wrap,{borderTopColor:colors.line}]}>{!!hint&&<View pointerEvents="none" style={[styles.hint,{backgroundColor:colors.glassStrong,borderColor:colors.line}]}><Text style={[styles.hintText,{color:colors.ink}]}>{hint}</Text></View>}<View style={styles.bar}>{tabs.map(tab=><NavItem key={tab.id} tab={tab} selected={active===tab.id} onPress={()=>onChange(tab.id)} onHint={showHint}/>)}</View></View>}
+const styles=StyleSheet.create({wrap:{height:72,borderTopWidth:1,backgroundColor:'rgba(8,11,20,.92)'},bar:{flex:1,flexDirection:'row-reverse',alignItems:'center',justifyContent:'space-around',paddingHorizontal:14,paddingBottom:6},tab:{flex:1,minHeight:48,alignItems:'center',justifyContent:'center'},iconShell:{width:44,height:44,borderRadius:18,borderWidth:1,alignItems:'center',justifyContent:'center'},hint:{position:'absolute',bottom:64,alignSelf:'center',borderRadius:12,borderWidth:1,paddingHorizontal:12,paddingVertical:7,zIndex:4},hintText:{fontFamily:'System',fontSize:11,fontWeight:'800'}});
