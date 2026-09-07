@@ -57,6 +57,20 @@ test('listing cards follow active theme and deduplicate seller metrics requests'
   assert.doesNotMatch(card, /#0F1219|#151922|#F6F8FB|#7E8798/);
 });
 
+test('search discovery exposes real sorting and efficient local persistence', () => {
+  const search = fs.readFileSync('src/screens/SearchScreen.tsx','utf8');
+  assert.match(search, /AsyncStorage\.multiGet\(\[HISTORY,SAVED,SORT\]\)/);
+  assert.match(search, /\['newest','الأحدث','time-outline'\]/);
+  assert.match(search, /\['most_viewed','الأكثر مشاهدة','eye-outline'\]/);
+  assert.match(search, /\['nearest','الأقرب','navigate-outline'\]/);
+  assert.match(search, /if\(userBusy\)return true/);
+  assert.match(search, /const searchableListings=useMemo/);
+  assert.match(search, /const savedMatches=useMemo/);
+  assert.match(search, /removeClippedSubviews/);
+  assert.match(search, /keyboardShouldPersistTaps="handled"/);
+  assert.match(search, /accessibilityLiveRegion="polite"/);
+});
+
 test('home and dynamic root background contract is wired', () => {
   const home = fs.readFileSync('src/screens/HomeScreen.tsx','utf8');
   const nav = fs.readFileSync('src/components/BottomNav.tsx','utf8');
