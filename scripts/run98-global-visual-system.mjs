@@ -1,0 +1,36 @@
+import fs from 'node:fs';
+
+const onlineFile='src/cloud/OnlineApp.tsx';
+let online=fs.readFileSync(onlineFile,'utf8');
+if(!online.includes("import { AuthPortal } from '../components/AuthPortal';")){
+  online=online.replace(
+    "import { ScreenErrorBoundary } from '../components/ScreenErrorBoundary';",
+    "import { ScreenErrorBoundary } from '../components/ScreenErrorBoundary';\nimport { AuthPortal } from '../components/AuthPortal';"
+  );
+}
+const authStart=online.indexOf('function Auth({initialError}');
+const authEnd=online.indexOf('function NotificationsScreen',authStart);
+if(authStart<0||authEnd<0)throw new Error('Run98 auth function anchor missing');
+const auth=`function Auth({initialError}:{initialError:string}){const[register,setRegister]=useState(false),[email,setEmail]=useState(''),[password,setPassword]=useState(''),[name,setName]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(initialError);const submit=async()=>{if(busy)return;if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email.trim())||password.length<10||(register&&!name.trim()))return void setError('أدخل بريدًا صحيحًا وكلمة مرور من 10 أحرف واسمًا عند التسجيل.');setBusy(true);setError('');try{if(register){const{data,error}=await supabase.auth.signUp({email:email.trim(),password,options:{data:{name:name.trim()}}});if(error)throw error;if(!data.session){setRegister(false);setError('تحقق من بريدك وافتح رسالة التأكيد، ثم عد وسجّل الدخول.')}}else{const{error}=await supabase.auth.signInWithPassword({email:email.trim(),password});if(error)throw error}}catch(error:any){setError(error.message||'تعذّر الاتصال')}finally{setBusy(false)}};return <AuthPortal register={register} email={email} password={password} name={name} busy={busy} error={error} onEmail={setEmail} onPassword={setPassword} onName={setName} onSubmit={()=>void submit()} onToggleMode={()=>{setRegister(!register);setError('')}}/>}\n`;
+online=online.slice(0,authStart)+auth+online.slice(authEnd);
+fs.writeFileSync(onlineFile,online);
+
+const accountFile='src/components/ProductionAccountHub.tsx';
+let account=fs.readFileSync(accountFile,'utf8');
+const replacements=[
+  ["['premium','Premium','diamond-outline']","['premium','عتيك بلس','diamond-outline']"],
+  ["title:'Creator'","title:'صانع محتوى'"],
+  ["title:'Merchant'","title:'تاجر'"],
+  ["title:'Business'","title:'أعمال'"],
+  ['<Text style={s.title}>ATEEK Premium</Text>','<Text style={s.title}>عتيك بلس</Text>'],
+  ['Choice label="Auto"','Choice label="تلقائي"'],
+  ['Choice label="AMOLED Dark"','Choice label="أسود AMOLED"'],
+  ['Choice label="Titanium Grey"','Choice label="تيتانيوم"']
+];
+for(const [from,to] of replacements){
+  if(!account.includes(from))throw new Error(`Run98 account anchor missing: ${from}`);
+  account=account.replace(from,to);
+}
+fs.writeFileSync(accountFile,account);
+
+console.log('Run #98 global visual system applied: premium auth portal, Arabic account labels, preserved Supabase Auth flow.');
