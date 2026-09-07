@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect } from 'react';
+import { ComponentProps, useEffect } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
-import { useAteekTheme } from '../theme/ThemeProvider';
+import { ThemeColors, useAteekTheme } from '../theme/ThemeProvider';
 
 export type AuthPortalProps = {
   register: boolean;
@@ -137,7 +137,7 @@ export function AuthPortal(props: AuthPortalProps) {
   );
 }
 
-function Field({ icon, label, colors, ...props }: React.ComponentProps<typeof TextInput> & { icon: keyof typeof Ionicons.glyphMap; label: string; colors: any }) {
+function Field({ icon, label, colors, ...props }: ComponentProps<typeof TextInput> & { icon: keyof typeof Ionicons.glyphMap; label: string; colors: ThemeColors }) {
   return (
     <View style={styles.field}>
       <Text style={[styles.label, { color: colors.muted }]}>{label}</Text>
