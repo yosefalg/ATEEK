@@ -19,9 +19,13 @@ function logVideoError(reelId: string | undefined | null, message: string) {
         p_message: message.slice(0, 1200),
       });
     } catch {
-      // Telemetry must never become a second failure path.
+      // Video telemetry must never become a second failure path.
     }
   })();
+}
+
+function resolveThumbnail(reel: ReelVideoInput) {
+  return reel.thumbnail_url ?? cloudinaryVideoThumbnail(reel.hls_url) ?? cloudinaryVideoThumbnail(reel.playback_url) ?? null;
 }
 
 function GuardedPlayer({ reel, source, active, failedLabel, retryLabel }: { reel: ReelVideoInput; source: VideoSource; active: boolean; failedLabel: string; retryLabel: string }) {
@@ -33,7 +37,7 @@ function GuardedPlayer({ reel, source, active, failedLabel, retryLabel }: { reel
   const event = useEvent(player, 'statusChange', { status: player.status });
   const status = event.status;
   const error = event.error;
-  const thumbnail = reel.thumbnail_url ?? cloudinaryVideoThumbnail(reel.hls_url) ?? cloudinaryVideoThumbnail(reel.playback_url);
+  const thumbnail = resolveThumbnail(reel);
 
   useEffect(() => {
     if (status === 'readyToPlay') {
@@ -93,24 +97,27 @@ function GuardedPlayer({ reel, source, active, failedLabel, retryLabel }: { reel
 
 function VideoLoading() { return <View style={[StyleSheet.absoluteFill, s.loading]}><ActivityIndicator size="small" color={ui.colors.accent} /></View>; }
 
-function FallbackCard({ reel, label, retryLabel, thumbnail, onRetry }: { reel: ReelVideoInput; label: string; retryLabel: string; thumbnail?: string | null; onRetry: () => void }) {
-  return <View style={[StyleSheet.absoluteFill, s.invalid]}>{thumbnail ? <Image source={{ uri: thumbnail }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : null}<View style={s.fallbackShade} /><Ionicons name="image-outline" size={36} color={ui.colors.muted} /><Text style={s.invalidText}>{label}</Text>{!!reel.caption && <Text numberOfLines={3} style={s.caption}>{reel.caption}</Text>}<Pressable accessibilityRole="button" accessibilityLabel={retryLabel} onPress={onRetry} style={s.retry}><Ionicons name="refresh" size={18} color={ui.colors.background} /><Text style={s.retryText}>{retryLabel}</Text></Pressable></View>;
+function FallbackCard({ reel, label, retryLabel, thumbnail, onRetry }: { reel: ReelVideoInput; label: string; retryLabel: string; thumbnail?: string | null; onRetry?: () => void }) {
+  return <View style={[StyleSheet.absoluteFill, s.invalid]}>{thumbnail ? <Image source={{ uri: thumbnail }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : null}<View style={s.fallbackShade} /><Ionicons name={thumbnail?'image-outline':'videocam-off-outline'} size={36} color={ui.colors.muted} /><Text style={s.invalidText}>{label}</Text>{!!reel.caption && <Text numberOfLines={3} style={s.caption}>{reel.caption}</Text>}{onRetry?<Pressable accessibilityRole="button" accessibilityLabel={retryLabel} onPress={onRetry} style={s.retry}><Ionicons name="refresh" size={18} color={ui.colors.background} /><Text style={s.retryText}>{retryLabel}</Text></Pressable>:null}</View>;
 }
 
 export function SafeReelVideo({ reel, active }: Props) {
   const { t } = useLocale();
   const resolved = resolveReelVideoSource(reel);
-  if (!resolved) return <View style={[StyleSheet.absoluteFill, s.invalid]}><Ionicons name="videocam-off-outline" size={36} color={ui.colors.muted} /><Text style={s.invalidText}>{t('reels.videoInvalid')}</Text></View>;
+  if (!resolved) {
+    logVideoError(reel.id, 'VIDEO_SOURCE_INVALID_OR_MISSING');
+    return <FallbackCard reel={reel} label={t('reels.videoInvalid')} retryLabel={t('app.error.retry')} thumbnail={resolveThumbnail(reel)} />;
+  }
   const source: VideoSource = { uri: resolved.uri, contentType: resolved.kind === 'hls' ? 'hls' : 'progressive' };
   return <GuardedPlayer reel={reel} source={source} active={active} failedLabel={t('reels.videoFailed')} retryLabel={t('app.error.retry')} />;
 }
 
 const s = StyleSheet.create({
   loading: { backgroundColor: 'rgba(8,11,20,.24)', alignItems: 'center', justifyContent: 'center' },
-  invalid: { alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: '#141824', padding: 24 },
-  fallbackShade: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(8,11,20,.64)' },
-  invalidText: { fontFamily: 'System', color: '#8A8FA8', fontWeight: '700', textAlign: 'center', writingDirection: 'auto', zIndex: 2 },
-  caption: { fontFamily: 'System', color: '#F0F4FF', textAlign: 'center', lineHeight: 20, zIndex: 2 },
-  retry: { zIndex: 2, minHeight: 48, borderRadius: 14, backgroundColor: '#C9A86C', paddingHorizontal: 16, flexDirection: 'row-reverse', gap: 8, alignItems: 'center', justifyContent: 'center' },
-  retryText: { fontFamily: 'System', color: '#080B14', fontWeight: '900' },
+  invalid: { alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: '#10131F', padding: 24 },
+  fallbackShade: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(6,8,15,.68)' },
+  invalidText: { fontFamily: 'System', color: '#A7AFC2', fontWeight: '700', textAlign: 'center', writingDirection: 'auto', zIndex: 2 },
+  caption: { fontFamily: 'System', color: '#F7F8FC', textAlign: 'center', lineHeight: 20, zIndex: 2 },
+  retry: { zIndex: 2, minHeight: 44, borderRadius: 14, backgroundColor: '#E0B86A', paddingHorizontal: 15, flexDirection: 'row-reverse', gap: 8, alignItems: 'center', justifyContent: 'center' },
+  retryText: { fontFamily: 'System', color: '#080A10', fontWeight: '900' },
 });
