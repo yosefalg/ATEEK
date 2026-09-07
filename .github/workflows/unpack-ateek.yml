@@ -69,14 +69,19 @@ jobs:
           grep -Fq 'ai-translate' src/components/SpatialReelsHub.tsx
           grep -Fq 'thumbnail_url' src/components/SpatialReelsHub.tsx
 
-      - name: Apply Run 77 reel memory discipline
+      - name: Apply production transforms through Run 91
         run: |
           node scripts/run77-reels-transform.mjs
           grep -Fq 'initialNumToRender={1} maxToRenderPerBatch={1}' src/components/SpatialReelsHub.tsx
           ! grep -Fq 'nextReel=' src/components/SpatialReelsHub.tsx
           ! grep -Fq 'onSkip=' src/components/SpatialReelsHub.tsx
+          grep -Fq 'sendChatImage' src/components/SpatialDealScreens.tsx
+          grep -Fq 'ateek_profile_social_update' src/components/SpatialProfileAnalyticsHub.tsx
+          grep -Fq 'formatAiForArabic' src/components/SpatialDealScreens.tsx
+          grep -Fq 'duration:460' src/cloud/OnlineApp.tsx
+          grep -Fq 'BUILD_INFO.versionName' src/components/SpatialProfileAnalyticsHub.tsx
 
-      - name: Validate Run 77 production contract
+      - name: Validate production contract
         run: |
           node -e "const a=require('./app.json').expo;if(a.version!=='2.1.0'||a.android.versionCode!==15||a.jsEngine!=='hermes'||a.android.softwareKeyboardLayoutMode!=='resize')process.exit(1)"
           node -e "const e=require('./eas.json');if(e.build.production.android.buildType!=='app-bundle'||e.build.production.distribution!=='store')process.exit(1)"
@@ -183,10 +188,10 @@ jobs:
           [ "$APK_ABIS" = "arm64-v8a " ]
           for ABI in arm64-v8a armeabi-v7a x86 x86_64; do unzip -Z1 "$AAB_PATH" | grep -q "^base/lib/${ABI}/"; done
           ! unzip -Z1 "$APK_PATH" | grep -qE '^lib/arm64-v8a/lib(jsc|jscexecutor)\.so$'
-          echo "VERIFIED RUN77: 2.1.0 #15 ${GITHUB_SHA::7}"
+          echo "VERIFIED: 2.1.0 #15 ${GITHUB_SHA::7}"
           sha256sum "$AAB_PATH" "$APK_PATH"
 
-      - name: Generate Run 77 size metrics and enforce budgets
+      - name: Generate size metrics and enforce budgets
         run: |
           set -euo pipefail
           mkdir -p metrics-out
@@ -205,9 +210,9 @@ jobs:
                       data=z.read(i.filename);js={'bytes':len(data),'gzipBytes':len(gzip.compress(data,9))};break
           now={'apkBytes':os.path.getsize(apk),'aabBytes':os.path.getsize(aab),'dexRawBytes':dex_raw,'dexCompressedBytes':dex_comp,'arm64NativeRawBytes':arm,'hermes':js}
           delta={k:now[k]-base[k] for k in ('apkBytes','aabBytes','dexRawBytes','dexCompressedBytes')}
-          out={'run76':base,'run77':now,'delta':delta,'apkTargetBytes':50*1024*1024}
-          open('metrics-out/RUN77-METRICS.json','w').write(json.dumps(out,indent=2))
-          lines=['ATEEK RUN #77 METRICS',f"APK bytes={now['apkBytes']} delta_vs_run76={delta['apkBytes']}",f"AAB bytes={now['aabBytes']} delta_vs_run76={delta['aabBytes']}",f"DEX raw={dex_raw} delta={delta['dexRawBytes']}",f"DEX compressed={dex_comp} delta={delta['dexCompressedBytes']}",f"arm64 native raw={arm}",f"Hermes raw={js['bytes'] if js else 'n/a'} gzip={js['gzipBytes'] if js else 'n/a'}",'Skia: NOT INCLUDED; lightweight Animated + expo-linear-gradient background used to preserve size/build stability.','Physical Android device test/screenshots/battery measurement: NOT PERFORMED by this CI runner.']
+          out={'baseline':base,'current':now,'delta':delta,'apkTargetBytes':50*1024*1024}
+          open('metrics-out/RUN-METRICS.json','w').write(json.dumps(out,indent=2))
+          lines=['ATEEK PRODUCTION METRICS',f"APK bytes={now['apkBytes']} delta_vs_baseline={delta['apkBytes']}",f"AAB bytes={now['aabBytes']} delta_vs_baseline={delta['aabBytes']}",f"DEX raw={dex_raw} delta={delta['dexRawBytes']}",f"DEX compressed={dex_comp} delta={delta['dexCompressedBytes']}",f"arm64 native raw={arm}",f"Hermes raw={js['bytes'] if js else 'n/a'} gzip={js['gzipBytes'] if js else 'n/a'}",'Physical Android device test/screenshots/battery measurement: NOT PERFORMED by this CI runner.']
           open('metrics-out/METRICS.txt','w').write('\n'.join(lines)+'\n');print('\n'.join(lines))
           if delta['dexCompressedBytes']>1_000_000: raise SystemExit(f'DEX compressed growth exceeds 1MB guard: {delta["dexCompressedBytes"]}')
           if now['apkBytes']>50*1024*1024: raise SystemExit(f'APK exceeds 50 MiB target: {now["apkBytes"]}')
@@ -247,10 +252,10 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Upload Run 77 metrics
+      - name: Upload metrics
         uses: actions/upload-artifact@v4
         with:
-          name: ATEEK-RUN77-METRICS
+          name: ATEEK-PRODUCTION-METRICS
           path: metrics-out/*
           if-no-files-found: error
           retention-days: 30
