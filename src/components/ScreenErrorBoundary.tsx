@@ -23,15 +23,18 @@ export class ScreenErrorBoundary extends React.Component<Props, State> {
     ].join('\n').slice(0, 1200);
 
     console.error(`[ATEEK:${this.props.name}] isolated runtime error`, error, info.componentStack);
-    void supabase.rpc('ateek_client_error_log', {
-      p_scope: `screen:${this.props.name}`.slice(0, 120),
-      p_entity_id: null,
-      p_message: message,
-    }).then(({ error: telemetryError }) => {
-      if (__DEV__ && telemetryError) console.warn('[ATEEK] error telemetry unavailable', telemetryError.message);
-    }).catch(() => {
-      // Error reporting must never interfere with recovery UI.
-    });
+    void (async () => {
+      try {
+        const { error: telemetryError } = await supabase.rpc('ateek_client_error_log', {
+          p_scope: `screen:${this.props.name}`.slice(0, 120),
+          p_entity_id: null,
+          p_message: message,
+        });
+        if (__DEV__ && telemetryError) console.warn('[ATEEK] error telemetry unavailable', telemetryError.message);
+      } catch {
+        // Error reporting must never interfere with recovery UI.
+      }
+    })();
   }
 
   componentDidUpdate(prev: Props) {
