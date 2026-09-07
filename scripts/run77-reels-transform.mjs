@@ -17,3 +17,4 @@ fs.writeFileSync(dmFile,dm);
 console.log('Run #77 transform applied: reel memory discipline and Android chat keyboard avoidance.');
 
 await import('./run90-chat-media-transform.mjs');
+await import('./run91-profile-polish-transform.mjs');
