@@ -69,7 +69,7 @@ jobs:
           grep -Fq 'ai-translate' src/components/SpatialReelsHub.tsx
           grep -Fq 'thumbnail_url' src/components/SpatialReelsHub.tsx
 
-      - name: Apply production transforms through Run 92
+      - name: Apply production transforms through Run 93
         run: |
           node scripts/run77-reels-transform.mjs
           grep -Fq 'initialNumToRender={1} maxToRenderPerBatch={1}' src/components/SpatialReelsHub.tsx
@@ -79,7 +79,11 @@ jobs:
           grep -Fq 'requestMediaLibraryPermissionsAsync' src/components/SpatialDealScreens.tsx
           grep -Fq 'ateek_profile_social_update' src/components/SpatialProfileAnalyticsHub.tsx
           grep -Fq 'formatAiForArabic' src/components/SpatialDealScreens.tsx
-          grep -Fq 'duration:460' src/cloud/OnlineApp.tsx
+          grep -Fq 'duration:260' src/cloud/OnlineApp.tsx
+          ! grep -Fq 'opacity.value=0' src/cloud/OnlineApp.tsx
+          grep -Fq "justifyContent: 'flex-end'" src/components/SpatialDealScreens.tsx
+          ! grep -Fq 'الملاحظات الصوتية غير مفعلة لهذه المحادثة' src/components/SpatialDealScreens.tsx
+          grep -Fq 'مركز المحادثات' src/components/SpatialDealScreens.tsx
           grep -Fq 'BUILD_INFO.versionName' src/components/SpatialProfileAnalyticsHub.tsx
 
       - name: Validate production contract
