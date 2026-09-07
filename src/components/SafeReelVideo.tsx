@@ -24,30 +24,12 @@ function logVideoError(reelId: string | undefined | null, message: string) {
   })();
 }
 
-function GuardedPlayer({
-  reel,
-  source,
-  active,
-  failedLabel,
-  retryLabel,
-}: {
-  reel: ReelVideoInput;
-  source: VideoSource;
-  active: boolean;
-  failedLabel: string;
-  retryLabel: string;
-}) {
+function GuardedPlayer({ reel, source, active, failedLabel, retryLabel }: { reel: ReelVideoInput; source: VideoSource; active: boolean; failedLabel: string; retryLabel: string }) {
   const startedAt = useRef(globalThis.performance?.now?.() ?? Date.now());
   const reportedReady = useRef(false);
   const [fallback, setFallback] = useState(false);
   const [retrySerial, setRetrySerial] = useState(0);
-
-  // Keep player initialization intentionally minimal. Expo's native defaults are
-  // safer across Android vendors than mutating advanced buffer settings during
-  // construction, and playback errors are handled by the fallback below.
-  const player = useVideoPlayer(source, (instance) => {
-    instance.loop = true;
-  });
+  const player = useVideoPlayer(source, (instance) => { instance.loop = true; });
   const event = useEvent(player, 'statusChange', { status: player.status });
   const status = event.status;
   const error = event.error;
@@ -74,31 +56,21 @@ function GuardedPlayer({
   useEffect(() => {
     if (fallback || status === 'readyToPlay' || status === 'error') return;
     const timer = setTimeout(() => {
-      logVideoError(reel.id, 'VIDEO_READY_TIMEOUT_3500MS');
+      logVideoError(reel.id, 'VIDEO_READY_TIMEOUT_2000MS');
       setFallback(true);
-    }, 3500);
+    }, 2000);
     return () => clearTimeout(timer);
   }, [fallback, status, reel.id, retrySerial]);
 
   useEffect(() => {
     try {
-      if (fallback) {
-        player.pause();
-        return;
-      }
-      if (active && status === 'readyToPlay') player.play();
-      else player.pause();
+      if (fallback) { player.pause(); return; }
+      if (active && status === 'readyToPlay') player.play(); else player.pause();
     } catch (e) {
       logVideoError(reel.id, `VIDEO_CONTROL_ERROR:${String(e)}`);
       setFallback(true);
     }
-    return () => {
-      try {
-        player.pause();
-      } catch {
-        // Native player may already be released during unmount.
-      }
-    };
+    return () => { try { player.pause(); } catch { /* Native player may already be released. */ } };
   }, [active, player, status, fallback, reel.id]);
 
   const retry = async () => {
@@ -115,80 +87,22 @@ function GuardedPlayer({
     }
   };
 
-  if (fallback) {
-    return <FallbackCard reel={reel} label={failedLabel} retryLabel={retryLabel} thumbnail={thumbnail} onRetry={() => void retry()} />;
-  }
-
-  return (
-    <View style={StyleSheet.absoluteFill}>
-      <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} surfaceType="textureView" />
-      {status !== 'readyToPlay' && status !== 'error' ? <VideoLoading /> : null}
-    </View>
-  );
+  if (fallback) return <FallbackCard reel={reel} label={failedLabel} retryLabel={retryLabel} thumbnail={thumbnail} onRetry={() => void retry()} />;
+  return <View style={StyleSheet.absoluteFill}><VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} surfaceType="textureView" />{status !== 'readyToPlay' && status !== 'error' ? <VideoLoading /> : null}</View>;
 }
 
-function VideoLoading() {
-  return (
-    <View style={[StyleSheet.absoluteFill, s.loading]}>
-      <ActivityIndicator size="small" color={ui.colors.accent} />
-    </View>
-  );
-}
+function VideoLoading() { return <View style={[StyleSheet.absoluteFill, s.loading]}><ActivityIndicator size="small" color={ui.colors.accent} /></View>; }
 
-function FallbackCard({
-  reel,
-  label,
-  retryLabel,
-  thumbnail,
-  onRetry,
-}: {
-  reel: ReelVideoInput;
-  label: string;
-  retryLabel: string;
-  thumbnail?: string | null;
-  onRetry: () => void;
-}) {
-  return (
-    <View style={[StyleSheet.absoluteFill, s.invalid]}>
-      {thumbnail ? <Image source={{ uri: thumbnail }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : null}
-      <View style={s.fallbackShade} />
-      <Ionicons name="image-outline" size={36} color={ui.colors.muted} />
-      <Text style={s.invalidText}>{label}</Text>
-      {!!reel.caption && <Text numberOfLines={3} style={s.caption}>{reel.caption}</Text>}
-      <Pressable accessibilityRole="button" accessibilityLabel={retryLabel} onPress={onRetry} style={s.retry}>
-        <Ionicons name="refresh" size={18} color={ui.colors.background} />
-        <Text style={s.retryText}>{retryLabel}</Text>
-      </Pressable>
-    </View>
-  );
+function FallbackCard({ reel, label, retryLabel, thumbnail, onRetry }: { reel: ReelVideoInput; label: string; retryLabel: string; thumbnail?: string | null; onRetry: () => void }) {
+  return <View style={[StyleSheet.absoluteFill, s.invalid]}>{thumbnail ? <Image source={{ uri: thumbnail }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : null}<View style={s.fallbackShade} /><Ionicons name="image-outline" size={36} color={ui.colors.muted} /><Text style={s.invalidText}>{label}</Text>{!!reel.caption && <Text numberOfLines={3} style={s.caption}>{reel.caption}</Text>}<Pressable accessibilityRole="button" accessibilityLabel={retryLabel} onPress={onRetry} style={s.retry}><Ionicons name="refresh" size={18} color={ui.colors.background} /><Text style={s.retryText}>{retryLabel}</Text></Pressable></View>;
 }
 
 export function SafeReelVideo({ reel, active }: Props) {
   const { t } = useLocale();
   const resolved = resolveReelVideoSource(reel);
-  if (!resolved) {
-    return (
-      <View style={[StyleSheet.absoluteFill, s.invalid]}>
-        <Ionicons name="videocam-off-outline" size={36} color={ui.colors.muted} />
-        <Text style={s.invalidText}>{t('reels.videoInvalid')}</Text>
-      </View>
-    );
-  }
-
-  const source: VideoSource = {
-    uri: resolved.uri,
-    contentType: resolved.kind === 'hls' ? 'hls' : 'progressive',
-  };
-
-  return (
-    <GuardedPlayer
-      reel={reel}
-      source={source}
-      active={active}
-      failedLabel={t('reels.videoFailed')}
-      retryLabel={t('app.error.retry')}
-    />
-  );
+  if (!resolved) return <View style={[StyleSheet.absoluteFill, s.invalid]}><Ionicons name="videocam-off-outline" size={36} color={ui.colors.muted} /><Text style={s.invalidText}>{t('reels.videoInvalid')}</Text></View>;
+  const source: VideoSource = { uri: resolved.uri, contentType: resolved.kind === 'hls' ? 'hls' : 'progressive' };
+  return <GuardedPlayer reel={reel} source={source} active={active} failedLabel={t('reels.videoFailed')} retryLabel={t('app.error.retry')} />;
 }
 
 const s = StyleSheet.create({
