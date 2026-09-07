@@ -111,6 +111,10 @@ jobs:
           grep -Fq 'performance' src/i18n/LocaleProvider.tsx
           grep -Fq 'AsyncStorage.multiGet' src/theme/ThemeProvider.tsx
           grep -Fq 'drop_console' metro.config.js
+          grep -Fq "behavior={Platform.OS === 'ios' ? 'padding' : 'height'}" src/screens/AddListingScreen.tsx
+          grep -Fq 'accessibilityLiveRegion="polite"' src/screens/AddListingScreen.tsx
+          grep -Fq 'const canPublish = Boolean' src/screens/AddListingScreen.tsx
+          grep -Fq 'AsyncStorage.removeItem(DRAFT_KEY)' src/screens/AddListingScreen.tsx
 
       - name: TypeScript strict check
         run: npm run typecheck
