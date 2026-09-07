@@ -17,9 +17,10 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
     if (index >= pages.length - 1) return onDone();
     ref.current?.scrollToIndex({ index: index + 1, animated: true });
   };
+  const primaryLabel = index === pages.length - 1 ? 'ابدأ استخدام عتيك' : 'التالي';
   return (
     <View style={s.root}>
-      <View style={s.brandRow}><Text style={s.brand}>ATEEK</Text><Text style={s.ar}>عتيك</Text></View>
+      <View style={s.brandRow} accessible accessibilityRole="header"><Text style={s.brand}>ATEEK</Text><Text style={s.ar}>عتيك</Text></View>
       <FlatList
         ref={ref}
         data={pages}
@@ -28,17 +29,22 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         onMomentumScrollEnd={(e) => setIndex(Math.round(e.nativeEvent.contentOffset.x / Math.max(1, width)))}
-        renderItem={({ item }) => (
-          <View style={[s.page, { width }]}>
-            <View style={s.hero}><Ionicons name={item.icon} size={76} color={ui.colors.accent} /></View>
+        renderItem={({ item, index: pageIndex }) => (
+          <View
+            style={[s.page, { width }]}
+            accessible
+            accessibilityRole="summary"
+            accessibilityLabel={`${item.title}. ${item.body}. الصفحة ${pageIndex + 1} من ${pages.length}`}
+          >
+            <View style={s.hero} importantForAccessibility="no-hide-descendants"><Ionicons name={item.icon} size={76} color={ui.colors.accent} /></View>
             <Text style={s.title}>{item.title}</Text>
             <Text style={s.body}>{item.body}</Text>
           </View>
         )}
       />
-      <View style={s.dots}>{pages.map((_, i) => <View key={i} style={[s.dot, i === index && s.dotActive]} />)}</View>
-      <Pressable accessibilityRole="button" onPress={next} style={s.primary}><Text style={s.primaryText}>{index === pages.length - 1 ? 'ابدأ استخدام عتيك' : 'التالي'}</Text><Ionicons name="arrow-back" size={ui.icon} color={ui.colors.background} /></Pressable>
-      <Pressable accessibilityRole="button" onPress={onDone} style={s.skip}><Text style={s.skipText}>تخطي</Text></Pressable>
+      <View style={s.dots} importantForAccessibility="no-hide-descendants">{pages.map((_, i) => <View key={i} style={[s.dot, i === index && s.dotActive]} />)}</View>
+      <Pressable accessibilityRole="button" accessibilityLabel={primaryLabel} onPress={next} style={s.primary}><Text style={s.primaryText}>{primaryLabel}</Text><Ionicons name="arrow-back" size={ui.icon} color={ui.colors.background} /></Pressable>
+      <Pressable accessibilityRole="button" accessibilityLabel="تخطي المقدمة" onPress={onDone} style={s.skip}><Text style={s.skipText}>تخطي</Text></Pressable>
     </View>
   );
 }
@@ -57,6 +63,6 @@ const s = StyleSheet.create({
   dotActive: { width: 24, backgroundColor: ui.colors.accent },
   primary: { marginHorizontal: ui.spacing.standard, minHeight: 54, borderRadius: ui.radius.card, backgroundColor: ui.colors.accent, flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center' },
   primaryText: { color: ui.colors.background, fontWeight: '900' },
-  skip: { minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  skip: { minHeight: 48, alignItems: 'center', justifyContent: 'center' },
   skipText: { color: ui.colors.muted, fontWeight: '700' },
 });
