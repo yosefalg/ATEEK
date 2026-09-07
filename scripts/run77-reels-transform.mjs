@@ -1,4 +1,18 @@
 import fs from 'node:fs';
+import { spawnSync } from 'node:child_process';
+
+const transformScripts = fs.readdirSync('scripts')
+  .filter((name) => /^run\d+.*\.mjs$/.test(name))
+  .sort();
+for (const name of transformScripts) {
+  const result = spawnSync(process.execPath, ['--check', `scripts/${name}`], { encoding: 'utf8' });
+  if (result.status !== 0) {
+    const detail = (result.stderr || result.stdout || '').trim();
+    throw new Error(`Production transform syntax preflight failed for ${name}${detail ? `:\n${detail}` : ''}`);
+  }
+}
+console.log(`Production transform syntax preflight passed (${transformScripts.length} scripts).`);
+
 const file='src/components/SpatialReelsHub.tsx';
 let s=fs.readFileSync(file,'utf8');
 const replace=(from,to,label)=>{if(!s.includes(from))throw new Error(`Run77 transform anchor missing: ${label}`);s=s.replace(from,to)};
