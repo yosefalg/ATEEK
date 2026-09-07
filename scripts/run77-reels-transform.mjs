@@ -15,3 +15,5 @@ if(!dm.includes(oldKeyboard))throw new Error('Run77 transform anchor missing: An
 dm=dm.replace(oldKeyboard,newKeyboard);
 fs.writeFileSync(dmFile,dm);
 console.log('Run #77 transform applied: reel memory discipline and Android chat keyboard avoidance.');
+
+await import('./run90-chat-media-transform.mjs');
