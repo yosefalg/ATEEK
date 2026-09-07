@@ -1,7 +1,7 @@
 export const colors = {
-  forest:'#07130F', forestSoft:'#102B23', gold:'#F1B84B', goldSoft:'#F8E3B2',
-  cream:'#07110E', paper:'rgba(17,38,31,0.94)', ink:'#F5F8F6', muted:'#9AA9A2',
-  line:'rgba(255,255,255,0.10)', danger:'#FF6B6B', success:'#55D69E', overlay:'rgba(3,10,8,0.78)',
-  glass:'rgba(20,48,39,0.72)', glassStrong:'rgba(11,31,25,0.92)', cyan:'#69E6C1'
+  forest:'#090A0F', forestSoft:'#12151D', gold:'#E0B66C', goldSoft:'#D8C49A',
+  cream:'#090A0F', paper:'#0F1219', ink:'#F6F8FB', muted:'#7E8798',
+  line:'rgba(190,198,211,0.16)', danger:'#FF7B86', success:'#73F0CF', overlay:'rgba(5,6,10,0.88)',
+  glass:'#10131A', glassStrong:'#151922', cyan:'#73F0CF'
 };
-export const shadows={card:{shadowColor:'#000000',shadowOffset:{width:0,height:8},shadowOpacity:.28,shadowRadius:18,elevation:7}};
+export const shadows={card:{shadowColor:'#73F0CF',shadowOffset:{width:0,height:10},shadowOpacity:.08,shadowRadius:22,elevation:7}};
