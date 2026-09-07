@@ -33,4 +33,18 @@ for(const [from,to] of replacements){
 }
 fs.writeFileSync(accountFile,account);
 
-console.log('Run #98 global visual system applied: premium auth portal, Arabic account labels, preserved Supabase Auth flow.');
+const authPortal=fs.readFileSync('src/components/AuthPortal.tsx','utf8');
+const palette=fs.readFileSync('src/theme/colors.ts','utf8');
+const tokens=fs.readFileSync('src/theme/tokens.ts','utf8');
+const required=[
+  [online,"import { AuthPortal } from '../components/AuthPortal';",'AuthPortal import'],
+  [online,'return <AuthPortal register={register}','AuthPortal render'],
+  [authPortal,'accessibilityLiveRegion="polite"','auth accessibility live region'],
+  [authPortal,"behavior={Platform.OS === 'ios' ? 'padding' : 'height'}",'Android auth keyboard avoidance'],
+  [account,"['premium','عتيك بلس','diamond-outline']",'Arabic premium tab'],
+  [palette,"gold:'#D6B36C'",'global accent palette'],
+  [tokens,"background: '#07090D'",'global background token']
+];
+for(const [source,needle,label] of required){if(!source.includes(needle))throw new Error(`Run98 contract missing: ${label}`)}
+
+console.log('Run #98 global visual system applied: premium auth portal, Arabic account labels, unified palette, preserved Supabase Auth flow.');
