@@ -54,11 +54,18 @@ export function cloudinaryVideoThumbnail(uri?: string | null) {
   const prefix = u.pathname.slice(0, at + marker.length);
   const tail = u.pathname.slice(at + marker.length);
   const segments = tail.split('/').filter(Boolean);
-  while (segments.length && /^(sp_|f_|q_|w_|h_|c_|so_)/.test(segments[0])) segments.shift();
+  while (segments.length) {
+    const first = segments[0];
+    if (!first || !/^(sp_|f_|q_|w_|h_|c_|so_)/.test(first)) break;
+    segments.shift();
+  }
   if (!segments.length) return null;
   const last = segments.length - 1;
-  segments[last] = segments[last].replace(/\.(m3u8|mp4|mov|webm)$/i, '.jpg');
-  if (!/\.jpg$/i.test(segments[last])) segments[last] += '.jpg';
+  const current = segments[last];
+  if (!current) return null;
+  let thumbnailName = current.replace(/\.(m3u8|mp4|mov|webm)$/i, '.jpg');
+  if (!/\.jpg$/i.test(thumbnailName)) thumbnailName += '.jpg';
+  segments[last] = thumbnailName;
   u.pathname = `${prefix}so_1,w_720,c_limit,f_jpg,q_auto/${segments.join('/')}`;
   u.search = '';
   u.hash = '';
