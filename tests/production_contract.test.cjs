@@ -45,7 +45,11 @@ test('listing cards follow active theme and deduplicate seller metrics requests'
   const card = fs.readFileSync('src/components/ListingCard.tsx','utf8');
   assert.match(card, /const pending = new Map<string, Promise<Metrics \| null>>\(\)/);
   assert.match(card, /pending\.get\(sellerId\)/);
+  assert.match(card, /pending\.set\(sellerId, request\)/);
   assert.match(card, /pending\.delete\(sellerId\)/);
+  assert.match(card, /try \{/);
+  assert.match(card, /finally \{/);
+  assert.doesNotMatch(card, /\.finally\(\(\) => pending\.delete/);
   assert.match(card, /backgroundColor: colors\.glass/);
   assert.match(card, /borderColor: colors\.line/);
   assert.match(card, /color: colors\.ink/);
