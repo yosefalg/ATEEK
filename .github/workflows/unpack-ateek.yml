@@ -69,13 +69,14 @@ jobs:
           grep -Fq 'ai-translate' src/components/SpatialReelsHub.tsx
           grep -Fq 'thumbnail_url' src/components/SpatialReelsHub.tsx
 
-      - name: Apply production transforms through Run 91
+      - name: Apply production transforms through Run 92
         run: |
           node scripts/run77-reels-transform.mjs
           grep -Fq 'initialNumToRender={1} maxToRenderPerBatch={1}' src/components/SpatialReelsHub.tsx
           ! grep -Fq 'nextReel=' src/components/SpatialReelsHub.tsx
           ! grep -Fq 'onSkip=' src/components/SpatialReelsHub.tsx
-          grep -Fq 'sendChatImage' src/components/SpatialDealScreens.tsx
+          grep -Fq 'const sendImage = async' src/components/SpatialDealScreens.tsx
+          grep -Fq 'requestMediaLibraryPermissionsAsync' src/components/SpatialDealScreens.tsx
           grep -Fq 'ateek_profile_social_update' src/components/SpatialProfileAnalyticsHub.tsx
           grep -Fq 'formatAiForArabic' src/components/SpatialDealScreens.tsx
           grep -Fq 'duration:460' src/cloud/OnlineApp.tsx
