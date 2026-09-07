@@ -54,8 +54,26 @@ jobs:
           EOF
           echo "Embedding ATEEK ${VERSION_NAME} (#${VERSION_CODE}) commit ${SHORT_SHA}"
 
-      - name: Install dependencies
-        run: npm install --no-audit --no-fund
+      - name: Verify lockfile contract
+        run: |
+          node - <<'NODE'
+          const p=require('./package.json');
+          const l=require('./package-lock.json');
+          const root=l.packages?.[''];
+          if(!root) throw new Error('lockfile root package missing');
+          if(l.name!==p.name||root.name!==p.name) throw new Error('lockfile name mismatch');
+          if(l.version!==p.version||root.version!==p.version) throw new Error(`lockfile version mismatch: ${l.version}/${root.version} vs ${p.version}`);
+          for(const section of ['dependencies','devDependencies']){
+            const a=p[section]||{}, b=root[section]||{};
+            const mismatch=Object.keys(a).filter(k=>b[k]!==a[k]);
+            const extra=Object.keys(b).filter(k=>!(k in a));
+            if(mismatch.length||extra.length) throw new Error(`${section} mismatch changed=${mismatch.join(',')} extra=${extra.join(',')}`);
+          }
+          console.log(`LOCKFILE_CONTRACT_OK ${p.name}@${p.version}`);
+          NODE
+
+      - name: Install dependencies reproducibly
+        run: npm ci --no-audit --no-fund
 
       - name: Preflight and apply production transforms
         run: |
