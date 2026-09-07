@@ -2,22 +2,22 @@
   "expo": {
     "name": "عتيك",
     "slug": "ateek-marketplace",
-    "version": "2.1.0",
+    "version": "2.2.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "jsEngine": "hermes",
     "assetBundlePatterns": ["**/*"],
     "icon": "./assets/generated/icon.png",
-    "splash": {"image": "./assets/generated/splash.png", "resizeMode": "contain", "backgroundColor": "#090A0F"},
+    "splash": {"image": "./assets/generated/splash.png", "resizeMode": "contain", "backgroundColor": "#0A0E17"},
     "android": {
       "package": "com.yosef.ateek",
-      "versionCode": 15,
+      "versionCode": 16,
       "softwareKeyboardLayoutMode": "resize",
-      "adaptiveIcon": {"foregroundImage": "./assets/generated/adaptive-icon.png", "backgroundColor": "#090A0F"},
+      "adaptiveIcon": {"foregroundImage": "./assets/generated/adaptive-icon.png", "backgroundColor": "#0A0E17"},
       "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"],
       "blockedPermissions": ["android.permission.READ_MEDIA_IMAGES", "android.permission.READ_MEDIA_VIDEO"]
     },
-    "ios": {"supportsTablet": true, "bundleIdentifier": "com.yosef.ateek", "buildNumber": "15"},
+    "ios": {"supportsTablet": true, "bundleIdentifier": "com.yosef.ateek", "buildNumber": "16"},
     "plugins": [
       "expo-localization",
       ["expo-image-picker", {"photosPermission": "يحتاج عتيك للوصول إلى الوسائط التي تختارها لإضافتها إلى الإعلانات والريلز."}],
