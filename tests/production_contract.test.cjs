@@ -41,6 +41,18 @@ test('ATEEK 2.2 visual tokens remain exact', () => {
   assert.match(tokens, /card: 22/);
 });
 
+test('listing cards follow active theme and deduplicate seller metrics requests', () => {
+  const card = fs.readFileSync('src/components/ListingCard.tsx','utf8');
+  assert.match(card, /const pending = new Map<string, Promise<Metrics \| null>>\(\)/);
+  assert.match(card, /pending\.get\(sellerId\)/);
+  assert.match(card, /pending\.delete\(sellerId\)/);
+  assert.match(card, /backgroundColor: colors\.glass/);
+  assert.match(card, /borderColor: colors\.line/);
+  assert.match(card, /color: colors\.ink/);
+  assert.match(card, /event\.stopPropagation\(\)/);
+  assert.doesNotMatch(card, /#0F1219|#151922|#F6F8FB|#7E8798/);
+});
+
 test('home and dynamic root background contract is wired', () => {
   const home = fs.readFileSync('src/screens/HomeScreen.tsx','utf8');
   const nav = fs.readFileSync('src/components/BottomNav.tsx','utf8');
