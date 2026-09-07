@@ -7,4 +7,4 @@ export interface Listing {
   age: string; image: string; seller: string; verified: boolean; description: string; createdAt: number;
 }
 export interface Offer { id:string; listingId:string; amount:number; status:'قيد التفاوض'|'مقبول'|'مرفوض'; }
-export type TabId = 'home' | 'search' | 'add' | 'chats' | 'ai' | 'profile';
+export type TabId = 'home' | 'search' | 'add' | 'notifications' | 'chats' | 'ai' | 'profile';
