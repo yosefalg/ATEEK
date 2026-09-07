@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PROJECT_URL, PUBLIC_KEY, supabase } from '../cloud/client';
 
 export type AiMode = 'chat' | 'antique_expert' | 'iraq_guide' | 'marketplace';
-export type AiTaskMode = 'improve_listing' | 'suggest_replies';
+export type AiTaskMode = 'improve_listing' | 'suggest_replies' | 'listing_analysis';
 export type AiStreamEvent =
   | { type: 'meta'; threadId: string; model?: string; limit?: number; remaining?: number }
   | { type: 'delta'; delta: string }
