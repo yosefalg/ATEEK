@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PropsWithChildren, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Modal, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
-import { useAteekTheme } from '../theme/ThemeProvider';
+import { ThemeColors, useAteekTheme } from '../theme/ThemeProvider';
 
 const KEY = 'consents';
 
@@ -146,7 +146,7 @@ function Row({
   value: boolean;
   onChange: (value: boolean) => void;
   disabled?: boolean;
-  colors: Record<string, string>;
+  colors: ThemeColors;
 }) {
   return (
     <View style={[styles.row, { borderColor: colors.line }]}>
