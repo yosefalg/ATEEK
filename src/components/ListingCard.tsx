@@ -16,21 +16,23 @@ type Metrics = { verified: boolean; completedDeals: number; activeSeller: boolea
 const cache = new Map<string, Metrics>();
 const pending = new Map<string, Promise<Metrics | null>>();
 
-async function getSellerMetrics(sellerId: string) {
+async function getSellerMetrics(sellerId: string): Promise<Metrics | null> {
   const cached = cache.get(sellerId);
   if (cached) return cached;
   const existing = pending.get(sellerId);
   if (existing) return existing;
 
-  const request = supabase
-    .rpc('ateek_seller_metrics', { p_seller: sellerId })
-    .then(({ data, error }) => {
+  const request: Promise<Metrics | null> = (async () => {
+    try {
+      const { data, error } = await supabase.rpc('ateek_seller_metrics', { p_seller: sellerId });
       if (error || !data) return null;
       const metrics = data as Metrics;
       cache.set(sellerId, metrics);
       return metrics;
-    })
-    .finally(() => pending.delete(sellerId));
+    } finally {
+      pending.delete(sellerId);
+    }
+  })();
 
   pending.set(sellerId, request);
   return request;
