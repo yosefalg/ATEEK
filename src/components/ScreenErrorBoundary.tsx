@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BUILD_INFO } from '../config/buildInfo';
+import { supabase } from '../cloud/client';
 import { ui } from '../theme/tokens';
 
 type Props = React.PropsWithChildren<{ name: string; resetKey?: string | number | null }>;
@@ -15,7 +16,22 @@ export class ScreenErrorBoundary extends React.Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
+    const message = [
+      `${error.name || 'Error'}: ${error.message || 'UNKNOWN_RUNTIME_ERROR'}`,
+      info.componentStack || '',
+      `build=${BUILD_INFO.versionName}#${BUILD_INFO.versionCode}@${BUILD_INFO.shortSha}`,
+    ].join('\n').slice(0, 1200);
+
     console.error(`[ATEEK:${this.props.name}] isolated runtime error`, error, info.componentStack);
+    void supabase.rpc('ateek_client_error_log', {
+      p_scope: `screen:${this.props.name}`.slice(0, 120),
+      p_entity_id: null,
+      p_message: message,
+    }).then(({ error: telemetryError }) => {
+      if (__DEV__ && telemetryError) console.warn('[ATEEK] error telemetry unavailable', telemetryError.message);
+    }).catch(() => {
+      // Error reporting must never interfere with recovery UI.
+    });
   }
 
   componentDidUpdate(prev: Props) {
@@ -29,12 +45,12 @@ export class ScreenErrorBoundary extends React.Component<Props, State> {
     return (
       <View style={s.root} accessibilityRole="alert">
         <View style={s.card}>
-          <Ionicons name="shield-checkmark-outline" size={36} color={ui.colors.accent} />
-          <Text style={s.title}>تم احتواء الخطأ داخل {this.props.name}</Text>
-          <Text style={s.body}>لم يتم إغلاق عتيك. يمكنك إعادة تحميل هذه الشاشة فقط دون التأثير في بقية التطبيق.</Text>
-          <Pressable accessibilityRole="button" accessibilityLabel="إعادة تحميل الشاشة" onPress={this.retry} style={s.button}>
+          <Ionicons name="shield-checkmark-outline" size={36} color={ui.colors.accent} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
+          <Text style={s.title}>تعذر تشغيل {this.props.name}</Text>
+          <Text style={s.body}>تم حفظ تقرير تقني لمحاولة تحديد السبب. يمكنك إعادة فتح هذه الشاشة دون إغلاق التطبيق.</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel="إعادة فتح الشاشة" onPress={this.retry} style={s.button}>
             <Ionicons name="refresh" size={ui.icon} color={ui.colors.background} />
-            <Text style={s.buttonText}>إعادة تحميل الشاشة</Text>
+            <Text style={s.buttonText}>إعادة فتح الشاشة</Text>
           </Pressable>
           <Text style={s.meta}>ATEEK {BUILD_INFO.versionName} • #{BUILD_INFO.versionCode} • {BUILD_INFO.shortSha}</Text>
         </View>
