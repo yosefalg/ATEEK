@@ -63,32 +63,44 @@ jobs:
           grep -Fq 'readReelsSnapshot' src/components/SpatialReelsHub.tsx
           grep -Fq 'inverted={isRTL}' src/components/SpatialReelsHub.tsx
 
-      - name: Apply Run 76 Reels resilience and contextual AI transform
+      - name: Apply Run 76 contextual AI transform
         run: |
           node scripts/run76-reels-transform.mjs
           grep -Fq 'ai-translate' src/components/SpatialReelsHub.tsx
-          grep -Fq 'nextReel=' src/components/SpatialReelsHub.tsx
-          grep -Fq 'onSkip=' src/components/SpatialReelsHub.tsx
           grep -Fq 'thumbnail_url' src/components/SpatialReelsHub.tsx
 
-      - name: Validate Run 76 production contract
+      - name: Apply Run 77 reel memory discipline
         run: |
-          node -e "const a=require('./app.json').expo;if(a.version!=='2.1.0'||a.android.versionCode!==15||a.jsEngine!=='hermes')process.exit(1)"
+          node scripts/run77-reels-transform.mjs
+          grep -Fq 'initialNumToRender={1} maxToRenderPerBatch={1}' src/components/SpatialReelsHub.tsx
+          ! grep -Fq 'nextReel=' src/components/SpatialReelsHub.tsx
+          ! grep -Fq 'onSkip=' src/components/SpatialReelsHub.tsx
+
+      - name: Validate Run 77 production contract
+        run: |
+          node -e "const a=require('./app.json').expo;if(a.version!=='2.1.0'||a.android.versionCode!==15||a.jsEngine!=='hermes'||a.android.softwareKeyboardLayoutMode!=='resize')process.exit(1)"
           node -e "const e=require('./eas.json');if(e.build.production.android.buildType!=='app-bundle'||e.build.production.distribution!=='store')process.exit(1)"
           grep -Fq 'ConsentManager' src/AppShell.tsx
           grep -Fq "id:'notifications'" src/components/BottomNav.tsx
-          grep -Fq 'Command Center' src/screens/HomeScreen.tsx
+          grep -Fq 'onLongPress' src/components/BottomNav.tsx
+          grep -Fq 'quickGrid' src/screens/HomeScreen.tsx
+          grep -Fq 'أحدث الإعلانات' src/screens/HomeScreen.tsx
+          grep -Fq 'أحدث الريلز' src/screens/HomeScreen.tsx
+          grep -Fq 'Gyroscope' src/components/DynamicBackground.tsx
+          grep -Fq '#080B14' src/components/DynamicBackground.tsx
+          grep -Fq 'VIDEO_READY_TIMEOUT_2000MS' src/components/SafeReelVideo.tsx
+          grep -Fq 'cloudinaryVideoThumbnail' src/components/SafeReelVideo.tsx
+          grep -Fq 'replaceAsync' src/components/SafeReelVideo.tsx
+          grep -Fq 'ateek_client_error_log' src/components/SafeReelVideo.tsx
           grep -Fq 'analytics_cache' src/components/ProductionAccountHub.tsx
           grep -Fq 'ateek_profile_preferences_update' src/components/ProductionAccountHub.tsx
           grep -Fq "functions.invoke('delete-account'" src/components/ProductionAccountHub.tsx
-          grep -Fq 'replaceAsync' src/components/SafeReelVideo.tsx
-          grep -Fq 'ateek_client_error_log' src/components/SafeReelVideo.tsx
-          grep -Fq "ateek.stream.quality" src/components/SafeReelVideo.tsx
           grep -Fq 'CinematicScreen' src/cloud/OnlineApp.tsx
           grep -Fq 'expo-localization' package.json
           grep -Fq 'i18n-js' package.json
           grep -Fq 'performance' src/i18n/LocaleProvider.tsx
           grep -Fq 'AsyncStorage.multiGet' src/theme/ThemeProvider.tsx
+          grep -Fq 'drop_console' metro.config.js
 
       - name: TypeScript strict check
         run: npm run typecheck
@@ -141,6 +153,7 @@ jobs:
           grep -Fq '<certificates src="system" />' android/app/src/main/res/xml/network_security_config.xml
           ! grep -q '^android.bundle.enableUncompressedNativeLibs=' android/gradle.properties
           grep -Fq 'hermesFlags = ["-O", "-output-source-map"]' android/app/build.gradle
+          grep -Eq 'android:windowSoftInputMode="[^\"]*adjustResize[^\"]*"' android/app/src/main/AndroidManifest.xml
 
       - name: Build full Play AAB
         run: |
@@ -170,10 +183,10 @@ jobs:
           [ "$APK_ABIS" = "arm64-v8a " ]
           for ABI in arm64-v8a armeabi-v7a x86 x86_64; do unzip -Z1 "$AAB_PATH" | grep -q "^base/lib/${ABI}/"; done
           ! unzip -Z1 "$APK_PATH" | grep -qE '^lib/arm64-v8a/lib(jsc|jscexecutor)\.so$'
-          echo "VERIFIED RUN76: 2.1.0 #15 ${GITHUB_SHA::7}"
+          echo "VERIFIED RUN77: 2.1.0 #15 ${GITHUB_SHA::7}"
           sha256sum "$AAB_PATH" "$APK_PATH"
 
-      - name: Generate Run 76 size metrics and enforce budgets
+      - name: Generate Run 77 size metrics and enforce budgets
         run: |
           set -euo pipefail
           mkdir -p metrics-out
@@ -181,7 +194,7 @@ jobs:
           import gzip,json,os,zipfile
           apk='android/app/build/outputs/apk/release/app-release.apk'
           aab='android/app/build/outputs/bundle/release/app-release.aab'
-          base={'apkBytes':31769224,'aabBytes':53196182,'dexRawBytes':23846736,'dexCompressedBytes':9010803,'hermesRawBytes':2935932,'hermesGzipBytes':1396216}
+          base={'apkBytes':31781180,'aabBytes':53204052,'dexRawBytes':23846736,'dexCompressedBytes':9010803,'hermesRawBytes':2947888,'hermesGzipBytes':1403800}
           with zipfile.ZipFile(apk) as z:
               infos=z.infolist();dex=[i for i in infos if i.filename.startswith('classes') and i.filename.endswith('.dex')]
               dex_raw=sum(i.file_size for i in dex);dex_comp=sum(i.compress_size for i in dex)
@@ -192,17 +205,23 @@ jobs:
                       data=z.read(i.filename);js={'bytes':len(data),'gzipBytes':len(gzip.compress(data,9))};break
           now={'apkBytes':os.path.getsize(apk),'aabBytes':os.path.getsize(aab),'dexRawBytes':dex_raw,'dexCompressedBytes':dex_comp,'arm64NativeRawBytes':arm,'hermes':js}
           delta={k:now[k]-base[k] for k in ('apkBytes','aabBytes','dexRawBytes','dexCompressedBytes')}
-          out={'run75':base,'run76':now,'delta':delta,'apkTargetBytes':55*1024*1024}
-          open('metrics-out/RUN76-METRICS.json','w').write(json.dumps(out,indent=2))
-          lines=['ATEEK RUN #76 METRICS',f"APK bytes={now['apkBytes']} delta_vs_run75={delta['apkBytes']}",f"AAB bytes={now['aabBytes']} delta_vs_run75={delta['aabBytes']}",f"DEX raw={dex_raw} delta={delta['dexRawBytes']}",f"DEX compressed={dex_comp} delta={delta['dexCompressedBytes']}",f"arm64 native raw={arm}",f"Hermes raw={js['bytes'] if js else 'n/a'} gzip={js['gzipBytes'] if js else 'n/a'}",'Physical Android/iOS device testing: NOT PERFORMED by this CI runner.','analytics-daily Edge Function deployed; cron scheduling is not asserted by CI.']
+          out={'run76':base,'run77':now,'delta':delta,'apkTargetBytes':50*1024*1024}
+          open('metrics-out/RUN77-METRICS.json','w').write(json.dumps(out,indent=2))
+          lines=['ATEEK RUN #77 METRICS',f"APK bytes={now['apkBytes']} delta_vs_run76={delta['apkBytes']}",f"AAB bytes={now['aabBytes']} delta_vs_run76={delta['aabBytes']}",f"DEX raw={dex_raw} delta={delta['dexRawBytes']}",f"DEX compressed={dex_comp} delta={delta['dexCompressedBytes']}",f"arm64 native raw={arm}",f"Hermes raw={js['bytes'] if js else 'n/a'} gzip={js['gzipBytes'] if js else 'n/a'}",'Skia: NOT INCLUDED; lightweight Animated + expo-linear-gradient background used to preserve size/build stability.','Physical Android device test/screenshots/battery measurement: NOT PERFORMED by this CI runner.']
           open('metrics-out/METRICS.txt','w').write('\n'.join(lines)+'\n');print('\n'.join(lines))
           if delta['dexCompressedBytes']>1_000_000: raise SystemExit(f'DEX compressed growth exceeds 1MB guard: {delta["dexCompressedBytes"]}')
-          if now['apkBytes']>55*1024*1024: raise SystemExit(f'APK exceeds 55 MiB target: {now["apkBytes"]}')
+          if now['apkBytes']>50*1024*1024: raise SystemExit(f'APK exceeds 50 MiB target: {now["apkBytes"]}')
           PY
           APK_ANALYZER="$(find "$ANDROID_HOME" -type f -name apkanalyzer 2>/dev/null | head -n 1 || true)"
           if [ -n "$APK_ANALYZER" ]; then
-            "$APK_ANALYZER" apk summary android/app/build/outputs/apk/release/app-release.apk > metrics-out/APKANALYZER.txt || true
-            "$APK_ANALYZER" files list android/app/build/outputs/apk/release/app-release.apk >> metrics-out/APKANALYZER.txt || true
+            {
+              echo '=== APK SUMMARY ==='
+              "$APK_ANALYZER" apk summary android/app/build/outputs/apk/release/app-release.apk || true
+              echo '=== APK FILES ==='
+              "$APK_ANALYZER" files list android/app/build/outputs/apk/release/app-release.apk || true
+              echo '=== DEX PACKAGES ==='
+              "$APK_ANALYZER" dex packages android/app/build/outputs/apk/release/app-release.apk || true
+            } > metrics-out/APKANALYZER.txt
           else
             echo "apkanalyzer not found on runner" > metrics-out/APKANALYZER.txt
           fi
@@ -228,10 +247,10 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Upload Run 76 metrics
+      - name: Upload Run 77 metrics
         uses: actions/upload-artifact@v4
         with:
-          name: ATEEK-RUN76-METRICS
+          name: ATEEK-RUN77-METRICS
           path: metrics-out/*
           if-no-files-found: error
           retention-days: 30
