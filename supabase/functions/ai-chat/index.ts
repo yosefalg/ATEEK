@@ -14,7 +14,7 @@ const jsonHeaders = { ...cors, "content-type": "application/json; charset=utf-8"
 const sseHeaders = { ...cors, "content-type": "text/event-stream; charset=utf-8", "cache-control": "no-cache", connection: "keep-alive" };
 
 type AiMessage = { role: "user" | "assistant"; body: string };
-type Mode = "chat" | "antique_expert" | "iraq_guide" | "marketplace" | "improve_listing" | "suggest_replies";
+type Mode = "chat" | "antique_expert" | "iraq_guide" | "marketplace" | "improve_listing" | "suggest_replies" | "listing_analysis";
 
 function cleanText(value: unknown, max = 8000) {
   return String(value ?? "").replace(/\u0000/g, "").trim().slice(0, max);
@@ -26,6 +26,7 @@ function promptFor(mode: Mode) {
   if (mode === "marketplace") return base + " ركّز على البيع والشراء، تحسين الإعلان، التفاوض، كشف الإشارات المريبة، وصياغة ردود مهذبة ومختصرة.";
   if (mode === "improve_listing") return base + " حسّن وصف الإعلان فقط. أعد نصاً جذاباً ومهنياً بلا مبالغة ولا اختلاق مواصفات، وبحد أقصى 700 حرف.";
   if (mode === "suggest_replies") return base + " اقترح ثلاثة ردود قصيرة مختلفة النبرة للمحادثة التجارية. أعد JSON فقط بالشكل {\"replies\":[\"...\",\"...\",\"...\"]}.";
+  if (mode === "listing_analysis") return base + " حلل إعلان السوق بناءً حصراً على البيانات والسياق المرسلين. اشرح السعر المعلن، نطاقاً تقريبياً إن أمكن من البيانات، عوامل الرفع والخفض، وإشارات المخاطرة. لا تخترع أسعار سوق أو مصادر خارجية ولا تجزم بالأصالة.";
   return base;
 }
 function bearer(req: Request) {
@@ -110,7 +111,7 @@ function openAiBody(messages: AiMessage[], mode: Mode, stream: boolean) {
     model: OPENAI_MODEL,
     instructions: promptFor(mode),
     input: messages.map(m => ({ role: m.role, content: m.body })),
-    max_output_tokens: mode === "suggest_replies" ? 700 : mode === "improve_listing" ? 1200 : 4096,
+    max_output_tokens: mode === "suggest_replies" ? 700 : mode === "improve_listing" ? 1200 : mode === "listing_analysis" ? 1800 : 4096,
     stream,
   };
 }
@@ -123,7 +124,9 @@ Deno.serve(async (req: Request) => {
   if (!user) return new Response(JSON.stringify({ error: "UNAUTHORIZED" }), { status: 401, headers: jsonHeaders });
   try {
     const body = await req.json();
-    const mode = (["chat","antique_expert","iraq_guide","marketplace","improve_listing","suggest_replies"] as string[]).includes(String(body?.mode)) ? String(body.mode) as Mode : "chat";
+    const allowedModes = ["chat","antique_expert","iraq_guide","marketplace","improve_listing","suggest_replies","listing_analysis"] as const;
+    const requested = String(body?.mode);
+    const mode = (allowedModes as readonly string[]).includes(requested) ? requested as Mode : "chat";
     const message = cleanText(body?.message, 8000);
     if (!message) return new Response(JSON.stringify({ error: "MESSAGE_REQUIRED" }), { status: 400, headers: jsonHeaders });
 
