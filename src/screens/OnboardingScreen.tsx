@@ -11,6 +11,7 @@ const pages = [
 
 export function OnboardingScreen({ onDone }: { onDone: () => void }) {
   const { width } = useWindowDimensions();
+  const pageWidth = Math.max(1, width);
   const ref = useRef<FlatList<(typeof pages)[number]>>(null);
   const [index, setIndex] = useState(0);
   const next = () => {
@@ -28,10 +29,19 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
-        onMomentumScrollEnd={(e) => setIndex(Math.round(e.nativeEvent.contentOffset.x / Math.max(1, width)))}
+        initialNumToRender={1}
+        maxToRenderPerBatch={2}
+        windowSize={3}
+        removeClippedSubviews
+        getItemLayout={(_, itemIndex) => ({ length: pageWidth, offset: pageWidth * itemIndex, index: itemIndex })}
+        onScrollToIndexFailed={({ index: failedIndex }) => ref.current?.scrollToOffset({ offset: pageWidth * failedIndex, animated: true })}
+        onMomentumScrollEnd={(e) => {
+          const nextIndex = Math.round(e.nativeEvent.contentOffset.x / pageWidth);
+          setIndex(Math.max(0, Math.min(pages.length - 1, nextIndex)));
+        }}
         renderItem={({ item, index: pageIndex }) => (
           <View
-            style={[s.page, { width }]}
+            style={[s.page, { width: pageWidth }]}
             accessible
             accessibilityRole="summary"
             accessibilityLabel={`${item.title}. ${item.body}. الصفحة ${pageIndex + 1} من ${pages.length}`}
@@ -42,9 +52,10 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
           </View>
         )}
       />
+      <Text style={s.progress} accessibilityLiveRegion="polite" accessibilityLabel={`الصفحة ${index + 1} من ${pages.length}`}>{index + 1} / {pages.length}</Text>
       <View style={s.dots} importantForAccessibility="no-hide-descendants">{pages.map((_, i) => <View key={i} style={[s.dot, i === index && s.dotActive]} />)}</View>
-      <Pressable accessibilityRole="button" accessibilityLabel={primaryLabel} onPress={next} style={s.primary}><Text style={s.primaryText}>{primaryLabel}</Text><Ionicons name="arrow-back" size={ui.icon} color={ui.colors.background} /></Pressable>
-      <Pressable accessibilityRole="button" accessibilityLabel="تخطي المقدمة" onPress={onDone} style={s.skip}><Text style={s.skipText}>تخطي</Text></Pressable>
+      <Pressable accessibilityRole="button" accessibilityLabel={primaryLabel} accessibilityHint={index === pages.length - 1 ? 'ينهي المقدمة ويفتح عتيك' : 'ينتقل إلى صفحة المقدمة التالية'} onPress={next} style={s.primary}><Text style={s.primaryText}>{primaryLabel}</Text><Ionicons name="arrow-back" size={ui.icon} color={ui.colors.background} /></Pressable>
+      <Pressable accessibilityRole="button" accessibilityLabel="تخطي المقدمة" accessibilityHint="ينهي المقدمة ويفتح عتيك مباشرة" onPress={onDone} style={s.skip}><Text style={s.skipText}>تخطي</Text></Pressable>
     </View>
   );
 }
@@ -58,6 +69,7 @@ const s = StyleSheet.create({
   hero: { width: 164, height: 164, borderRadius: 48, backgroundColor: ui.colors.card, borderWidth: 1, borderColor: ui.colors.line, alignItems: 'center', justifyContent: 'center' },
   title: { color: ui.colors.text, fontWeight: '900', fontSize: 26, textAlign: 'center' },
   body: { color: ui.colors.muted, fontSize: 15, lineHeight: 25, textAlign: 'center', maxWidth: 460 },
+  progress: { color: ui.colors.muted, textAlign: 'center', fontSize: 12, fontWeight: '800', marginBottom: 8 },
   dots: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 18 },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#3A3F4A' },
   dotActive: { width: 24, backgroundColor: ui.colors.accent },
