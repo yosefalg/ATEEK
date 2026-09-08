@@ -18,3 +18,11 @@ test('risk ranking preserves peer-only medians and invalid-price handling', () =
   assert.match(source, /if \(!Number\.isFinite\(listing\.price\) \|\| listing\.price <= 0\) continue/);
   assert.match(source, /scoreListingRisk\(listing, peerMedian > 0 \? \[peerMedian\] : \[\]\)/);
 });
+
+test('risk ranking uses logarithmic lookup and skips exactly one matching listing price', () => {
+  const source = fs.readFileSync('src/utils/riskScore.ts', 'utf8');
+  assert.match(source, /function lowerBound\(values: number\[\], target: number\)/);
+  assert.match(source, /while \(low < high\)/);
+  assert.match(source, /const sourceIndex = excludedIndex >= 0 && index >= excludedIndex \? index \+ 1 : index/);
+  assert.match(source, /return sortedPrices\[sourceIndex\] \?\? 0/);
+});
