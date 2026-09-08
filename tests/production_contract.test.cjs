@@ -87,6 +87,16 @@ test('home and dynamic root background contract is wired', () => {
   assert.match(bg, /!lowData&&animationsEnabled&&particles\.map/);
 });
 
+test('home coalesces realtime reel refreshes and memoizes favorite lookup', () => {
+  const home = fs.readFileSync('src/screens/HomeScreen.tsx','utf8');
+  assert.match(home, /loading=false,refreshQueued=false/);
+  assert.match(home, /if\(loading\)\{refreshQueued=true;return\}/);
+  assert.match(home, /if\(alive&&refreshQueued\)\{refreshQueued=false;void load\(\)\}/);
+  assert.match(home, /const favoriteIds=useMemo\(\(\)=>new Set\(favorites\),\[favorites\]\)/);
+  assert.match(home, /favoriteIds\.has\(item\.id\)/);
+  assert.doesNotMatch(home, /favorites\.includes\(item\.id\)/);
+});
+
 test('Run 100 secure AI client and assistant screen are present', () => {
   const client = fs.readFileSync('src/ai/aiClient.ts','utf8');
   const screen = fs.readFileSync('src/screens/AIAssistantScreen.tsx','utf8');
