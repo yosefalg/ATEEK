@@ -15,3 +15,9 @@ test('listing details keeps offer entry accessible and guarded', () => {
   assert.match(screen, /offerButtonDisabled: \{ opacity: 0\.5 \}/);
   assert.match(screen, /يحفظ مسودة العرض محليًا دون إرسالها للبائع/);
 });
+
+test('listing details clears stale offer input across item and visibility changes', () => {
+  const screen = fs.readFileSync('src/screens/ListingDetails.tsx','utf8');
+  assert.match(screen, /import \{ useEffect, useState \} from 'react';/);
+  assert.match(screen, /useEffect\(\(\) => \{ setOffer\(''\); \}, \[item\?\.id, visible\]\);/);
+});
