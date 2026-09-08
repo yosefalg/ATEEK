@@ -130,7 +130,7 @@ jobs:
           s=s.replace('<application','<application android:usesCleartextTraffic="false" android:networkSecurityConfig="@xml/network_security_config"',1)
           manifest.write_text(s)
           xml.parent.mkdir(parents=True,exist_ok=True)
-          xml.write_text('<?xml version="1.0" encoding="utf-8"?>\n<network-security-config>\n  <base-config cleartextTrafficPermitted="false">\n    <trust-anchors>\n      <certificates src="system" />\n    </trust-anchors>\n  </base-config>\n')
+          xml.write_text('<?xml version="1.0" encoding="utf-8"?>\n<network-security-config>\n  <base-config cleartextTrafficPermitted="false">\n    <trust-anchors>\n      <certificates src="system" />\n    </trust-anchors>\n  </base-config>\n</network-security-config>\n')
           p=props.read_text()
           p=re.sub(r'^android\.bundle\.enableUncompressedNativeLibs=.*\n?','',p,flags=re.M)
           p=re.sub(r'^org\.gradle\.jvmargs=.*\n?','',p,flags=re.M)
@@ -186,7 +186,7 @@ jobs:
           if [ "$APK_BYTES" -gt "$MAX_BYTES" ]; then echo "APK exceeds 35 MiB target: $APK_BYTES"; exit 1; fi
           SHA=$(sha256sum "$APK_PATH" | awk '{print $1}')
           ABI="$(unzip -Z1 "$APK_PATH" | awk -F/ '/^lib\//{print $2}' | sort -u | tr '\n' ' ')"
-          printf 'ATEEK 2.2 APK PRODUCTION METRICS\nAPK bytes=%s\nSHA-256=%s\nABI=%s\nAAB production=DISABLED\nPhysical Android device test=NOT PERFORMED BY CI\n' "$APK_BYTES" "$SHA" "$ABI" > metrics-out/METRICS.txt
+          printf 'ATEEK 2.2 APK PRODUCTION METRICS\nAPK bytes=%s\nSHA-256=%s\nABI=%s\nPackage=com.yosef.ateek\nDebuggable=NO (enforced by release verifier)\nAAB production=DISABLED\nPhysical Android device test=NOT PERFORMED BY CI\n' "$APK_BYTES" "$SHA" "$ABI" > metrics-out/METRICS.txt
           APK_ANALYZER="$(find "$ANDROID_HOME" -type f -name apkanalyzer 2>/dev/null | head -n 1 || true)"
           if [ -n "$APK_ANALYZER" ]; then
             {
