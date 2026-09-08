@@ -10,6 +10,7 @@ type Props={listings:Listing[];favorites:string[];onFavorite:(id:string)=>void;o
 
 const money=(value:number)=>new Intl.NumberFormat('ar-IQ').format(Math.max(0,Math.round(value)))+' د.ع';
 const greeting=()=>{const h=new Date().getHours();return h<12?'صباح الخير':h<18?'مساء الخير':'مساء الخير'};
+const firstNonEmpty=(...values:unknown[])=>values.map(value=>String(value??'').trim()).find(Boolean)??'';
 
 export function HomeScreen({listings,favorites,onFavorite,onOpen,onNavigate,notificationCount,unreadChats,activeListings,profile}:Props){
   const{colors,lowData}=useAteekTheme();
@@ -38,7 +39,7 @@ export function HomeScreen({listings,favorites,onFavorite,onOpen,onNavigate,noti
   },[]);
   const latestListings=useMemo(()=>listings.slice().sort((a,b)=>b.createdAt-a.createdAt).slice(0,5),[listings]);
   const favoriteIds=useMemo(()=>new Set(favorites),[favorites]);
-  const displayName=String(profile?.name||profile?.display_name||'صديق عتيك').trim();
+  const displayName=firstNonEmpty(profile?.name,profile?.display_name,'صديق عتيك');
   const quick=[
     {label:'ريلز',value:reelCount,icon:'play-circle-outline' as const,tab:'ai' as TabId},
     {label:'إعلاناتي',value:activeListings,icon:'grid-outline' as const,tab:'search' as TabId},
