@@ -30,6 +30,8 @@ export function SearchScreen({listings,favorites,onFavorite,onOpen,initialCatego
   const{colors,lowData}=useAteekTheme();
   const[query,setQuery]=useState(''),[category,setCategory]=useState(initialCategory),[history,setHistory]=useState<string[]>([]),[saved,setSaved]=useState<Saved[]>([]),[near,setNear]=useState<{lat:number;lon:number}|null>(null),[sort,setSort]=useState<Sort>('newest'),[userBusy,setUserBusy]=useState(false),[locationBusy,setLocationBusy]=useState(false);
 
+  useEffect(()=>{setCategory(initialCategory)},[initialCategory]);
+
   useEffect(()=>{let alive=true;void AsyncStorage.multiGet([HISTORY,SAVED,SORT]).then(async entries=>{
     if(!alive)return;
     const values=new Map(entries),h=values.get(HISTORY)??null,v=values.get(SAVED)??null,o=values.get(SORT)??null;
