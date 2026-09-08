@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ui } from '../theme/tokens';
@@ -13,7 +13,18 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
   const { width } = useWindowDimensions();
   const pageWidth = Math.max(1, width);
   const ref = useRef<FlatList<(typeof pages)[number]>>(null);
+  const previousPageWidth = useRef(pageWidth);
   const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    if (previousPageWidth.current === pageWidth) return;
+    previousPageWidth.current = pageWidth;
+    const frame = requestAnimationFrame(() => {
+      ref.current?.scrollToOffset({ offset: pageWidth * index, animated: false });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [index, pageWidth]);
+
   const next = () => {
     if (index >= pages.length - 1) return onDone();
     ref.current?.scrollToIndex({ index: index + 1, animated: true });
