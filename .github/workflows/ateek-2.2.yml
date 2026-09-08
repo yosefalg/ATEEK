@@ -18,10 +18,10 @@ jobs:
       CI: true
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -206,7 +206,7 @@ jobs:
         run: cp android/app/build/outputs/apk/release/app-release.apk app-release.apk
 
       - name: Upload installable APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ATEEK-2.2-INSTALLABLE-APK-ARM64
           path: app-release.apk
@@ -214,7 +214,7 @@ jobs:
           retention-days: 30
 
       - name: Upload metrics
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ATEEK-2.2-PRODUCTION-METRICS
           path: metrics-out/*
