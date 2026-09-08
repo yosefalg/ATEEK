@@ -4,7 +4,7 @@ import { PROJECT_URL, PUBLIC_KEY, supabase } from '../cloud/client';
 export type AiMode = 'chat' | 'antique_expert' | 'iraq_guide' | 'marketplace';
 export type AiTaskMode = 'improve_listing' | 'suggest_replies' | 'listing_analysis';
 export type AiStreamEvent =
-  | { type: 'meta'; threadId: string; model?: string; limit?: number; remaining?: number }
+  | { type: 'meta'; threadId?: string; model?: string; limit?: number; remaining?: number }
   | { type: 'delta'; delta: string }
   | { type: 'done'; threadId?: string }
   | { type: 'error'; message?: string };
@@ -30,13 +30,44 @@ function safeJson(value: string) {
   try { return JSON.parse(value) as AiStreamEvent; } catch { return null; }
 }
 
+async function invokeProtectedAssistant(message: string, onEvent: (event: AiStreamEvent) => void) {
+  const { data, error } = await supabase.functions.invoke('ateek-assistant', {
+    body: {
+      question: message.trim(),
+      listings: [],
+      favoritesCount: 0,
+      messagesCount: 0,
+      offersCount: 0,
+    },
+  });
+  if (error) throw new Error(error.message || 'تعذّر الاتصال بمساعد عتيك.');
+  const answer = typeof data?.answer === 'string' ? data.answer.trim() : '';
+  if (!answer) throw new Error(data?.message || 'لم يصل رد من مساعد عتيك.');
+  onEvent({ type: 'meta', model: typeof data?.model === 'string' ? data.model : 'Gemini' });
+  onEvent({ type: 'delta', delta: answer });
+  onEvent({ type: 'done' });
+}
+
 export async function streamAiReply({ message, threadId, mode = 'chat', onEvent }: StreamArgs) {
   const headers = await authHeaders();
   const xhr = new XMLHttpRequest();
   let consumed = 0;
   let buffer = '';
   let finished = false;
+  let fallbackStarted = false;
   const url = `${PROJECT_URL}/functions/v1/ai-chat`;
+
+  const runFallback = async () => {
+    if (fallbackStarted || finished) return;
+    fallbackStarted = true;
+    try {
+      await invokeProtectedAssistant(message, onEvent);
+      finished = true;
+    } catch (error) {
+      if (!finished) onEvent({ type: 'error', message: error instanceof Error ? error.message : 'تعذّر الاتصال بخدمة ATEEK AI.' });
+      finished = true;
+    }
+  };
 
   const consume = () => {
     const chunk = xhr.responseText.slice(consumed);
@@ -60,25 +91,28 @@ export async function streamAiReply({ message, threadId, mode = 'chat', onEvent 
   xhr.onload = () => {
     consume();
     if (finished) return;
-    finished = true;
     if (xhr.status < 200 || xhr.status >= 300) {
+      let parsed: any = null;
+      try { parsed = JSON.parse(xhr.responseText); } catch {}
+      if (xhr.status === 404 || parsed?.error === 'OPENAI_NOT_CONFIGURED') {
+        void runFallback();
+        return;
+      }
+      finished = true;
       let messageText = 'تعذّر الاتصال بالمساعد الآن.';
-      try {
-        const parsed = JSON.parse(xhr.responseText);
-        if (parsed?.error === 'OPENAI_NOT_CONFIGURED') messageText = 'خدمة OpenAI غير مهيأة على الخادم بعد.';
-        else if (parsed?.error === 'DAILY_LIMIT_REACHED') messageText = 'وصلت إلى حد استخدام المساعد لهذا اليوم.';
-        else if (parsed?.error === 'CONTENT_BLOCKED') messageText = 'تعذّر إرسال هذا المحتوى وفق ضوابط الأمان.';
-      } catch {}
+      if (parsed?.error === 'DAILY_LIMIT_REACHED') messageText = 'وصلت إلى حد استخدام المساعد لهذا اليوم.';
+      else if (parsed?.error === 'CONTENT_BLOCKED') messageText = 'تعذّر إرسال هذا المحتوى وفق ضوابط الأمان.';
+      else if (typeof parsed?.message === 'string' && parsed.message.trim()) messageText = parsed.message;
       onEvent({ type: 'error', message: messageText });
+      return;
     }
+    finished = true;
   };
   xhr.onerror = () => {
-    if (!finished) onEvent({ type: 'error', message: 'تعذّر الاتصال بخدمة ATEEK AI.' });
-    finished = true;
+    if (!finished) void runFallback();
   };
   xhr.ontimeout = () => {
-    if (!finished) onEvent({ type: 'error', message: 'انتهت مهلة الاتصال بالمساعد.' });
-    finished = true;
+    if (!finished) void runFallback();
   };
   xhr.timeout = 120000;
   xhr.send(JSON.stringify({ message: message.trim(), threadId: threadId || undefined, mode }));
