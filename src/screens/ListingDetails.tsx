@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { formatPrice } from '../data/seed';
 import { colors } from '../theme/colors';
@@ -7,7 +7,9 @@ import { parsePrice } from '../utils/money';
 import { Listing } from '../types';
 
 export function ListingDetails({ item, visible, favorite, onClose, onFavorite, onOffer, onChat }: { item: Listing | null; visible: boolean; favorite: boolean; onClose: () => void; onFavorite: () => void; onOffer: (amount: number) => void; onChat: () => void }) {
-  const [offer, setOffer] = useState(''); if (!item) return null;
+  const [offer, setOffer] = useState('');
+  useEffect(() => { setOffer(''); }, [item?.id, visible]);
+  if (!item) return null;
   const offerValue = parsePrice(offer);
   const canSubmitOffer = Boolean(offerValue);
   const submit = () => { const value = parsePrice(offer); if (!value) return Alert.alert('أدخل سعرًا صحيحًا'); onOffer(value); setOffer(''); Alert.alert('أُضيفت مسودة العرض', 'محفوظة محليًا فقط. لم تُرسل للبائع؛ تجدها في حسابي ← عروضي.'); };
