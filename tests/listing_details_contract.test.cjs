@@ -12,5 +12,6 @@ test('listing details keeps offer entry accessible and guarded', () => {
   assert.match(screen, /returnKeyType="done"/);
   assert.match(screen, /maxLength=\{14\}/);
   assert.match(screen, /onSubmitEditing=\{submit\}/);
+  assert.match(screen, /offerButtonDisabled: \{ opacity: 0\.5 \}/);
   assert.match(screen, /يحفظ مسودة العرض محليًا دون إرسالها للبائع/);
 });
