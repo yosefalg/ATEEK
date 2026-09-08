@@ -14,8 +14,30 @@ const greeting=()=>{const h=new Date().getHours();return h<12?'صباح الخي
 export function HomeScreen({listings,favorites,onFavorite,onOpen,onNavigate,notificationCount,unreadChats,activeListings,profile}:Props){
   const{colors,lowData}=useAteekTheme();
   const[reels,setReels]=useState<Reel[]>([]),[reelCount,setReelCount]=useState(0);
-  useEffect(()=>{let alive=true;const load=async()=>{const[r,c]=await Promise.all([supabase.from('reels').select('id,caption,thumbnail_url,created_at').eq('status','active').order('created_at',{ascending:false}).limit(3),supabase.from('reels').select('id',{count:'exact',head:true}).eq('status','active')]);if(!alive)return;if(!r.error)setReels((r.data??[]) as Reel[]);if(!c.error)setReelCount(c.count??0)};void load().catch(()=>{});const ch=supabase.channel('home-run77-reels').on('postgres_changes',{event:'*',schema:'public',table:'reels'},()=>void load()).subscribe();return()=>{alive=false;void supabase.removeChannel(ch)}},[]);
+  useEffect(()=>{
+    let alive=true,loading=false,refreshQueued=false;
+    const load=async()=>{
+      if(loading){refreshQueued=true;return}
+      loading=true;
+      try{
+        const[r,c]=await Promise.all([
+          supabase.from('reels').select('id,caption,thumbnail_url,created_at').eq('status','active').order('created_at',{ascending:false}).limit(3),
+          supabase.from('reels').select('id',{count:'exact',head:true}).eq('status','active'),
+        ]);
+        if(!alive)return;
+        if(!r.error)setReels((r.data??[]) as Reel[]);
+        if(!c.error)setReelCount(c.count??0);
+      }finally{
+        loading=false;
+        if(alive&&refreshQueued){refreshQueued=false;void load()}
+      }
+    };
+    void load().catch(()=>{});
+    const ch=supabase.channel('home-run77-reels').on('postgres_changes',{event:'*',schema:'public',table:'reels'},()=>void load()).subscribe();
+    return()=>{alive=false;refreshQueued=false;void supabase.removeChannel(ch)};
+  },[]);
   const latestListings=useMemo(()=>listings.slice().sort((a,b)=>b.createdAt-a.createdAt).slice(0,5),[listings]);
+  const favoriteIds=useMemo(()=>new Set(favorites),[favorites]);
   const displayName=String(profile?.name||profile?.display_name||'صديق عتيك').trim();
   const quick=[
     {label:'ريلز',value:reelCount,icon:'play-circle-outline' as const,tab:'ai' as TabId},
@@ -35,7 +57,7 @@ export function HomeScreen({listings,favorites,onFavorite,onOpen,onNavigate,noti
     <View style={s.quickGrid}>{quick.map(q=><Pressable key={q.label} accessibilityRole="button" accessibilityLabel={q.value!=null?`${q.label}، ${q.value}`:q.label} accessibilityHint={`يفتح ${q.label}`} onPress={()=>onNavigate(q.tab)} style={[s.quickCard,{backgroundColor:colors.glass,borderColor:colors.line}]}><View style={[s.quickIcon,{borderColor:colors.line,backgroundColor:colors.forestSoft}]}><Ionicons name={q.icon} size={26} color={colors.gold}/></View><View style={s.quickCopy}><Text style={[s.quickLabel,{color:colors.ink}]}>{q.label}</Text>{q.value!=null&&<Text style={[s.quickValue,{color:colors.muted}]}>{q.value}</Text>}</View></Pressable>)}</View>
 
     <View style={s.sectionHeader}><Text style={[s.sectionTitle,{color:colors.ink}]}>أحدث الإعلانات</Text><Pressable accessibilityRole="button" onPress={()=>onNavigate('search')} accessibilityLabel="عرض كل الإعلانات" accessibilityHint="يفتح البحث والإعلانات" style={[s.sectionAction,{borderColor:colors.line}]}><Text style={[s.sectionActionText,{color:colors.gold}]}>عرض الكل</Text><Ionicons name="arrow-back" size={17} color={colors.gold}/></Pressable></View>
-    <FlatList horizontal inverted data={latestListings} keyExtractor={x=>x.id} showsHorizontalScrollIndicator={false} initialNumToRender={lowData?2:4} maxToRenderPerBatch={lowData?2:4} contentContainerStyle={s.horizontal} renderItem={({item})=>{const isFavorite=favorites.includes(item.id);return <Pressable accessibilityRole="button" accessibilityLabel={`${item.title}، ${money(item.price)}`} accessibilityHint="يفتح تفاصيل الإعلان" onPress={()=>onOpen(item)} style={[s.listingCard,{backgroundColor:colors.glass,borderColor:colors.line}]}>{item.image?<Image source={{uri:item.image}} style={s.listingImage}/>:<View style={[s.listingImage,s.placeholder,{backgroundColor:colors.forestSoft}]}><Ionicons name="image-outline" size={28} color={colors.muted}/></View>}<View style={s.listingBody}><Text numberOfLines={1} style={[s.listingTitle,{color:colors.ink}]}>{item.title}</Text><Text style={[s.price,{color:colors.gold}]}>{money(item.price)}</Text><Pressable accessibilityRole="button" accessibilityLabel={isFavorite?'إزالة من المفضلة':'إضافة إلى المفضلة'} accessibilityState={{selected:isFavorite}} hitSlop={10} onPress={event=>{event.stopPropagation();onFavorite(item.id)}} style={[s.favorite,{backgroundColor:colors.glassStrong}]}><Ionicons name={isFavorite?'heart':'heart-outline'} size={19} color={isFavorite?colors.danger:colors.muted}/></Pressable></View></Pressable>}} ListEmptyComponent={<View style={[s.empty,{borderColor:colors.line,backgroundColor:colors.glass}]}><Text style={[s.emptyText,{color:colors.muted}]}>لا توجد إعلانات حالياً</Text></View>}/>
+    <FlatList horizontal inverted data={latestListings} keyExtractor={x=>x.id} showsHorizontalScrollIndicator={false} initialNumToRender={lowData?2:4} maxToRenderPerBatch={lowData?2:4} contentContainerStyle={s.horizontal} renderItem={({item})=>{const isFavorite=favoriteIds.has(item.id);return <Pressable accessibilityRole="button" accessibilityLabel={`${item.title}، ${money(item.price)}`} accessibilityHint="يفتح تفاصيل الإعلان" onPress={()=>onOpen(item)} style={[s.listingCard,{backgroundColor:colors.glass,borderColor:colors.line}]}>{item.image?<Image source={{uri:item.image}} style={s.listingImage}/>:<View style={[s.listingImage,s.placeholder,{backgroundColor:colors.forestSoft}]}><Ionicons name="image-outline" size={28} color={colors.muted}/></View>}<View style={s.listingBody}><Text numberOfLines={1} style={[s.listingTitle,{color:colors.ink}]}>{item.title}</Text><Text style={[s.price,{color:colors.gold}]}>{money(item.price)}</Text><Pressable accessibilityRole="button" accessibilityLabel={isFavorite?'إزالة من المفضلة':'إضافة إلى المفضلة'} accessibilityState={{selected:isFavorite}} hitSlop={10} onPress={event=>{event.stopPropagation();onFavorite(item.id)}} style={[s.favorite,{backgroundColor:colors.glassStrong}]}><Ionicons name={isFavorite?'heart':'heart-outline'} size={19} color={isFavorite?colors.danger:colors.muted}/></Pressable></View></Pressable>}} ListEmptyComponent={<View style={[s.empty,{borderColor:colors.line,backgroundColor:colors.glass}]}><Text style={[s.emptyText,{color:colors.muted}]}>لا توجد إعلانات حالياً</Text></View>}/>
 
     <View style={s.sectionHeader}><Text style={[s.sectionTitle,{color:colors.ink}]}>أحدث الريلز</Text><Pressable accessibilityRole="button" onPress={()=>onNavigate('ai')} accessibilityLabel="فتح الريلز" accessibilityHint="يفتح أحدث الريلز" style={[s.sectionAction,{borderColor:colors.line}]}><Text style={[s.sectionActionText,{color:colors.gold}]}>مشاهدة</Text><Ionicons name="play-circle-outline" size={18} color={colors.gold}/></Pressable></View>
     <FlatList horizontal inverted data={reels} keyExtractor={x=>x.id} showsHorizontalScrollIndicator={false} initialNumToRender={lowData?1:3} maxToRenderPerBatch={lowData?1:3} contentContainerStyle={s.horizontal} renderItem={({item})=><Pressable accessibilityRole="button" accessibilityLabel={item.caption||'ريل'} accessibilityHint="يفتح الريلز" onPress={()=>onNavigate('ai')} style={[s.reelCard,{backgroundColor:colors.glass,borderColor:colors.line}]}>{item.thumbnail_url?<Image source={{uri:item.thumbnail_url}} style={s.reelImage}/>:<View style={[s.reelImage,s.placeholder,{backgroundColor:colors.forestSoft}]}><Ionicons name="play" size={30} color={colors.gold}/></View>}<Text numberOfLines={2} style={[s.reelCaption,{color:colors.ink}]}>{item.caption||'ريل جديد'}</Text></Pressable>} ListEmptyComponent={<View style={[s.empty,{borderColor:colors.line,backgroundColor:colors.glass}]}><Text style={[s.emptyText,{color:colors.muted}]}>لا توجد ريلز حالياً</Text></View>}/>
