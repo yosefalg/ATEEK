@@ -154,13 +154,29 @@ export async function callAiTask<T = { output?: string; replies?: string[] }>(mo
   } catch {}
 
   const headers = await authHeaders();
-  const response = await fetch(`${PROJECT_URL}/functions/v1/ai-chat`, {
-    method: 'POST', headers, body: JSON.stringify({ mode, message: clean }),
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30_000);
+  const response = await (async () => {
+    try {
+      return await fetch(`${PROJECT_URL}/functions/v1/ai-chat`, {
+        method: 'POST',
+        headers,
+        signal: controller.signal,
+        body: JSON.stringify({ mode, message: clean }),
+      });
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') throw new Error('انتهت مهلة طلب الذكاء الاصطناعي. حاول مجددًا.');
+      throw new Error('تعذّر الاتصال بخدمة الذكاء الاصطناعي الآن.');
+    } finally {
+      clearTimeout(timeout);
+    }
+  })();
   const json = await response.json().catch(() => ({}));
   if (!response.ok) {
     if (json?.error === 'OPENAI_NOT_CONFIGURED') throw new Error('خدمة OpenAI غير مهيأة على الخادم بعد.');
+    if (json?.error === 'DAILY_LIMIT_REACHED') throw new Error('وصلت إلى حد استخدام المساعد لهذا اليوم.');
     if (json?.error === 'CONTENT_BLOCKED') throw new Error('تعذّر معالجة هذا المحتوى وفق ضوابط الأمان.');
+    if (typeof json?.message === 'string' && json.message.trim()) throw new Error(json.message);
     throw new Error('تعذّر إكمال طلب الذكاء الاصطناعي الآن.');
   }
   try { await AsyncStorage.setItem(key, JSON.stringify({ at: Date.now(), value: json })); } catch {}
