@@ -128,6 +128,7 @@ export function ListingCard({ item, favorite, onFavorite, onPress }: Props) {
             accessibilityRole="button"
             accessibilityLabel={favorite ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة'}
             accessibilityHint="يحدّث حالة هذا الإعلان في المفضلة"
+            accessibilityState={{ selected: favorite }}
             style={[styles.favorite, { borderColor: colors.line, backgroundColor: colors.glassStrong }]}
             onPress={event => {
               event.stopPropagation();
