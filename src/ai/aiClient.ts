@@ -55,16 +55,24 @@ export async function streamAiReply({ message, threadId, mode = 'chat', onEvent 
   let buffer = '';
   let finished = false;
   let fallbackStarted = false;
+  let terminalSeen = false;
+  let cancelled = false;
   const url = `${PROJECT_URL}/functions/v1/ai-chat`;
 
+  const emit = (event: AiStreamEvent) => {
+    if (cancelled) return;
+    if (event.type === 'done' || event.type === 'error') terminalSeen = true;
+    onEvent(event);
+  };
+
   const runFallback = async () => {
-    if (fallbackStarted || finished) return;
+    if (fallbackStarted || finished || cancelled) return;
     fallbackStarted = true;
     try {
-      await invokeProtectedAssistant(message, onEvent);
+      await invokeProtectedAssistant(message, emit);
       finished = true;
     } catch (error) {
-      if (!finished) onEvent({ type: 'error', message: error instanceof Error ? error.message : 'تعذّر الاتصال بخدمة ATEEK AI.' });
+      if (!finished && !cancelled) emit({ type: 'error', message: error instanceof Error ? error.message : 'تعذّر الاتصال بخدمة ATEEK AI.' });
       finished = true;
     }
   };
@@ -80,7 +88,7 @@ export async function streamAiReply({ message, threadId, mode = 'chat', onEvent 
       const line = block.split('\n').find(item => item.startsWith('data:'));
       if (!line) continue;
       const parsed = safeJson(line.slice(5).trim());
-      if (parsed) onEvent(parsed);
+      if (parsed) emit(parsed);
     }
   };
 
@@ -90,7 +98,7 @@ export async function streamAiReply({ message, threadId, mode = 'chat', onEvent 
   xhr.onprogress = consume;
   xhr.onload = () => {
     consume();
-    if (finished) return;
+    if (finished || cancelled) return;
     if (xhr.status < 200 || xhr.status >= 300) {
       let parsed: any = null;
       try { parsed = JSON.parse(xhr.responseText); } catch {}
@@ -103,20 +111,25 @@ export async function streamAiReply({ message, threadId, mode = 'chat', onEvent 
       if (parsed?.error === 'DAILY_LIMIT_REACHED') messageText = 'وصلت إلى حد استخدام المساعد لهذا اليوم.';
       else if (parsed?.error === 'CONTENT_BLOCKED') messageText = 'تعذّر إرسال هذا المحتوى وفق ضوابط الأمان.';
       else if (typeof parsed?.message === 'string' && parsed.message.trim()) messageText = parsed.message;
-      onEvent({ type: 'error', message: messageText });
+      emit({ type: 'error', message: messageText });
       return;
     }
     finished = true;
+    if (!terminalSeen) emit({ type: 'error', message: 'انقطع بث الرد قبل اكتماله. حاول الإرسال مجددًا.' });
   };
   xhr.onerror = () => {
-    if (!finished) void runFallback();
+    if (!finished && !cancelled) void runFallback();
   };
   xhr.ontimeout = () => {
-    if (!finished) void runFallback();
+    if (!finished && !cancelled) void runFallback();
   };
   xhr.timeout = 120000;
   xhr.send(JSON.stringify({ message: message.trim(), threadId: threadId || undefined, mode }));
-  return () => { finished = true; try { xhr.abort(); } catch {} };
+  return () => {
+    cancelled = true;
+    finished = true;
+    try { xhr.abort(); } catch {}
+  };
 }
 
 const CACHE_PREFIX = 'ateek.ai.task.v1.';
