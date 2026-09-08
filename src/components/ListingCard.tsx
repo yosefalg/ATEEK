@@ -13,8 +13,18 @@ import { Listing } from '../types';
 type Props = { item: Listing; favorite: boolean; onFavorite: () => void; onPress: () => void };
 type Metrics = { verified: boolean; completedDeals: number; activeSeller: boolean; newAccount: boolean; accountAgeDays: number };
 
+const MAX_SELLER_METRICS_CACHE = 250;
 const cache = new Map<string, Metrics>();
 const pending = new Map<string, Promise<Metrics | null>>();
+
+function cacheSellerMetrics(sellerId: string, metrics: Metrics) {
+  cache.set(sellerId, metrics);
+  while (cache.size > MAX_SELLER_METRICS_CACHE) {
+    const oldestKey = cache.keys().next().value as string | undefined;
+    if (!oldestKey) break;
+    cache.delete(oldestKey);
+  }
+}
 
 async function getSellerMetrics(sellerId: string): Promise<Metrics | null> {
   const cached = cache.get(sellerId);
@@ -27,7 +37,7 @@ async function getSellerMetrics(sellerId: string): Promise<Metrics | null> {
       const { data, error } = await supabase.rpc('ateek_seller_metrics', { p_seller: sellerId });
       if (error || !data) return null;
       const metrics = data as Metrics;
-      cache.set(sellerId, metrics);
+      cacheSellerMetrics(sellerId, metrics);
       return metrics;
     } finally {
       pending.delete(sellerId);
