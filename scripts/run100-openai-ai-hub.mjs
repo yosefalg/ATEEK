@@ -23,7 +23,12 @@ const searchSig=`export function SearchScreen({listings,favorites,onFavorite,onO
 const searchSigNew=`export function SearchScreen({listings,favorites,onFavorite,onOpen,initialCategory='all',onAskAI}:{listings:Listing[];favorites:string[];onFavorite:(id:string)=>void;onOpen:(item:Listing)=>void;initialCategory?:string;onAskAI:()=>void})`;
 if(!search.includes('onAskAI:()=>void'))search=replaceOne(search,searchSig,searchSigNew,'Search onAskAI signature');
 if(!search.includes('accessibilityLabel="اسأل ATEEK AI"')){
-  const usernameHint=`{query.trim().startsWith('@')&&<Text accessibilityLiveRegion="polite" style={[styles.usernameHint,{color:colors.cyan}]}>`;
+  const usernameHintCandidates=[
+    `{isUsernameQuery&&<Text accessibilityLiveRegion="polite" style={[styles.usernameHint,{color:colors.cyan}]}>`,
+    `{query.trim().startsWith('@')&&<Text accessibilityLiveRegion="polite" style={[styles.usernameHint,{color:colors.cyan}]}>`,
+  ];
+  const usernameHint=usernameHintCandidates.find(anchor=>search.includes(anchor));
+  if(!usernameHint)throw new Error('Run100 anchor missing: Search AI button');
   const aiSearchButton=`<Pressable accessibilityRole="button" accessibilityLabel="اسأل ATEEK AI" accessibilityHint="يفتح مساعد عتيك الذكي" onPress={onAskAI} style={[styles.aiAsk,{backgroundColor:colors.forestSoft,borderColor:colors.line}]}><Ionicons name="sparkles" size={18} color={colors.gold}/><Text style={[styles.aiAskText,{color:colors.ink}]}>اسأل ATEEK AI</Text></Pressable>\n      ${usernameHint}`;
   search=replaceOne(search,usernameHint,aiSearchButton,'Search AI button');
 }
