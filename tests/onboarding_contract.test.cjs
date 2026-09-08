@@ -11,6 +11,13 @@ test('onboarding keeps bounded responsive paging', () => {
   assert.match(source, /Math\.max\(0, Math\.min\(pages\.length - 1, nextIndex\)\)/);
 });
 
+test('onboarding recenters the active page after a viewport resize', () => {
+  assert.match(source, /const previousPageWidth = useRef\(pageWidth\)/);
+  assert.match(source, /if \(previousPageWidth\.current === pageWidth\) return/);
+  assert.match(source, /scrollToOffset\(\{ offset: pageWidth \* index, animated: false \}\)/);
+  assert.match(source, /cancelAnimationFrame\(frame\)/);
+});
+
 test('onboarding keeps lightweight list rendering', () => {
   assert.match(source, /initialNumToRender=\{1\}/);
   assert.match(source, /maxToRenderPerBatch=\{2\}/);
