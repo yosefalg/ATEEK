@@ -41,7 +41,21 @@ fs.writeFileSync(searchFile,search);
 const addFile='src/screens/AddListingScreen.tsx';
 let add=fs.readFileSync(addFile,'utf8');
 if(!add.includes("import { callAiTask } from '../ai/aiClient';"))add=replaceOne(add,"import { supabase } from '../cloud/client';","import { supabase } from '../cloud/client';\nimport { callAiTask } from '../ai/aiClient';",'Add listing AI client import');
-if(!add.includes('const [improving, setImproving]'))add=replaceOne(add,"  const [analyzing, setAnalyzing] = useState(false);\n  const restored = useRef(false);","  const [analyzing, setAnalyzing] = useState(false);\n  const [improving, setImproving] = useState(false);\n  const restored = useRef(false);",'Add listing improving state');
+if(!add.includes('const [improving, setImproving]')){
+  const improvingStateCandidates=[
+    "  const [analyzing, setAnalyzing] = useState(false);\n  const [draftReady, setDraftReady] = useState(false);",
+    "  const [analyzing, setAnalyzing] = useState(false);\n  const restored = useRef(false);",
+  ];
+  const improvingStateAnchor=improvingStateCandidates.find(anchor=>add.includes(anchor));
+  if(!improvingStateAnchor)throw new Error('Run100 anchor missing: Add listing improving state');
+  add=add.replace(
+    improvingStateAnchor,
+    improvingStateAnchor.replace(
+      "  const [analyzing, setAnalyzing] = useState(false);",
+      "  const [analyzing, setAnalyzing] = useState(false);\n  const [improving, setImproving] = useState(false);",
+    ),
+  );
+}
 if(!add.includes('!improving);'))add=replaceOne(add,"  const canPublish = Boolean(title.trim() && amount && image && !publishing && !analyzing);","  const canPublish = Boolean(title.trim() && amount && image && !publishing && !analyzing && !improving);",'Add listing publish guard');
 add=add.replaceAll('if (publishing || analyzing) return;','if (publishing || analyzing || improving) return;');
 if(!add.includes('const improveDescription = async')){
