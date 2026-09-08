@@ -15,10 +15,11 @@ test('chat linked-listing banner opens the actual listing instead of a no-op', (
   assert.match(transform, /onOpenListing=\{setSelected\}/);
 });
 
-test('conversation list avoids repeated full-array scans per thread card', () => {
+test('conversation list uses indexed lookups for listings profiles and latest messages', () => {
   assert.match(transform, /latestMessageByThread = useMemo/);
   assert.match(transform, /listingById = useMemo/);
   assert.match(transform, /profileById = useMemo/);
-  assert.match(transform, /latestMessageByThread\.get\(item\.id\)/);
-  assert.doesNotMatch(transform, /\[\.\.\.m\.messages\]\.reverse\(\)\.find/);
+  assert.match(transform, /const itemListing = listingById\.get\(item\.listing_id\)/);
+  assert.match(transform, /const other = profileById\.get\(otherId\)/);
+  assert.match(transform, /const last = latestMessageByThread\.get\(item\.id\)/);
 });
