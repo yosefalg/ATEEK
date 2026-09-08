@@ -39,3 +39,4 @@ await import('./run96-notifications-ux.mjs');
 await import('./run98-global-visual-system.mjs');
 await import('./run100-openai-ai-hub.mjs');
 await import('./run101-context-ai-transform.mjs');
+await import('./run130-chat-context-navigation.mjs');
