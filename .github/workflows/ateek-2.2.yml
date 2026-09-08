@@ -133,6 +133,8 @@ jobs:
           xml.write_text('<?xml version="1.0" encoding="utf-8"?>\n<network-security-config>\n  <base-config cleartextTrafficPermitted="false">\n    <trust-anchors>\n      <certificates src="system" />\n    </trust-anchors>\n  </base-config>\n</network-security-config>\n')
           p=props.read_text()
           p=re.sub(r'^android\.bundle\.enableUncompressedNativeLibs=.*\n?','',p,flags=re.M)
+          p=re.sub(r'^org\.gradle\.jvmargs=.*\n?','',p,flags=re.M)
+          p=p.rstrip()+"\norg.gradle.jvmargs=-Xmx3g -XX:MaxMetaspaceSize=1024m -Dfile.encoding=UTF-8\n"
           props.write_text(p)
           g=gradle.read_text()
           if 'hermesFlags = ["-O", "-output-source-map"]' not in g:
@@ -145,6 +147,7 @@ jobs:
           PY
           grep -Fq 'android:usesCleartextTraffic="false"' android/app/src/main/AndroidManifest.xml
           grep -Eq 'android:windowSoftInputMode="adjustResize"' android/app/src/main/AndroidManifest.xml
+          grep -Fq 'org.gradle.jvmargs=-Xmx3g -XX:MaxMetaspaceSize=1024m -Dfile.encoding=UTF-8' android/gradle.properties
 
       - name: Build arm64 installable APK only
         run: |
