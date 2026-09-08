@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { supabase } from '../cloud/client';
 import { categories } from '../data/seed';
@@ -35,20 +35,27 @@ export function AddListingScreen({ onAdd, onDone }: { onAdd: (item: Listing) => 
   const [image, setImage] = useState('');
   const [publishing, setPublishing] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
-  const restored = useRef(false);
+  const [draftReady, setDraftReady] = useState(false);
 
   useEffect(() => {
+    let active = true;
     void AsyncStorage.getItem(DRAFT_KEY).then(raw => {
-      if (!raw || restored.current) return;
+      if (!active) return;
+      if (!raw) {
+        setDraftReady(true);
+        return;
+      }
       let parsed: unknown;
       try {
         parsed = JSON.parse(raw);
       } catch {
         void AsyncStorage.removeItem(DRAFT_KEY);
+        setDraftReady(true);
         return;
       }
       if (!isDraft(parsed)) {
         void AsyncStorage.removeItem(DRAFT_KEY);
+        setDraftReady(true);
         return;
       }
       Alert.alert('استكمال الإعلان السابق', 'وجدنا مسودة محفوظة على هذا الجهاز.', [
@@ -56,27 +63,35 @@ export function AddListingScreen({ onAdd, onDone }: { onAdd: (item: Listing) => 
           text: 'حذف',
           style: 'destructive',
           onPress: () => {
-            restored.current = true;
+            if (!active) return;
             void AsyncStorage.removeItem(DRAFT_KEY);
+            setDraftReady(true);
           },
         },
         {
           text: 'استكمال',
           onPress: () => {
-            restored.current = true;
+            if (!active) return;
             setTitle(parsed.title);
             setPrice(parsed.price);
             setDescription(parsed.description);
             setLocation(parsed.location || 'النجف');
             setCategory(parsed.category);
             setImage(parsed.image);
+            setDraftReady(true);
           },
         },
       ]);
-    }).catch(() => {});
+    }).catch(() => {
+      if (active) setDraftReady(true);
+    });
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
+    if (!draftReady) return;
     const timer = setTimeout(() => {
       const draft: Draft = { title, price, description, location, category, image };
       const hasDraft = Boolean(title.trim() || price.trim() || description.trim() || image);
@@ -87,7 +102,7 @@ export function AddListingScreen({ onAdd, onDone }: { onAdd: (item: Listing) => 
       }
     }, 1200);
     return () => clearTimeout(timer);
-  }, [title, price, description, location, category, image]);
+  }, [draftReady, title, price, description, location, category, image]);
 
   const amount = useMemo(() => parsePrice(price), [price]);
   const canPublish = Boolean(title.trim() && amount && image && !publishing && !analyzing);
