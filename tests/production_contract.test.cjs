@@ -100,3 +100,13 @@ test('Run 100 secure AI client and assistant screen are present', () => {
   assert.match(edge, /\/v1\/moderations/);
   assert.match(edge, /AI_CHAT_DAILY_LIMIT/);
 });
+
+test('native hardening workflow keeps network security XML structurally complete', () => {
+  const workflow = fs.readFileSync('.github/workflows/ateek-2.2.yml','utf8');
+  assert.match(workflow, /<network-security-config>/);
+  assert.match(workflow, /<base-config cleartextTrafficPermitted="false">/);
+  assert.match(workflow, /<certificates src="system" \/>/);
+  assert.match(workflow, /<\/base-config>\\n<\/network-security-config>\\n/);
+  assert.match(workflow, /android:usesCleartextTraffic="false"/);
+  assert.match(workflow, /android:networkSecurityConfig="@xml\/network_security_config"/);
+});
