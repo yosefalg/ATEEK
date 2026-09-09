@@ -8,8 +8,11 @@ import { ui } from '../theme/tokens';
 type Props = React.PropsWithChildren<{ name: string; resetKey?: string | number | null }>;
 type State = { error: Error | null; serial: number };
 
+const TELEMETRY_DEDUPE_MS = 30_000;
+
 export class ScreenErrorBoundary extends React.Component<Props, State> {
   state: State = { error: null, serial: 0 };
+  private lastTelemetry: { signature: string; at: number } | null = null;
 
   static getDerivedStateFromError(error: Error): Partial<State> {
     return { error };
@@ -21,8 +24,13 @@ export class ScreenErrorBoundary extends React.Component<Props, State> {
       info.componentStack || '',
       `build=${BUILD_INFO.versionName}#${BUILD_INFO.versionCode}@${BUILD_INFO.shortSha}`,
     ].join('\n').slice(0, 1200);
+    const signature = `${this.props.name}|${error.name}|${error.message}|${BUILD_INFO.shortSha}`.slice(0, 500);
+    const now = Date.now();
+    const duplicate = this.lastTelemetry?.signature === signature && now - this.lastTelemetry.at < TELEMETRY_DEDUPE_MS;
 
     console.error(`[ATEEK:${this.props.name}] isolated runtime error`, error, info.componentStack);
+    if (duplicate) return;
+    this.lastTelemetry = { signature, at: now };
     void (async () => {
       try {
         const { error: telemetryError } = await supabase.rpc('ateek_client_error_log', {
@@ -38,7 +46,8 @@ export class ScreenErrorBoundary extends React.Component<Props, State> {
   }
 
   componentDidUpdate(prev: Props) {
-    if (prev.resetKey !== this.props.resetKey && this.state.error) this.setState({ error: null });
+    const contextChanged = prev.resetKey !== this.props.resetKey || prev.name !== this.props.name;
+    if (contextChanged && this.state.error) this.setState({ error: null });
   }
 
   private retry = () => this.setState((s) => ({ error: null, serial: s.serial + 1 }));
@@ -46,13 +55,13 @@ export class ScreenErrorBoundary extends React.Component<Props, State> {
   render() {
     if (!this.state.error) return <React.Fragment key={this.state.serial}>{this.props.children}</React.Fragment>;
     return (
-      <View style={s.root} accessibilityRole="alert">
+      <View style={s.root} accessibilityRole="alert" accessibilityLiveRegion="assertive">
         <View style={s.card}>
-          <Ionicons name="shield-checkmark-outline" size={36} color={ui.colors.accent} />
+          <Ionicons name="shield-checkmark-outline" size={36} color={ui.colors.accent} accessibilityElementsHidden />
           <Text style={s.title}>تعذر تشغيل {this.props.name}</Text>
           <Text style={s.body}>تم احتواء المشكلة، وحاول عتيك تسجيل تفاصيلها التقنية. يمكنك إعادة فتح هذه الشاشة دون إغلاق التطبيق.</Text>
-          <Pressable accessibilityRole="button" accessibilityLabel="إعادة فتح الشاشة" onPress={this.retry} style={s.button}>
-            <Ionicons name="refresh" size={ui.icon} color={ui.colors.background} />
+          <Pressable accessibilityRole="button" accessibilityLabel="إعادة فتح الشاشة" accessibilityHint={`يحاول تشغيل ${this.props.name} من جديد`} onPress={this.retry} style={s.button}>
+            <Ionicons name="refresh" size={ui.icon} color={ui.colors.background} accessibilityElementsHidden />
             <Text style={s.buttonText}>إعادة فتح الشاشة</Text>
           </Pressable>
           <Text style={s.meta}>ATEEK {BUILD_INFO.versionName} • #{BUILD_INFO.versionCode} • {BUILD_INFO.shortSha}</Text>
