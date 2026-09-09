@@ -51,6 +51,7 @@ async function getSellerMetrics(sellerId: string): Promise<Metrics | null> {
 export function ListingCard({ item, favorite, onFavorite, onPress }: Props) {
   const { colors, lowData } = useAteekTheme();
   const [loaded, setLoaded] = useState(false);
+  const [imageFailed, setImageFailed] = useState(false);
   const [metrics, setMetrics] = useState<Metrics | null>(item.sellerId ? cache.get(item.sellerId) ?? null : null);
   const press = useSharedValue(1);
   const tilt = useSharedValue(0);
@@ -62,6 +63,11 @@ export function ListingCard({ item, favorite, onFavorite, onPress }: Props) {
       { rotateY: `${-tilt.value * 0.7}deg` },
     ],
   }));
+
+  useEffect(() => {
+    setLoaded(false);
+    setImageFailed(false);
+  }, [item.image]);
 
   useEffect(() => {
     let alive = true;
@@ -113,16 +119,31 @@ export function ListingCard({ item, favorite, onFavorite, onPress }: Props) {
       >
         <View style={[styles.edge, { backgroundColor: colors.line }]} />
         <View style={[styles.imageWrap, { backgroundColor: colors.forestSoft }]}>
-          {!loaded && <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.forestSoft }]} />}
-          <Image
-            accessibilityLabel={`صورة ${item.title}`}
-            source={{ uri: item.image }}
-            resizeMode="cover"
-            progressiveRenderingEnabled
-            fadeDuration={lowData ? 0 : 180}
-            onLoadEnd={() => setLoaded(true)}
-            style={[styles.image, { opacity: loaded ? 1 : 0 }]}
-          />
+          {!loaded && !imageFailed && <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.forestSoft }]} />}
+          {imageFailed ? (
+            <View
+              accessible
+              accessibilityRole="image"
+              accessibilityLabel={`تعذر تحميل صورة ${item.title}`}
+              style={[styles.imageFallback, { backgroundColor: colors.forestSoft }]}
+            >
+              <Ionicons name="image-outline" size={28} color={colors.muted} />
+            </View>
+          ) : (
+            <Image
+              accessibilityLabel={`صورة ${item.title}`}
+              source={{ uri: item.image }}
+              resizeMode="cover"
+              progressiveRenderingEnabled
+              fadeDuration={lowData ? 0 : 180}
+              onLoadEnd={() => setLoaded(true)}
+              onError={() => {
+                setImageFailed(true);
+                setLoaded(true);
+              }}
+              style={[styles.image, { opacity: loaded ? 1 : 0 }]}
+            />
+          )}
           <View pointerEvents="none" style={styles.imageShade} />
           <Pressable
             accessibilityRole="button"
@@ -190,6 +211,7 @@ const styles = StyleSheet.create({
   edge: { position: 'absolute', left: 0, right: 0, top: 0, height: 1, zIndex: 4, opacity: 0.5 },
   imageWrap: { height: 154, overflow: 'hidden' },
   image: { width: '100%', height: '100%' },
+  imageFallback: { width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' },
   imageShade: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(3,5,8,.08)' },
   favorite: { position: 'absolute', top: 9, left: 9, width: 38, height: 38, borderRadius: 14, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   verified: { position: 'absolute', top: 9, right: 9, width: 30, height: 30, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
