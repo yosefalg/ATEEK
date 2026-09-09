@@ -20,3 +20,12 @@ test('production release evidence stays truthful and independently auditable', (
   assert.match(workflow, /"\$APK_ANALYZER" apk summary "\$APK_PATH"/);
   assert.match(workflow, /SHA=\$\(sha256sum "\$APK_PATH" \| awk '\{print \$1\}'\)/);
 });
+
+test('release verifier is safe under set -o pipefail and cannot false-fail on early pipe close', () => {
+  assert.match(workflow, /PACKAGE_LINE="\$\{BADGING%%\$'\\n'\*\}"/);
+  assert.match(workflow, /grep -Fq "package: name='com\.yosef\.ateek'" <<< "\$PACKAGE_LINE"/);
+  assert.match(workflow, /grep -q '\^application-debuggable' <<< "\$BADGING"/);
+  assert.match(workflow, /APK_ANALYZER="\$\(find "\$ANDROID_HOME" -type f -name apkanalyzer -perm -111 -print -quit 2>\/dev\/null\)"/);
+  assert.doesNotMatch(workflow, /printf '%s\\n' "\$BADGING" \| head -n 1/);
+  assert.doesNotMatch(workflow, /find "\$ANDROID_HOME"[^\n]+\| head -n 1/);
+});
