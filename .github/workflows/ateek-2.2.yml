@@ -191,19 +191,23 @@ jobs:
           SHA=$(sha256sum "$APK_PATH" | awk '{print $1}')
           ABI="$(unzip -Z1 "$APK_PATH" | awk -F/ '/^lib\//{print $2}' | sort -u | tr '\n' ' ')"
           printf 'ATEEK 2.2 APK PRODUCTION METRICS\nAPK bytes=%s\nSHA-256=%s\nABI=%s\nPackage=com.yosef.ateek\nDebuggable=NO (enforced by release verifier)\nAAB production=DISABLED\nPhysical Android device test=NOT PERFORMED BY CI\n' "$APK_BYTES" "$SHA" "$ABI" > metrics-out/METRICS.txt
-          APK_ANALYZER="$(find "$ANDROID_HOME" -type f -name apkanalyzer 2>/dev/null | head -n 1 || true)"
-          if [ -n "$APK_ANALYZER" ]; then
-            {
-              echo '=== APK SUMMARY ==='
-              "$APK_ANALYZER" apk summary "$APK_PATH" || true
-              echo '=== APK FILES ==='
-              "$APK_ANALYZER" files list "$APK_PATH" || true
-              echo '=== DEX PACKAGES ==='
-              "$APK_ANALYZER" dex packages "$APK_PATH" || true
-            } > metrics-out/APKANALYZER.txt
-          else
-            echo 'apkanalyzer not found on runner' > metrics-out/APKANALYZER.txt
-          fi
+          APK_ANALYZER="$(find "$ANDROID_HOME" -type f -name apkanalyzer -perm -111 2>/dev/null | head -n 1)"
+          test -n "$APK_ANALYZER"
+          {
+            echo '=== APK SUMMARY ==='
+            "$APK_ANALYZER" apk summary "$APK_PATH"
+            echo '=== APK FILES ==='
+            "$APK_ANALYZER" files list "$APK_PATH"
+            echo '=== DEX PACKAGES ==='
+            "$APK_ANALYZER" dex packages "$APK_PATH"
+          } > metrics-out/APKANALYZER.txt
+          grep -Fq '=== APK SUMMARY ===' metrics-out/APKANALYZER.txt
+          grep -Fq 'com.yosef.ateek' metrics-out/APKANALYZER.txt
+          grep -Eq '(^|[[:space:]])16([[:space:]]|$)' metrics-out/APKANALYZER.txt
+          grep -Fq '2.2.0' metrics-out/APKANALYZER.txt
+          grep -Fq '=== APK FILES ===' metrics-out/APKANALYZER.txt
+          grep -Fq '=== DEX PACKAGES ===' metrics-out/APKANALYZER.txt
+          test -s metrics-out/APKANALYZER.txt
           cat metrics-out/METRICS.txt
 
       - name: Prepare APK artifact
