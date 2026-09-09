@@ -19,5 +19,18 @@ test('changing the query invalidates stale profile search responses', () => {
 test('stale requests cannot surface errors or clear the busy state of a newer request', () => {
   assert.match(source, /catch\(e:any\)\{if\(requestId===usernameRequestRef\.current\)Alert\.alert/);
   assert.match(source, /finally\{if\(requestId===usernameRequestRef\.current\)\{usernameBusyRef\.current=false;setUserBusy\(false\)\}\}/);
-  assert.match(source, /useEffect\(\(\)=>\(\)=>\{usernameRequestRef\.current\+=1;usernameBusyRef\.current=false\},\[\]\)/);
+  assert.match(source, /usernameRequestRef\.current\+=1;usernameBusyRef\.current=false/);
+});
+
+test('nearest sorting synchronously gates duplicate location requests', () => {
+  assert.match(source, /const locationRequestRef=useRef\(0\),locationBusyRef=useRef\(false\)/);
+  assert.match(source, /if\(locationBusyRef\.current\)return;locationBusyRef\.current=true;const requestId=\+\+locationRequestRef\.current;setLocationBusy\(true\)/);
+  assert.match(source, /if\(requestId!==locationRequestRef\.current\)return;setNear\(/);
+});
+
+test('changing sort invalidates stale location responses and cleanup', () => {
+  assert.match(source, /locationRequestRef\.current\+=1;locationBusyRef\.current=false;setLocationBusy\(false\);await persistSort\(next\)/);
+  assert.match(source, /catch\(e:any\)\{if\(requestId===locationRequestRef\.current\)Alert\.alert/);
+  assert.match(source, /finally\{if\(requestId===locationRequestRef\.current\)\{locationBusyRef\.current=false;setLocationBusy\(false\)\}\}/);
+  assert.match(source, /locationRequestRef\.current\+=1;locationBusyRef\.current=false/);
 });
