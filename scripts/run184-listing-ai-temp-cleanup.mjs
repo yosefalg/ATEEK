@@ -15,8 +15,8 @@ replace(
 );
 
 replace(
-  "    } finally {\n      setAnalyzing(false);\n    }\n  };\n\n  const publish = async () => {",
-  "    } finally {\n      if (compressedUri && compressedUri !== image) {\n        await FileSystem.deleteAsync(compressedUri, { idempotent: true }).catch(() => {});\n      }\n      setAnalyzing(false);\n    }\n  };\n\n  const publish = async () => {",
+  "    } finally {\n      setAnalyzing(false);\n    }\n  };",
+  "    } finally {\n      if (compressedUri && compressedUri !== image) {\n        await FileSystem.deleteAsync(compressedUri, { idempotent: true }).catch(() => {});\n      }\n      setAnalyzing(false);\n    }\n  };",
   'clean AI analysis temporary image',
 );
 
