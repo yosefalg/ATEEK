@@ -55,7 +55,10 @@ export async function flushOfflineQueue(){
     for(let i=0;i<rows.length;i++){
       const row=rows[i]!;
       try{await action(row.name,row.payload);sent++;sentIds.add(row.id);}
-      catch(e){if(looksNetworkError(e))break;}
+      catch(e){
+        if(looksNetworkError(e))break;
+        throw e;
+      }
     }
     if(sentIds.size){
       await mutateQueue(async()=>{
