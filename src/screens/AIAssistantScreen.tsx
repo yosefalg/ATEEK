@@ -30,6 +30,7 @@ export function AIAssistantScreen() {
   const [userId, setUserId] = useState<string | null>(null);
   const listRef = useRef<FlatList<ChatMessage>>(null);
   const cancelRef = useRef<null | (() => void)>(null);
+  const streamGeneration = useRef(0);
   const pendingDelta = useRef('');
   const assistantId = useRef<string | null>(null);
   const frame = useRef<number | null>(null);
@@ -57,7 +58,12 @@ export function AIAssistantScreen() {
       setThreadId(latest);
       if (Array.isArray(rows)) setMessages(rows.map((row: any) => ({ id: String(row.id), role: row.role === 'assistant' ? 'assistant' : 'user', body: String(row.body ?? ''), created_at: row.created_at ? String(row.created_at) : undefined })));
     })().catch(() => {});
-    return () => { alive = false; cancelRef.current?.(); if (frame.current != null) cancelAnimationFrame(frame.current); };
+    return () => {
+      alive = false;
+      streamGeneration.current += 1;
+      cancelRef.current?.();
+      if (frame.current != null) cancelAnimationFrame(frame.current);
+    };
   }, []);
 
   useEffect(() => {
@@ -110,6 +116,7 @@ export function AIAssistantScreen() {
   const send = async () => {
     const text = input.trim();
     if (!text || busy) return;
+    const generation = ++streamGeneration.current;
     setError('');
     setInput('');
     const userMessage: ChatMessage = { id: uid('u'), role: 'user', body: text };
@@ -118,17 +125,36 @@ export function AIAssistantScreen() {
     setMessages(prev => [...prev, userMessage, aiMessage]);
     setBusy(true);
     try {
-      cancelRef.current = await streamAiReply({ message: text, threadId, mode, onEvent: handleEvent });
+      const cancel = await streamAiReply({
+        message: text,
+        threadId,
+        mode,
+        onEvent: event => {
+          if (streamGeneration.current !== generation) return;
+          handleEvent(event);
+        },
+      });
+      if (streamGeneration.current !== generation) {
+        cancel();
+        return;
+      }
+      cancelRef.current = cancel;
     } catch (e) {
+      if (streamGeneration.current !== generation) return;
       handleEvent({ type: 'error', message: e instanceof Error ? e.message : 'تعذّر بدء المحادثة.' });
     }
   };
 
   const newChat = () => {
+    streamGeneration.current += 1;
     cancelRef.current?.();
     cancelRef.current = null;
     pendingDelta.current = '';
     assistantId.current = null;
+    if (frame.current != null) {
+      cancelAnimationFrame(frame.current);
+      frame.current = null;
+    }
     setBusy(false);
     setError('');
     setThreadId(null);
