@@ -11,9 +11,9 @@ test('listing details exposes a real failed-image recovery path', () => {
   assert.match(source, /key=\{`\$\{item\.id\}-\$\{imageRetry\}`\}/);
 });
 
-test('listing image failure is reset when modal context changes', () => {
+test('listing image failure is reset when listing image or modal context changes', () => {
   assert.match(source, /setImageFailed\(false\);\s*setImageRetry\(0\);/);
-  assert.match(source, /\[item\?\.id, visible\]/);
+  assert.match(source, /\[item\?\.id, item\?\.image, visible\]/);
 });
 
 test('failed listing image recovery is accessible', () => {
