@@ -20,7 +20,11 @@ test('offline flush removes only confirmed sent ids from the latest queue snapsh
 });
 
 test('offline flush stops on connectivity failure without deleting unsent work', () => {
-  assert.match(source, /catch\(e\)\{if\(looksNetworkError\(e\)\)break;\}/);
+  assert.match(source, /catch\(e\)\{\s*if\(looksNetworkError\(e\)\)break;\s*throw e;\s*\}/s);
+});
+
+test('offline flush fails closed on non-network replay errors to preserve action ordering', () => {
+  assert.match(source, /if\(looksNetworkError\(e\)\)break;\s*throw e;/s);
 });
 
 test('persisted offline queue accepts only known queueable action names and object payloads', () => {
