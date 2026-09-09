@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
-import { useEffect,useMemo,useState } from 'react';
+import { useEffect,useMemo,useRef,useState } from 'react';
 import { Alert,FlatList,Pressable,StyleSheet,Text,TextInput,View } from 'react-native';
 import { supabase } from '../cloud/client';
 import { EmptyState } from '../components/EmptyState';
@@ -30,8 +30,10 @@ const parseSaved=(raw:string|null)=>{if(!raw)return[];try{const value=JSON.parse
 export function SearchScreen({listings,favorites,onFavorite,onOpen,initialCategory='all'}:{listings:Listing[];favorites:string[];onFavorite:(id:string)=>void;onOpen:(item:Listing)=>void;initialCategory?:string}){
   const{colors,lowData}=useAteekTheme();
   const[query,setQuery]=useState(''),[category,setCategory]=useState(initialCategory),[history,setHistory]=useState<string[]>([]),[saved,setSaved]=useState<Saved[]>([]),[near,setNear]=useState<{lat:number;lon:number}|null>(null),[sort,setSort]=useState<Sort>('newest'),[userBusy,setUserBusy]=useState(false),[locationBusy,setLocationBusy]=useState(false);
+  const usernameRequestRef=useRef(0),usernameBusyRef=useRef(false);
 
   useEffect(()=>{setCategory(initialCategory)},[initialCategory]);
+  useEffect(()=>()=>{usernameRequestRef.current+=1;usernameBusyRef.current=false},[]);
 
   useEffect(()=>{let alive=true;void AsyncStorage.multiGet([HISTORY,SAVED,SORT]).then(async entries=>{
     if(!alive)return;
@@ -46,13 +48,14 @@ export function SearchScreen({listings,favorites,onFavorite,onOpen,initialCatego
 
   const persistSort=async(next:Sort)=>{setSort(next);try{await AsyncStorage.setItem(SORT,next)}catch{}};
   const commitHistory=async(q:string)=>{const x=q.trim();if(x.length<2)return;const key=normalize(x),next=[x,...history.filter(v=>normalize(v)!==key)].slice(0,8);setHistory(next);try{await AsyncStorage.setItem(HISTORY,JSON.stringify(next))}catch{}};
+  const changeQuery=(value:string)=>{usernameRequestRef.current+=1;usernameBusyRef.current=false;setUserBusy(false);setQuery(value)};
   const openUsername=async()=>{
-    const raw=query.trim();if(!raw.startsWith('@'))return false;if(userBusy)return true;
+    const raw=query.trim();if(!raw.startsWith('@'))return false;if(usernameBusyRef.current)return true;
     const name=normalizeUsername(raw);if(!/^[a-z0-9_]{3,24}$/.test(name)){Alert.alert('المعرف غير صالح','اكتب المعرف بصيغة @username.');return true}
-    setUserBusy(true);
-    try{const{data,error}=await supabase.rpc('ateek_profile_by_username',{p_username:name});if(error)throw error;const row=Array.isArray(data)?data[0]:data;if(!row?.id){Alert.alert('غير موجود','لم يتم العثور على هذا المستخدم.');return true}await commitHistory(`@${name}`);openSpatialProfile(String(row.id));return true}
-    catch(e:any){Alert.alert('تعذر البحث',e.message||'تعذر فتح البروفايل.');return true}
-    finally{setUserBusy(false)}
+    usernameBusyRef.current=true;const requestId=++usernameRequestRef.current;setUserBusy(true);
+    try{const{data,error}=await supabase.rpc('ateek_profile_by_username',{p_username:name});if(requestId!==usernameRequestRef.current)return true;if(error)throw error;const row=Array.isArray(data)?data[0]:data;if(!row?.id){Alert.alert('غير موجود','لم يتم العثور على هذا المستخدم.');return true}await commitHistory(`@${name}`);if(requestId!==usernameRequestRef.current)return true;openSpatialProfile(String(row.id));return true}
+    catch(e:any){if(requestId===usernameRequestRef.current)Alert.alert('تعذر البحث',e.message||'تعذر فتح البروفايل.');return true}
+    finally{if(requestId===usernameRequestRef.current){usernameBusyRef.current=false;setUserBusy(false)}}
   };
   const submit=async()=>{if(await openUsername())return;await commitHistory(query)};
   const saveSearch=async()=>{const x=query.trim();if(x.startsWith('@'))return Alert.alert('البروفايل','بحث @username يفتح البروفايل مباشرة ولا يحتاج حفظًا.');if(!x&&category==='all')return Alert.alert('البحث المحفوظ','اكتب كلمة أو اختر قسمًا أولًا.');const next=[{q:x,category},...saved.filter(v=>v.q!==x||v.category!==category)].slice(0,12);setSaved(next);try{await AsyncStorage.setItem(SAVED,JSON.stringify(next));Alert.alert('تم الحفظ','سيبقى هذا البحث محفوظًا على جهازك وتظهر مطابقاته الجديدة داخل شاشة البحث.')}catch{Alert.alert('تعذر الحفظ','تعذر حفظ البحث على هذا الجهاز الآن.')}};
@@ -78,7 +81,7 @@ export function SearchScreen({listings,favorites,onFavorite,onOpen,initialCatego
       <Text style={[styles.subtitle,{color:colors.goldSoft}]}>سلع • أقرب موقع • @username مباشر</Text>
       <View style={[styles.search,{backgroundColor:colors.glass,borderColor:colors.line}]}>
         <Pressable accessibilityRole="button" accessibilityLabel="حفظ البحث الحالي" accessibilityHint="يحفظ عبارة البحث والقسم على هذا الجهاز" hitSlop={8} onPress={()=>void saveSearch()}><Ionicons name="bookmark-outline" size={21} color={colors.gold}/></Pressable>
-        <TextInput accessibilityLabel="حقل البحث" accessibilityHint="ابحث عن سلعة أو اكتب معرف مستخدم يبدأ بعلامة @" autoFocus value={query} onChangeText={setQuery} onSubmitEditing={()=>void submit()} placeholder="سلعة أو @username" placeholderTextColor={colors.muted} autoCapitalize="none" returnKeyType="search" style={[styles.input,{color:colors.ink}]}/>
+        <TextInput accessibilityLabel="حقل البحث" accessibilityHint="ابحث عن سلعة أو اكتب معرف مستخدم يبدأ بعلامة @" autoFocus value={query} onChangeText={changeQuery} onSubmitEditing={()=>void submit()} placeholder="سلعة أو @username" placeholderTextColor={colors.muted} autoCapitalize="none" returnKeyType="search" style={[styles.input,{color:colors.ink}]}/>
         <Pressable accessibilityRole="button" accessibilityLabel="تنفيذ البحث" accessibilityState={{busy:userBusy,disabled:userBusy}} disabled={userBusy} hitSlop={8} onPress={()=>void submit()}><Ionicons name={isUsernameQuery?'person-circle-outline':'search'} size={22} color={isUsernameQuery?colors.cyan:colors.muted}/></Pressable>
       </View>
       {isUsernameQuery&&<Text accessibilityLiveRegion="polite" style={[styles.usernameHint,{color:colors.cyan}]}>{userBusy?'جارٍ فتح البروفايل…':'اضغط بحث لفتح البروفايل العام مباشرة'}</Text>}
@@ -87,7 +90,7 @@ export function SearchScreen({listings,favorites,onFavorite,onOpen,initialCatego
       {!isUsernameQuery&&<Text accessibilityRole="text" accessibilityLabel={`عدد نتائج البحث ${filtered.length}`} style={[styles.resultCount,{color:colors.muted}]}>{filtered.length} نتيجة</Text>}
     </View>
 
-    {!!history.length&&<View style={styles.history}><Text style={[styles.smallTitle,{color:colors.muted}]}>بحثت مؤخرًا</Text><FlatList horizontal inverted data={history} keyExtractor={x=>x} showsHorizontalScrollIndicator={false} renderItem={({item})=><Pressable accessibilityRole="button" accessibilityLabel={`إعادة البحث عن ${item}`} onPress={()=>setQuery(item)} style={[styles.historyChip,{backgroundColor:colors.glass,borderColor:colors.line}]}><Text style={[styles.chipText,{color:colors.ink}]}>{item}</Text></Pressable>}/></View>}
+    {!!history.length&&<View style={styles.history}><Text style={[styles.smallTitle,{color:colors.muted}]}>بحثت مؤخرًا</Text><FlatList horizontal inverted data={history} keyExtractor={x=>x} showsHorizontalScrollIndicator={false} renderItem={({item})=><Pressable accessibilityRole="button" accessibilityLabel={`إعادة البحث عن ${item}`} onPress={()=>changeQuery(item)} style={[styles.historyChip,{backgroundColor:colors.glass,borderColor:colors.line}]}><Text style={[styles.chipText,{color:colors.ink}]}>{item}</Text></Pressable>}/></View>}
     <View style={styles.chips}><FlatList horizontal inverted showsHorizontalScrollIndicator={false} data={categoryOptions} keyExtractor={x=>x.id} renderItem={({item})=><Pressable accessibilityRole="button" accessibilityLabel={`قسم ${item.label}`} accessibilityState={{selected:category===item.id}} onPress={()=>setCategory(item.id)} style={[styles.chip,{backgroundColor:category===item.id?colors.gold:colors.glass,borderColor:category===item.id?colors.gold:colors.line}]}><Text style={[styles.chipText,{color:category===item.id?colors.forest:colors.muted}]}>{item.label}</Text></Pressable>}/></View>
     <FlatList accessibilityLabel={`نتائج البحث، ${filtered.length} نتيجة`} data={filtered} keyExtractor={x=>x.id} numColumns={2} initialNumToRender={lowData?4:8} maxToRenderPerBatch={lowData?4:8} windowSize={lowData?3:6} removeClippedSubviews columnWrapperStyle={styles.row} contentContainerStyle={styles.results} keyboardShouldPersistTaps="handled" ListEmptyComponent={isUsernameQuery?<EmptyState icon="person-circle-outline" title="بحث بروفايل" body="اكتب @username واضغط بحث لفتح الحساب مباشرة"/>:<EmptyState icon="search-outline" title="لم نجد نتائج" body="جرّب كلمة أخرى أو اختر قسمًا مختلفًا"/>} renderItem={({item})=><ListingCard item={item} favorite={favoriteIds.has(item.id)} onFavorite={()=>onFavorite(item.id)} onPress={()=>{void commitHistory(query);onOpen(item);}}/>}/>
   </View>;
