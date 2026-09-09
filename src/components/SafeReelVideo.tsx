@@ -98,15 +98,24 @@ function GuardedPlayer({ reel, source, active, failedLabel, retryLabel }: { reel
 function VideoLoading() { return <View style={[StyleSheet.absoluteFill, s.loading]}><ActivityIndicator size="small" color={ui.colors.accent} /></View>; }
 
 function FallbackCard({ reel, label, retryLabel, thumbnail, onRetry }: { reel: ReelVideoInput; label: string; retryLabel: string; thumbnail?: string | null; onRetry?: () => void }) {
-  return <View style={[StyleSheet.absoluteFill, s.invalid]}>{thumbnail ? <Image source={{ uri: thumbnail }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : null}<View style={s.fallbackShade} /><Ionicons name={thumbnail?'image-outline':'videocam-off-outline'} size={36} color={ui.colors.muted} /><Text style={s.invalidText}>{label}</Text>{!!reel.caption && <Text numberOfLines={3} style={s.caption}>{reel.caption}</Text>}{onRetry?<Pressable accessibilityRole="button" accessibilityLabel={retryLabel} onPress={onRetry} style={s.retry}><Ionicons name="refresh" size={18} color={ui.colors.background} /><Text style={s.retryText}>{retryLabel}</Text></Pressable>:null}</View>;
+  const [thumbnailFailed, setThumbnailFailed] = useState(false);
+  useEffect(() => setThumbnailFailed(false), [thumbnail]);
+  const showThumbnail = !!thumbnail && !thumbnailFailed;
+  return <View style={[StyleSheet.absoluteFill, s.invalid]}>{showThumbnail ? <Image source={{ uri: thumbnail! }} style={StyleSheet.absoluteFill} resizeMode="cover" onError={() => setThumbnailFailed(true)} /> : null}<View style={s.fallbackShade} /><Ionicons name={showThumbnail?'image-outline':'videocam-off-outline'} size={36} color={ui.colors.muted} /><Text style={s.invalidText}>{label}</Text>{!!reel.caption && <Text numberOfLines={3} style={s.caption}>{reel.caption}</Text>}{onRetry?<Pressable accessibilityRole="button" accessibilityLabel={retryLabel} onPress={onRetry} style={s.retry}><Ionicons name="refresh" size={18} color={ui.colors.background} /><Text style={s.retryText}>{retryLabel}</Text></Pressable>:null}</View>;
+}
+
+function InvalidReelFallback({ reel, label, retryLabel }: { reel: ReelVideoInput; label: string; retryLabel: string }) {
+  useEffect(() => {
+    logVideoError(reel.id, 'VIDEO_SOURCE_INVALID_OR_MISSING');
+  }, [reel.id]);
+  return <FallbackCard reel={reel} label={label} retryLabel={retryLabel} thumbnail={resolveThumbnail(reel)} />;
 }
 
 export function SafeReelVideo({ reel, active }: Props) {
   const { t } = useLocale();
   const resolved = resolveReelVideoSource(reel);
   if (!resolved) {
-    logVideoError(reel.id, 'VIDEO_SOURCE_INVALID_OR_MISSING');
-    return <FallbackCard reel={reel} label={t('reels.videoInvalid')} retryLabel={t('app.error.retry')} thumbnail={resolveThumbnail(reel)} />;
+    return <InvalidReelFallback reel={reel} label={t('reels.videoInvalid')} retryLabel={t('app.error.retry')} />;
   }
   const source: VideoSource = { uri: resolved.uri, contentType: resolved.kind === 'hls' ? 'hls' : 'progressive' };
   return <GuardedPlayer reel={reel} source={source} active={active} failedLabel={t('reels.videoFailed')} retryLabel={t('app.error.retry')} />;
