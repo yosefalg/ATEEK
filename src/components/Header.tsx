@@ -1,14 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, shadows } from '../theme/colors';
 
 export function Header({ onNotifications }: { onNotifications?: () => void }) {
+  const notificationsEnabled=typeof onNotifications==='function';
   return (
     <LinearGradient colors={[colors.forest, '#0A1D18']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.header}>
-      <Pressable accessibilityLabel="الإشعارات" style={styles.iconButton} onPress={onNotifications ?? (() => Alert.alert('الإشعارات', 'لا توجد إشعارات.'))}>
+      <Pressable accessibilityRole="button" accessibilityLabel="الإشعارات" accessibilityState={{disabled:!notificationsEnabled}} disabled={!notificationsEnabled} style={[styles.iconButton,!notificationsEnabled&&styles.iconButtonDisabled]} onPress={onNotifications}>
         <Ionicons name="notifications-outline" size={22} color={colors.cream} />
-        <View style={styles.dot} />
       </Pressable>
       <View style={styles.brand}>
         <View style={styles.logo}>
@@ -34,5 +34,5 @@ const styles = StyleSheet.create({
   beta: { color: colors.gold, fontSize: 9, fontWeight: '900', letterSpacing: 1.2 },
   tagline: { color: colors.goldSoft, fontSize: 10, marginTop: -2, textAlign: 'right' },
   iconButton: { width: 42, height: 42, borderRadius: 14, backgroundColor: 'rgba(255,255,255,.08)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,.06)' },
-  dot: { position: 'absolute', width: 7, height: 7, borderRadius: 4, backgroundColor: colors.gold, top: 8, right: 8 }
+  iconButtonDisabled:{opacity:.55}
 });
