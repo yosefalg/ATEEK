@@ -39,17 +39,30 @@ export function DynamicBackground(){
   },[animationsEnabled,lowData,particles,pulse1,pulse2,r1,r2]);
 
   useEffect(()=>{
-    if(!animationsEnabled||lowData){gx.setValue(0);gy.setValue(0);return}
-    Gyroscope.setUpdateInterval(100);
-    const sub=Gyroscope.addListener(({x,y})=>{
-      const nx=Math.max(-1,Math.min(1,y))*14;
-      const ny=Math.max(-1,Math.min(1,x))*14;
-      Animated.parallel([
-        Animated.timing(gx,{toValue:nx,duration:140,useNativeDriver:true}),
-        Animated.timing(gy,{toValue:ny,duration:140,useNativeDriver:true}),
-      ]).start();
+    if(!animationsEnabled||lowData){gx.stopAnimation();gy.stopAnimation();gx.setValue(0);gy.setValue(0);return}
+    let disposed=false;
+    let sub:ReturnType<typeof Gyroscope.addListener>|null=null;
+    void Gyroscope.isAvailableAsync().then(available=>{
+      if(disposed||!available)return;
+      Gyroscope.setUpdateInterval(120);
+      sub=Gyroscope.addListener(({x,y})=>{
+        if(disposed)return;
+        const nx=Math.max(-1,Math.min(1,y))*14;
+        const ny=Math.max(-1,Math.min(1,x))*14;
+        gx.stopAnimation();gy.stopAnimation();
+        Animated.parallel([
+          Animated.timing(gx,{toValue:nx,duration:140,useNativeDriver:true}),
+          Animated.timing(gy,{toValue:ny,duration:140,useNativeDriver:true}),
+        ]).start();
+      });
+    }).catch(()=>{
+      if(!disposed){gx.stopAnimation();gy.stopAnimation();gx.setValue(0);gy.setValue(0)}
     });
-    return()=>sub.remove();
+    return()=>{
+      disposed=true;
+      sub?.remove();
+      gx.stopAnimation();gy.stopAnimation();
+    };
   },[animationsEnabled,gx,gy,lowData]);
 
   const nearX=useMemo(()=>gx,[gx]),nearY=useMemo(()=>gy,[gy]);
