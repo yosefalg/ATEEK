@@ -20,6 +20,12 @@ test('listing AI temp cleanup tracks and deletes only the derived analysis image
   assert.match(transform, /FileSystem\.deleteAsync\(compressedUri, \{ idempotent: true \}\)/);
 });
 
+test('listing AI cleanup anchor stays local to analyzeImage and independent of later function insertion', () => {
+  assert.match(transform, /setAnalyzing\(false\);\\n    }\\n  };/);
+  assert.doesNotMatch(transform, /const publish = async/);
+  assert.doesNotMatch(transform, /const improveDescription = async/);
+});
+
 test('listing AI cleanup preserves the real Supabase classifier and listing semantics', () => {
   assert.match(source, /supabase\.functions\.invoke\('ai-classify'/);
   assert.match(source, /mimeType: 'image\/jpeg'/);
