@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const CACHE_KEY = 'ateek.reels.swr.v1';
 const MAX_AGE_MS = 24 * 60 * 60 * 1000;
+const MAX_FUTURE_SKEW_MS = 5 * 60 * 1000;
 
 type Cursor = { createdAt: string; id: string } | null;
 export type ReelsSnapshot<R, L> = {
@@ -12,15 +13,43 @@ export type ReelsSnapshot<R, L> = {
   nextCursor: Cursor;
 };
 
+function isCursor(value: unknown): value is Cursor {
+  if (value === null) return true;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const cursor = value as Record<string, unknown>;
+  return typeof cursor.createdAt === 'string' && cursor.createdAt.length > 0 && typeof cursor.id === 'string' && cursor.id.length > 0;
+}
+
+async function discardInvalidSnapshot() {
+  try {
+    await AsyncStorage.removeItem(CACHE_KEY);
+  } catch {
+    // Cache cleanup must never block the live Supabase feed.
+  }
+}
+
 export async function readReelsSnapshot<R, L>(): Promise<ReelsSnapshot<R, L> | null> {
   try {
     const raw = await AsyncStorage.getItem(CACHE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as ReelsSnapshot<R, L>;
-    if (parsed?.version !== 1 || !Array.isArray(parsed.reels) || !parsed.listings || typeof parsed.cachedAt !== 'number') return null;
-    if (Date.now() - parsed.cachedAt > MAX_AGE_MS) return null;
+    const now = Date.now();
+    const valid =
+      parsed?.version === 1 &&
+      Array.isArray(parsed.reels) &&
+      !!parsed.listings &&
+      typeof parsed.listings === 'object' &&
+      !Array.isArray(parsed.listings) &&
+      Number.isFinite(parsed.cachedAt) &&
+      parsed.cachedAt <= now + MAX_FUTURE_SKEW_MS &&
+      isCursor(parsed.nextCursor);
+    if (!valid || now - parsed.cachedAt > MAX_AGE_MS) {
+      await discardInvalidSnapshot();
+      return null;
+    }
     return parsed;
   } catch {
+    await discardInvalidSnapshot();
     return null;
   }
 }
