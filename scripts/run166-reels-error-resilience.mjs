@@ -26,8 +26,8 @@ replace(
 );
 
 replace(
-  "ListEmptyComponent={<Text style={s.empty}>لا توجد تعليقات بعد.</Text>}",
-  "ListEmptyComponent={<Text accessibilityRole=\"alert\" style={s.empty}>{loadError ? `تعذر تحميل التعليقات: ${loadError}` : 'لا توجد تعليقات بعد.'}</Text>}",
+  "ListEmptyComponent={<Text style={s.empty}>{t('reels.emptyComments')}</Text>}",
+  "ListEmptyComponent={<Text accessibilityRole=\"alert\" style={s.empty}>{loadError ? `تعذر تحميل التعليقات: ${loadError}` : t('reels.emptyComments')}</Text>}",
   'comment error feedback',
 );
 
