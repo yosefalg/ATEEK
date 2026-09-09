@@ -31,9 +31,10 @@ export function SearchScreen({listings,favorites,onFavorite,onOpen,initialCatego
   const{colors,lowData}=useAteekTheme();
   const[query,setQuery]=useState(''),[category,setCategory]=useState(initialCategory),[history,setHistory]=useState<string[]>([]),[saved,setSaved]=useState<Saved[]>([]),[near,setNear]=useState<{lat:number;lon:number}|null>(null),[sort,setSort]=useState<Sort>('newest'),[userBusy,setUserBusy]=useState(false),[locationBusy,setLocationBusy]=useState(false);
   const usernameRequestRef=useRef(0),usernameBusyRef=useRef(false);
+  const locationRequestRef=useRef(0),locationBusyRef=useRef(false);
 
   useEffect(()=>{setCategory(initialCategory)},[initialCategory]);
-  useEffect(()=>()=>{usernameRequestRef.current+=1;usernameBusyRef.current=false},[]);
+  useEffect(()=>()=>{usernameRequestRef.current+=1;usernameBusyRef.current=false;locationRequestRef.current+=1;locationBusyRef.current=false},[]);
 
   useEffect(()=>{let alive=true;void AsyncStorage.multiGet([HISTORY,SAVED,SORT]).then(async entries=>{
     if(!alive)return;
@@ -59,8 +60,8 @@ export function SearchScreen({listings,favorites,onFavorite,onOpen,initialCatego
   };
   const submit=async()=>{if(await openUsername())return;await commitHistory(query)};
   const saveSearch=async()=>{const x=query.trim();if(x.startsWith('@'))return Alert.alert('البروفايل','بحث @username يفتح البروفايل مباشرة ولا يحتاج حفظًا.');if(!x&&category==='all')return Alert.alert('البحث المحفوظ','اكتب كلمة أو اختر قسمًا أولًا.');const next=[{q:x,category},...saved.filter(v=>v.q!==x||v.category!==category)].slice(0,12);setSaved(next);try{await AsyncStorage.setItem(SAVED,JSON.stringify(next));Alert.alert('تم الحفظ','سيبقى هذا البحث محفوظًا على جهازك وتظهر مطابقاته الجديدة داخل شاشة البحث.')}catch{Alert.alert('تعذر الحفظ','تعذر حفظ البحث على هذا الجهاز الآن.')}};
-  const nearest=async()=>{if(locationBusy)return;setLocationBusy(true);try{const p=await Location.requestForegroundPermissionsAsync();if(p.status!=='granted'){Alert.alert('الموقع','يمكنك تفعيل إذن الموقع لفرز الإعلانات التي أضافها أصحابها موقعًا جغرافيًا.');return}const x=await Location.getCurrentPositionAsync({accuracy:Location.Accuracy.Balanced});setNear({lat:x.coords.latitude,lon:x.coords.longitude});await persistSort('nearest')}catch(e:any){Alert.alert('تعذر تحديد الموقع',e?.message||'تحقق من خدمة الموقع وحاول مرة أخرى.')}finally{setLocationBusy(false)}};
-  const chooseSort=async(next:Sort)=>{if(next==='nearest'){await nearest();return}await persistSort(next)};
+  const nearest=async()=>{if(locationBusyRef.current)return;locationBusyRef.current=true;const requestId=++locationRequestRef.current;setLocationBusy(true);try{const p=await Location.requestForegroundPermissionsAsync();if(requestId!==locationRequestRef.current)return;if(p.status!=='granted'){Alert.alert('الموقع','يمكنك تفعيل إذن الموقع لفرز الإعلانات التي أضافها أصحابها موقعًا جغرافيًا.');return}const x=await Location.getCurrentPositionAsync({accuracy:Location.Accuracy.Balanced});if(requestId!==locationRequestRef.current)return;setNear({lat:x.coords.latitude,lon:x.coords.longitude});await persistSort('nearest')}catch(e:any){if(requestId===locationRequestRef.current)Alert.alert('تعذر تحديد الموقع',e?.message||'تحقق من خدمة الموقع وحاول مرة أخرى.')}finally{if(requestId===locationRequestRef.current){locationBusyRef.current=false;setLocationBusy(false)}}};
+  const chooseSort=async(next:Sort)=>{if(next==='nearest'){await nearest();return}locationRequestRef.current+=1;locationBusyRef.current=false;setLocationBusy(false);await persistSort(next)};
 
   const favoriteIds=useMemo(()=>new Set(favorites),[favorites]);
   const searchableListings=useMemo(()=>listings.map(item=>({item,text:searchable(item)})),[listings]);
