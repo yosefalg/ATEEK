@@ -12,6 +12,7 @@ test('reels cache rejects malformed, future, and expired snapshots and cleans th
   assert.match(cache, /parsed\.cachedAt <= now \+ MAX_FUTURE_SKEW_MS/);
   assert.match(cache, /isCursor\(parsed\.nextCursor\)/);
   assert.match(cache, /now - parsed\.cachedAt > MAX_AGE_MS/);
-  assert.match(cache, /await AsyncStorage\.removeItem\(CACHE_KEY\)/);
+  assert.match(cache, /async function discardInvalidSnapshot\(\)[\s\S]*?try \{[\s\S]*?await AsyncStorage\.removeItem\(CACHE_KEY\)[\s\S]*?\} catch \{/);
   assert.match(cache, /await discardInvalidSnapshot\(\)/);
+  assert.match(cache, /Cache cleanup must never block the live Supabase feed/);
 });
