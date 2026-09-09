@@ -63,7 +63,8 @@ test('search discovery exposes real sorting and efficient local persistence', ()
   assert.match(search, /\['newest','الأحدث','time-outline'\]/);
   assert.match(search, /\['most_viewed','الأكثر مشاهدة','eye-outline'\]/);
   assert.match(search, /\['nearest','الأقرب','navigate-outline'\]/);
-  assert.match(search, /if\(userBusy\)return true/);
+  assert.match(search, /if\(usernameBusyRef\.current\)return true/);
+  assert.match(search, /const requestId=\+\+usernameRequestRef\.current/);
   assert.match(search, /const searchableListings=useMemo/);
   assert.match(search, /const savedMatches=useMemo/);
   assert.match(search, /removeClippedSubviews/);
