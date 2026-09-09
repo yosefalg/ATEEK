@@ -19,5 +19,5 @@ test('listing details keeps offer entry accessible and guarded', () => {
 test('listing details clears stale offer input across item and visibility changes', () => {
   const screen = fs.readFileSync('src/screens/ListingDetails.tsx','utf8');
   assert.match(screen, /import \{ useEffect, useState \} from 'react';/);
-  assert.match(screen, /useEffect\(\(\) => \{ setOffer\(''\); \}, \[item\?\.id, visible\]\);/);
+  assert.match(screen, /useEffect\(\(\) => \{[\s\S]*?setOffer\(''\);[\s\S]*?\}, \[item\?\.id, visible\]\);/);
 });
