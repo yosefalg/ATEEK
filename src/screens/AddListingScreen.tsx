@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { supabase } from '../cloud/client';
 import { categories } from '../data/seed';
@@ -36,6 +36,9 @@ export function AddListingScreen({ onAdd, onDone }: { onAdd: (item: Listing) => 
   const [publishing, setPublishing] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [draftReady, setDraftReady] = useState(false);
+  const draftWriteChainRef = useRef<Promise<void>>(Promise.resolve());
+  const draftGenerationRef = useRef(0);
+  const publishedRef = useRef(false);
 
   useEffect(() => {
     let active = true;
@@ -91,17 +94,27 @@ export function AddListingScreen({ onAdd, onDone }: { onAdd: (item: Listing) => 
   }, []);
 
   useEffect(() => {
-    if (!draftReady) return;
+    if (!draftReady || publishedRef.current) return;
+    const generation = ++draftGenerationRef.current;
     const timer = setTimeout(() => {
       const draft: Draft = { title, price, description, location, category, image };
       const hasDraft = Boolean(title.trim() || price.trim() || description.trim() || image);
-      if (hasDraft) {
-        void AsyncStorage.setItem(DRAFT_KEY, JSON.stringify(draft)).catch(() => {});
-      } else {
-        void AsyncStorage.removeItem(DRAFT_KEY).catch(() => {});
-      }
+      draftWriteChainRef.current = draftWriteChainRef.current
+        .catch(() => {})
+        .then(async () => {
+          if (publishedRef.current || generation !== draftGenerationRef.current) return;
+          if (hasDraft) {
+            await AsyncStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+          } else {
+            await AsyncStorage.removeItem(DRAFT_KEY);
+          }
+        })
+        .catch(() => {});
     }, 1200);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      if (draftGenerationRef.current === generation) draftGenerationRef.current += 1;
+    };
   }, [draftReady, title, price, description, location, category, image]);
 
   const amount = useMemo(() => parsePrice(price), [price]);
@@ -166,7 +179,10 @@ export function AddListingScreen({ onAdd, onDone }: { onAdd: (item: Listing) => 
         description: description.trim() || 'لا يوجد وصف إضافي.',
         createdAt: Date.now(),
       });
-      await AsyncStorage.removeItem(DRAFT_KEY);
+      publishedRef.current = true;
+      draftGenerationRef.current += 1;
+      await draftWriteChainRef.current.catch(() => {});
+      await AsyncStorage.removeItem(DRAFT_KEY).catch(() => {});
       Alert.alert('تم النشر', 'تم نشر إعلانك في سوق عتيك وأصبح ظاهرًا للمستخدمين المسجلين في التطبيق.');
       onDone();
     } catch (error: unknown) {
