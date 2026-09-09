@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 
 const transform = fs.readFileSync('scripts/run178-listing-accessibility-polish.mjs', 'utf8');
+const run93 = fs.readFileSync('scripts/run93-video-qa-fixes.mjs', 'utf8');
 const chain = fs.readFileSync('scripts/run77-reels-transform.mjs', 'utf8');
 
 test('listing accessibility polish is chained after chat visual polish', () => {
@@ -20,7 +21,8 @@ test('listing detail actions expose explicit accessible semantics without changi
   assert.match(transform, /m\.mutate\('favorite'/);
 });
 
-test('listing detail premium identity is localized', () => {
+test('listing detail identity follows the post-Run93 localized transform state', () => {
+  assert.match(run93, /'SPATIAL LISTING','تفاصيل الإعلان','Arabic listing heading'/);
+  assert.match(transform, /<Text style=\{styles\.eyebrow\}>تفاصيل الإعلان<\/Text>/);
   assert.match(transform, /<Text style=\{styles\.eyebrow\}>إعلان عتيك<\/Text>/);
-  assert.doesNotMatch(transform, /to,\s*'<Text style=\{styles\.eyebrow\}>SPATIAL LISTING<\/Text>'/);
 });
