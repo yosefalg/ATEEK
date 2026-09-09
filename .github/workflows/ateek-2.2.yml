@@ -168,16 +168,20 @@ jobs:
           unzip -t "$APK_PATH" >/dev/null
           AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
           BADGING="$($AAPT dump badging "$APK_PATH")"
-          PACKAGE_LINE="$(printf '%s\n' "$BADGING" | head -n 1)"
-          echo "$PACKAGE_LINE" | grep -Fq "package: name='com.yosef.ateek'"
-          echo "$PACKAGE_LINE" | grep -Eq "versionCode='16'.*versionName='2\.2\.0'|versionName='2\.2\.0'.*versionCode='16'"
-          if printf '%s\n' "$BADGING" | grep -q '^application-debuggable'; then
+          PACKAGE_LINE="${BADGING%%$'\n'*}"
+          grep -Fq "package: name='com.yosef.ateek'" <<< "$PACKAGE_LINE"
+          grep -Eq "versionCode='16'.*versionName='2\.2\.0'|versionName='2\.2\.0'.*versionCode='16'" <<< "$PACKAGE_LINE"
+          if grep -q '^application-debuggable' <<< "$BADGING"; then
             echo 'Refusing debuggable release APK'
             exit 1
           fi
-          APK_ABIS="$(unzip -Z1 "$APK_PATH" | awk -F/ '/^lib\//{print $2}' | sort -u | tr '\n' ' ')"
+          APK_ENTRIES="$(unzip -Z1 "$APK_PATH")"
+          APK_ABIS="$(printf '%s\n' "$APK_ENTRIES" | awk -F/ '/^lib\//{print $2}' | sort -u | tr '\n' ' ')"
           [ "$APK_ABIS" = "arm64-v8a " ]
-          ! unzip -Z1 "$APK_PATH" | grep -qE '^lib/arm64-v8a/lib(jsc|jscexecutor)\.so$'
+          if grep -qE '^lib/arm64-v8a/lib(jsc|jscexecutor)\.so$' <<< "$APK_ENTRIES"; then
+            echo 'Refusing JSC runtime in Hermes release APK'
+            exit 1
+          fi
           sha256sum "$APK_PATH"
 
       - name: Generate APKANALYZER metrics and enforce 35 MiB budget
@@ -191,7 +195,7 @@ jobs:
           SHA=$(sha256sum "$APK_PATH" | awk '{print $1}')
           ABI="$(unzip -Z1 "$APK_PATH" | awk -F/ '/^lib\//{print $2}' | sort -u | tr '\n' ' ')"
           printf 'ATEEK 2.2 APK PRODUCTION METRICS\nAPK bytes=%s\nSHA-256=%s\nABI=%s\nPackage=com.yosef.ateek\nDebuggable=NO (enforced by release verifier)\nAAB production=DISABLED\nPhysical Android device test=NOT PERFORMED BY CI\n' "$APK_BYTES" "$SHA" "$ABI" > metrics-out/METRICS.txt
-          APK_ANALYZER="$(find "$ANDROID_HOME" -type f -name apkanalyzer -perm -111 2>/dev/null | head -n 1)"
+          APK_ANALYZER="$(find "$ANDROID_HOME" -type f -name apkanalyzer -perm -111 -print -quit 2>/dev/null)"
           test -n "$APK_ANALYZER"
           {
             echo '=== APK SUMMARY ==='
