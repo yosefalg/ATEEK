@@ -7,11 +7,11 @@ const replace = (from, to, label) => {
   dm = dm.replace(from, to);
 };
 
-// Use the real window width already available in this component file to keep
-// DM content readable on compact phones and centered on tablets/large screens.
+// Run130 extends SpatialDMHub with onOpenListing before Run191 executes. Target
+// that post-transform signature so this production transform is deterministic.
 replace(
-  `export function SpatialDMHub({ m, thread, setThread }: { m: Cloud; thread: string | null; setThread: (id: string | null) => void }) {\n  const [body, setBody] = useState('');`,
-  `export function SpatialDMHub({ m, thread, setThread }: { m: Cloud; thread: string | null; setThread: (id: string | null) => void }) {\n  const { width } = useWindowDimensions();\n  const compact = width < 380;\n  const contentWidth = Math.min(width, 720);\n  const [body, setBody] = useState('');`,
+  `export function SpatialDMHub({ m, thread, setThread, onOpenListing }: { m: Cloud; thread: string | null; setThread: (id: string | null) => void; onOpenListing: (item: Listing) => void }) {\n  const [body, setBody] = useState('');`,
+  `export function SpatialDMHub({ m, thread, setThread, onOpenListing }: { m: Cloud; thread: string | null; setThread: (id: string | null) => void; onOpenListing: (item: Listing) => void }) {\n  const { width } = useWindowDimensions();\n  const compact = width < 380;\n  const contentWidth = Math.min(width, 720);\n  const [body, setBody] = useState('');`,
   'responsive DM dimensions',
 );
 replace(
@@ -24,10 +24,11 @@ replace(
   `style={[styles.messagesList, { width: contentWidth, alignSelf: 'center' }]}\n        contentContainerStyle={[styles.messagesContent, { paddingHorizontal: compact ? 10 : 16 }]}`,
   'responsive message list',
 );
+// Run163 renames the live input shell to composerDock before Run191 executes.
 replace(
-  `<View style={styles.composer}>`,
-  `<View style={[styles.composer, { width: contentWidth, alignSelf: 'center', paddingHorizontal: compact ? 8 : 12 }]}>`,
-  'responsive composer',
+  `<View style={styles.composerDock}>`,
+  `<View style={[styles.composerDock, { width: contentWidth, alignSelf: 'center', marginHorizontal: compact ? 8 : 10 }]}>`,
+  'responsive composer dock',
 );
 
 // Modernize the primitive black/teal palette without touching backend state.
@@ -42,7 +43,8 @@ const palette = new Map([
 ]);
 for (const [from, to] of palette) replace(from, to, `palette ${from}`);
 
-// Ensure the real profile target is comfortably tappable and communicates interaction.
+// Run190 turns the counterpart identity into a real profile Pressable. Keep the
+// route semantics and only improve its touch affordance.
 replace(
   `style={styles.dmIdentity}>`,
   `style={[styles.dmIdentity, { minHeight: 48, justifyContent: 'center' }]} android_ripple={{ color: 'rgba(94,234,212,0.10)' }}>`,
@@ -55,7 +57,7 @@ for (const needle of [
   `const { width } = useWindowDimensions();`,
   `const contentWidth = Math.min(width, 720);`,
   `paddingHorizontal: compact ? 10 : 16`,
-  `width: contentWidth, alignSelf: 'center'`,
+  `styles.composerDock, { width: contentWidth`,
   `android_ripple={{ color: 'rgba(94,234,212,0.10)' }}`,
   `const OBSIDIAN = '#101827';`,
 ]) {
