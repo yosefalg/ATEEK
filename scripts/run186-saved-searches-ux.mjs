@@ -21,9 +21,9 @@ replace(
 );
 
 replace(
-  "  historyChip:{minHeight:44,",
-  "  savedCategory:{fontSize:10,fontWeight:'800'},historyChip:{minHeight:44,",
-  'saved search category style',
+  "  history:{paddingHorizontal:14,paddingTop:10},smallTitle:{textAlign:'right',fontSize:10,marginBottom:7},historyChip:{minHeight:44,",
+  "  history:{paddingHorizontal:14,paddingTop:10},smallTitle:{textAlign:'right',fontSize:10,marginBottom:7},savedCategory:{fontSize:10,fontWeight:'800'},historyChip:{minHeight:44,",
+  'saved search category style after Run181',
 );
 
 fs.writeFileSync(file, s);
@@ -36,6 +36,7 @@ for (const needle of [
   'onLongPress={()=>void removeSavedSearch(item)}',
   'AsyncStorage.setItem(SAVED,JSON.stringify(next))',
   "savedCategory:{fontSize:10,fontWeight:'800'}",
+  "historyChip:{minHeight:44,",
 ]) {
   if (!s.includes(needle)) throw new Error(`Run186 saved-search contract missing: ${needle}`);
 }
