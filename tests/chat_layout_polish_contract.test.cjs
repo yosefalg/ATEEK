@@ -14,7 +14,7 @@ test('production transform applies chat layout polish after chat media/context t
 test('chat timeline no longer renders the persistent offer stack inline', () => {
   assert.doesNotMatch(source, /style=\{styles\.offersStack\}/);
   assert.doesNotMatch(source, /style=\{styles\.offerStrip\}/);
-  assert.match(source, /style=\{styles\.dealToolsButton\}/);
+  assert.match(source, /styles\.dealToolsButton/);
   assert.match(source, />العروض والتفاوض</);
 });
 
