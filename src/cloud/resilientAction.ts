@@ -6,6 +6,7 @@ export type QueuedResult = { id?: string; queued?: boolean };
 type QueueItem={id:string;name:string;payload:Record<string,unknown>;createdAt:number};
 const KEY='ateek.offline.queue.v1';
 const QUEUEABLE=new Set(['favorite','message','offer','read']);
+const MAX_QUEUE_ITEMS=120;
 let flushing=false;
 let queueMutation:Promise<void>=Promise.resolve();
 
@@ -17,7 +18,7 @@ function isQueueItem(value:unknown):value is QueueItem{
 async function readQueue():Promise<QueueItem[]>{
   try{const raw=await AsyncStorage.getItem(KEY);const rows=raw?JSON.parse(raw):[];return Array.isArray(rows)?rows.filter(isQueueItem):[];}catch{return[];}
 }
-async function writeQueue(rows:QueueItem[]){await AsyncStorage.setItem(KEY,JSON.stringify(rows.slice(-120)));}
+async function writeQueue(rows:QueueItem[]){await AsyncStorage.setItem(KEY,JSON.stringify(rows.slice(-MAX_QUEUE_ITEMS)));}
 async function mutateQueue<T>(task:()=>Promise<T>):Promise<T>{
   const previous=queueMutation;
   let release!:()=>void;
@@ -27,6 +28,14 @@ async function mutateQueue<T>(task:()=>Promise<T>):Promise<T>{
 }
 async function online(){try{const s=await Network.getNetworkStateAsync();return s.isConnected!==false&&s.isInternetReachable!==false;}catch{return true;}}
 function looksNetworkError(error:unknown){const m=String((error as any)?.message??error).toLowerCase();return /network|fetch|internet|timeout|socket|offline|connection/.test(m);}
+function coalesceQueue(rows:QueueItem[],incoming:QueueItem){
+  if(incoming.name==='read')return [...rows.filter(row=>row.name!=='read'),incoming];
+  if(incoming.name==='favorite'){
+    const listingId=String(incoming.payload.id??'');
+    if(listingId)return [...rows.filter(row=>row.name!=='favorite'||String(row.payload.id??'')!==listingId),incoming];
+  }
+  return [...rows,incoming];
+}
 export async function queueLength(){return (await readQueue()).length;}
 export async function resilientAction(name:string,payload:Record<string,unknown>):Promise<QueuedResult>{
   if(!QUEUEABLE.has(name))return action(name,payload);
@@ -34,7 +43,7 @@ export async function resilientAction(name:string,payload:Record<string,unknown>
     try{return await action(name,payload);}catch(e){if(!looksNetworkError(e))throw e;}
   }
   const row:QueueItem={id:Date.now().toString(36)+Math.random().toString(36).slice(2),name,payload,createdAt:Date.now()};
-  await mutateQueue(async()=>{const rows=await readQueue();rows.push(row);await writeQueue(rows);});
+  await mutateQueue(async()=>{const rows=await readQueue();await writeQueue(coalesceQueue(rows,row));});
   return {id:'queued-'+row.id,queued:true};
 }
 export async function flushOfflineQueue(){
