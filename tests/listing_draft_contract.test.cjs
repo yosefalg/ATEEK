@@ -9,7 +9,7 @@ test('listing draft persistence waits for restore choice and ignores unmounted c
   assert.match(source, /let active = true/);
   assert.match(source, /if \(!active\) return/);
   assert.match(source, /if \(!raw\) \{\s*setDraftReady\(true\)/s);
-  assert.match(source, /if \(!draftReady\) return/);
+  assert.match(source, /if \(!draftReady \|\| publishedRef\.current\) return/);
   assert.match(source, /\[draftReady, title, price, description, location, category, image\]/);
   assert.match(source, /return \(\) => \{\s*active = false;\s*\}/s);
   assert.doesNotMatch(source, /const restored = useRef/);
