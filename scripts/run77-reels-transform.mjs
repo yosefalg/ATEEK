@@ -45,3 +45,4 @@ await import('./run166-reels-error-resilience.mjs');
 await import('./run168-chat-typing-resilience.mjs');
 await import('./run170-chat-presence-lifecycle.mjs');
 await import('./run172-search-deferred-filtering.mjs');
+await import('./run173-ai-gemini-fallback-hardening.mjs');
