@@ -24,6 +24,12 @@ test('saved searches become visible, reusable, category-aware, and removable', (
   assert.match(transform, /accessibilityHint="ضغط مطول يحذف هذا البحث المحفوظ"/);
 });
 
+test('saved-search style transform targets the post-Run181 44dp history chip', () => {
+  assert.match(transform, /historyChip:\{minHeight:44,/);
+  assert.doesNotMatch(transform, /historyChip:\{minHeight:38,/);
+  assert.match(transform, /saved search category style after Run181/);
+});
+
 test('saved-search UX preserves real listing search and profile lookup paths', () => {
   assert.match(source, /supabase\.rpc\('ateek_profile_by_username'/);
   assert.match(source, /<ListingCard item=\{item\}/);
