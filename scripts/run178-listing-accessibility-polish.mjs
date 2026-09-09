@@ -27,9 +27,9 @@ replace(
 );
 
 replace(
-  '<Text style={styles.eyebrow}>SPATIAL LISTING</Text>',
+  '<Text style={styles.eyebrow}>تفاصيل الإعلان</Text>',
   '<Text style={styles.eyebrow}>إعلان عتيك</Text>',
-  'localized listing eyebrow',
+  'localized listing eyebrow after Run93',
 );
 
 replace(
