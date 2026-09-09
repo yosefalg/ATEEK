@@ -55,3 +55,4 @@ await import('./run183-home-media-cache-bounding.mjs');
 await import('./run184-listing-ai-temp-cleanup.mjs');
 await import('./run186-saved-searches-ux.mjs');
 await import('./run188-notification-filters-ux.mjs');
+await import('./run189-global-hub-ai-lifecycle.mjs');
