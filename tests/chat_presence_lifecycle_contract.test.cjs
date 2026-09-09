@@ -12,17 +12,18 @@ test('production transform chain includes chat presence lifecycle hardening afte
   assert.ok(presenceIndex > typingIndex, 'presence lifecycle transform must run after typing resilience');
 });
 
-test('chat presence state resets when no thread is active or a new thread opens', () => {
-  assert.match(transform, /if \(!thread\) \{\s*setOnline\(false\);\s*setTyping\(false\);\s*return;/s);
-  assert.match(transform, /let active = true;\s*setOnline\(false\);\s*setTyping\(false\);/s);
+test('chat presence replacement resets state when no thread is active or a new thread opens', () => {
+  assert.ok(
+    transform.includes("if (!thread) {\\n      setOnline(false);\\n      setTyping(false);\\n      return;\\n    }\\n    let active = true;\\n    setOnline(false);\\n    setTyping(false);"),
+    'replacement must clear stale online and typing state before subscribing to a thread',
+  );
 });
 
-test('stale realtime callbacks are ignored and invalidated before channel cleanup', () => {
+test('stale realtime callbacks are guarded and cleanup invalidates the active generation', () => {
   const staleGuards = transform.match(/if \(!active\) return;/g) ?? [];
-  assert.ok(staleGuards.length >= 3, 'presence, typing, and subscribe callbacks require active-generation guards');
-  assert.match(transform, /return \(\) => \{\s*active = false;/s);
+  assert.ok(staleGuards.length >= 3, 'presence, typing, and subscribe replacements require active-generation guards');
   assert.ok(
-    transform.indexOf('active = false;') < transform.indexOf('void supabase.removeChannel(channel);'),
-    'callbacks must be invalidated before asynchronous channel removal',
+    transform.includes('return () => {\\n      active = false;\\n      if (typingTimeoutRef.current) {'),
+    'cleanup replacement must invalidate callbacks before continuing timer/channel cleanup from run168',
   );
 });
