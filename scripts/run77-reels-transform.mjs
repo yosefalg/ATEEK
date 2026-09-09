@@ -50,3 +50,4 @@ await import('./run175-ai-task-network-fallback.mjs');
 await import('./run177-chat-visual-accessibility-polish.mjs');
 await import('./run178-listing-accessibility-polish.mjs');
 await import('./run181-search-accessibility-polish.mjs');
+await import('./run182-home-accessibility-polish.mjs');
