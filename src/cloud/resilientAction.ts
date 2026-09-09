@@ -9,8 +9,13 @@ const QUEUEABLE=new Set(['favorite','message','offer','read']);
 let flushing=false;
 let queueMutation:Promise<void>=Promise.resolve();
 
+function isRecord(value:unknown):value is Record<string,unknown>{return !!value&&typeof value==='object'&&!Array.isArray(value);}
+function isQueueItem(value:unknown):value is QueueItem{
+  if(!isRecord(value))return false;
+  return typeof value.id==='string'&&value.id.length>0&&typeof value.name==='string'&&QUEUEABLE.has(value.name)&&isRecord(value.payload)&&typeof value.createdAt==='number'&&Number.isFinite(value.createdAt);
+}
 async function readQueue():Promise<QueueItem[]>{
-  try{const raw=await AsyncStorage.getItem(KEY);const rows=raw?JSON.parse(raw):[];return Array.isArray(rows)?rows.filter(x=>x&&typeof x.id==='string'&&typeof x.name==='string'):[];}catch{return[];}
+  try{const raw=await AsyncStorage.getItem(KEY);const rows=raw?JSON.parse(raw):[];return Array.isArray(rows)?rows.filter(isQueueItem):[];}catch{return[];}
 }
 async function writeQueue(rows:QueueItem[]){await AsyncStorage.setItem(KEY,JSON.stringify(rows.slice(-120)));}
 async function mutateQueue<T>(task:()=>Promise<T>):Promise<T>{
