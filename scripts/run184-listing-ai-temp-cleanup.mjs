@@ -20,5 +20,13 @@ replace(
   'clean AI analysis temporary image',
 );
 
+for (const needle of [
+  'let compressedUri: string | null = null;',
+  'compressedUri = compressed.uri;',
+  'FileSystem.deleteAsync(compressedUri, { idempotent: true })',
+]) {
+  if (!s.includes(needle)) throw new Error(`Run184 transform postcondition missing: ${needle}`);
+}
+
 fs.writeFileSync(file, s);
 console.log('Run #184 listing AI reliability applied: temporary analysis images are cleaned after success or failure.');
