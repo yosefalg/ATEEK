@@ -18,7 +18,15 @@ function isQueueItem(value:unknown):value is QueueItem{
 async function readQueue():Promise<QueueItem[]>{
   try{const raw=await AsyncStorage.getItem(KEY);const rows=raw?JSON.parse(raw):[];return Array.isArray(rows)?rows.filter(isQueueItem):[];}catch{return[];}
 }
-async function writeQueue(rows:QueueItem[]){await AsyncStorage.setItem(KEY,JSON.stringify(rows.slice(-MAX_QUEUE_ITEMS)));}
+function compactQueueForStorage(rows:QueueItem[]){
+  if(rows.length<=MAX_QUEUE_ITEMS)return rows;
+  let removable=rows.length-MAX_QUEUE_ITEMS;
+  return rows.filter(row=>{
+    if(removable>0&&(row.name==='favorite'||row.name==='read')){removable--;return false;}
+    return true;
+  });
+}
+async function writeQueue(rows:QueueItem[]){await AsyncStorage.setItem(KEY,JSON.stringify(compactQueueForStorage(rows)));}
 async function mutateQueue<T>(task:()=>Promise<T>):Promise<T>{
   const previous=queueMutation;
   let release!:()=>void;
