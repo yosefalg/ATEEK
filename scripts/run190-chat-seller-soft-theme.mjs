@@ -47,12 +47,9 @@ listing = replace(
   `import { Listing } from '../types';\nimport { openSpatialProfile } from '../social/spatialSocialBus';`,
   'listing seller profile import',
 );
-listing = replace(
-  listing,
-  `<View style={styles.seller} accessible accessibilityLabel={\`${'${item.seller}'}، ${'${item.verified ? \'بائع موثق\' : \'لم يُتحقق من هوية البائع\''}'}\`}>`,
-  `<Pressable style={styles.seller} accessibilityRole="button" accessibilityLabel={\`${'${item.seller}'}، فتح بروفايل البائع\`} accessibilityHint="يعرض بروفايل البائع وتقييماته وإعلاناته" disabled={!item.sellerId} onPress={() => item.sellerId && openSpatialProfile(item.sellerId)}>`,
-  'legacy seller card action',
-);
+const legacySellerOpen = '<View style={styles.seller} accessible accessibilityLabel={`${item.seller}، ${item.verified ? \'بائع موثق\' : \'لم يُتحقق من هوية البائع\'}`}>',
+  sellerProfileOpen = '<Pressable style={styles.seller} accessibilityRole="button" accessibilityLabel={`${item.seller}، فتح بروفايل البائع`} accessibilityHint="يعرض بروفايل البائع وتقييماته وإعلاناته" disabled={!item.sellerId} onPress={() => item.sellerId && openSpatialProfile(item.sellerId)}>';
+listing = replace(listing, legacySellerOpen, sellerProfileOpen, 'legacy seller card action');
 listing = replace(
   listing,
   `</View>\n      <Text style={styles.heading}>قدّم عرضك</Text>`,
