@@ -69,19 +69,21 @@ export function ConsentManager({ children }: PropsWithChildren) {
     };
   }, []);
 
-  const save = async () => {
+  const save = async (nextAnalytics = analytics, nextMarketing = marketing) => {
     if (saving) return;
     setSaving(true);
 
     const value: Consents = {
       essential: true,
-      analytics,
-      marketing,
+      analytics: nextAnalytics,
+      marketing: nextMarketing,
       savedAt: new Date().toISOString(),
     };
 
     try {
       await AsyncStorage.setItem(KEY, JSON.stringify(value));
+      setAnalytics(nextAnalytics);
+      setMarketing(nextMarketing);
       setVisible(false);
     } catch {
       Alert.alert('تعذر حفظ الاختيارات', 'تحقق من مساحة التخزين ثم حاول مرة أخرى.');
@@ -112,6 +114,17 @@ export function ConsentManager({ children }: PropsWithChildren) {
             <Row title="أساسية للتشغيل" note="مفعلة دائمًا" value onChange={() => undefined} disabled colors={colors} />
             <Row title="تحليلية" note="قياس الأعطال وتحسين الأداء" value={analytics} onChange={setAnalytics} colors={colors} />
             <Row title="تسويقية" note="إشعارات عروض وحملات مستقبلية" value={marketing} onChange={setMarketing} colors={colors} />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="رفض الخيارات غير الأساسية"
+              accessibilityHint="يحفظ الموافقة على الوظائف الأساسية فقط"
+              accessibilityState={{ disabled: saving, busy: saving }}
+              disabled={saving}
+              onPress={() => void save(false, false)}
+              style={[styles.secondaryButton, { borderColor: colors.line }, saving && styles.buttonDisabled]}
+            >
+              <Text style={[styles.secondaryButtonText, { color: colors.ink }]}>الأساسية فقط</Text>
+            </Pressable>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="حفظ اختيارات الخصوصية"
@@ -175,7 +188,9 @@ const styles = StyleSheet.create({
   rowCopy: { flex: 1 },
   rowTitle: { fontWeight: '900', textAlign: 'right' },
   note: { fontSize: 11, textAlign: 'right', marginTop: 3 },
-  button: { minHeight: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
+  secondaryButton: { minHeight: 48, borderRadius: 16, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
+  secondaryButtonText: { fontWeight: '800' },
+  button: { minHeight: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   buttonDisabled: { opacity: 0.7 },
   buttonText: { fontWeight: '900' },
 });
