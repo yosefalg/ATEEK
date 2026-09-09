@@ -7,7 +7,8 @@ const source = fs.readFileSync('src/cloud/resilientAction.ts', 'utf8');
 test('offline queue serializes enqueue mutations so parallel actions cannot overwrite each other', () => {
   assert.match(source, /let queueMutation:Promise<void>=Promise\.resolve\(\)/);
   assert.match(source, /async function mutateQueue<T>/);
-  assert.match(source, /await mutateQueue\(async\(\)=>\{const rows=await readQueue\(\);rows\.push\(row\);await writeQueue\(rows\);\}\)/);
+  assert.match(source, /await mutateQueue\(async\(\)=>\{const rows=await readQueue\(\);await writeQueue\(coalesceQueue\(rows,row\)\);\}\)/);
+  assert.match(source, /function coalesceQueue\(rows:QueueItem\[],incoming:QueueItem\)/);
 });
 
 test('offline flush removes only confirmed sent ids from the latest queue snapshot', () => {
