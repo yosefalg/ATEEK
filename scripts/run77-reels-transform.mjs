@@ -48,3 +48,4 @@ await import('./run172-search-deferred-filtering.mjs');
 await import('./run173-ai-gemini-fallback-hardening.mjs');
 await import('./run175-ai-task-network-fallback.mjs');
 await import('./run177-chat-visual-accessibility-polish.mjs');
+await import('./run178-listing-accessibility-polish.mjs');
