@@ -22,6 +22,7 @@ const sortOptions:[Sort,string,keyof typeof Ionicons.glyphMap][]=[
 ];
 const distance=(a:number,b:number,c:number,d:number)=>{const r=6371,to=(x:number)=>x*Math.PI/180,dl=to(c-a),dn=to(d-b),h=Math.sin(dl/2)**2+Math.cos(to(a))*Math.cos(to(c))*Math.sin(dn/2)**2;return 2*r*Math.asin(Math.sqrt(h));};
 const normalize=(value:string)=>value.trim().toLocaleLowerCase('ar');
+const normalizeUsername=(value:string)=>value.replace(/^@/,'').trim().toLowerCase();
 const searchable=(x:Listing)=>normalize(`${x.title} ${x.location} ${x.description}`);
 const parseStringArray=(raw:string|null)=>{if(!raw)return[];try{const value=JSON.parse(raw);return Array.isArray(value)?value.filter((x):x is string=>typeof x==='string').slice(0,8):[]}catch{return[]}};
 const parseSaved=(raw:string|null)=>{if(!raw)return[];try{const value=JSON.parse(raw);return Array.isArray(value)?value.filter((x):x is Saved=>!!x&&typeof x.q==='string'&&typeof x.category==='string').slice(0,12):[]}catch{return[]}};
@@ -44,18 +45,18 @@ export function SearchScreen({listings,favorites,onFavorite,onOpen,initialCatego
   }).catch(()=>{});return()=>{alive=false}},[]);
 
   const persistSort=async(next:Sort)=>{setSort(next);try{await AsyncStorage.setItem(SORT,next)}catch{}};
-  const commitHistory=async(q:string)=>{const x=q.trim();if(x.length<2)return;const next=[x,...history.filter(v=>v!==x)].slice(0,8);setHistory(next);try{await AsyncStorage.setItem(HISTORY,JSON.stringify(next))}catch{}};
+  const commitHistory=async(q:string)=>{const x=q.trim();if(x.length<2)return;const key=normalize(x),next=[x,...history.filter(v=>normalize(v)!==key)].slice(0,8);setHistory(next);try{await AsyncStorage.setItem(HISTORY,JSON.stringify(next))}catch{}};
   const openUsername=async()=>{
     const raw=query.trim();if(!raw.startsWith('@'))return false;if(userBusy)return true;
-    const name=raw.slice(1);if(!/^[A-Za-z0-9_]{3,24}$/.test(name)){Alert.alert('المعرف غير صالح','اكتب المعرف بصيغة @username.');return true}
+    const name=normalizeUsername(raw);if(!/^[a-z0-9_]{3,24}$/.test(name)){Alert.alert('المعرف غير صالح','اكتب المعرف بصيغة @username.');return true}
     setUserBusy(true);
-    try{const{data,error}=await supabase.rpc('ateek_profile_by_username',{p_username:name});if(error)throw error;const row=Array.isArray(data)?data[0]:data;if(!row?.id){Alert.alert('غير موجود','لم يتم العثور على هذا المستخدم.');return true}await commitHistory(raw);openSpatialProfile(String(row.id));return true}
+    try{const{data,error}=await supabase.rpc('ateek_profile_by_username',{p_username:name});if(error)throw error;const row=Array.isArray(data)?data[0]:data;if(!row?.id){Alert.alert('غير موجود','لم يتم العثور على هذا المستخدم.');return true}await commitHistory(`@${name}`);openSpatialProfile(String(row.id));return true}
     catch(e:any){Alert.alert('تعذر البحث',e.message||'تعذر فتح البروفايل.');return true}
     finally{setUserBusy(false)}
   };
   const submit=async()=>{if(await openUsername())return;await commitHistory(query)};
   const saveSearch=async()=>{const x=query.trim();if(x.startsWith('@'))return Alert.alert('البروفايل','بحث @username يفتح البروفايل مباشرة ولا يحتاج حفظًا.');if(!x&&category==='all')return Alert.alert('البحث المحفوظ','اكتب كلمة أو اختر قسمًا أولًا.');const next=[{q:x,category},...saved.filter(v=>v.q!==x||v.category!==category)].slice(0,12);setSaved(next);try{await AsyncStorage.setItem(SAVED,JSON.stringify(next));Alert.alert('تم الحفظ','سيبقى هذا البحث محفوظًا على جهازك وتظهر مطابقاته الجديدة داخل شاشة البحث.')}catch{Alert.alert('تعذر الحفظ','تعذر حفظ البحث على هذا الجهاز الآن.')}};
-  const nearest=async()=>{if(locationBusy)return;setLocationBusy(true);try{const p=await Location.requestForegroundPermissionsAsync();if(p.status!=='granted'){Alert.alert('الموقع','يمكنك تفعيل إذن الموقع لفرز الإعلانات التي أضاف أصحابها موقعًا جغرافيًا.');return}const x=await Location.getCurrentPositionAsync({accuracy:Location.Accuracy.Balanced});setNear({lat:x.coords.latitude,lon:x.coords.longitude});await persistSort('nearest')}catch(e:any){Alert.alert('تعذر تحديد الموقع',e?.message||'تحقق من خدمة الموقع وحاول مرة أخرى.')}finally{setLocationBusy(false)}};
+  const nearest=async()=>{if(locationBusy)return;setLocationBusy(true);try{const p=await Location.requestForegroundPermissionsAsync();if(p.status!=='granted'){Alert.alert('الموقع','يمكنك تفعيل إذن الموقع لفرز الإعلانات التي أضافها أصحابها موقعًا جغرافيًا.');return}const x=await Location.getCurrentPositionAsync({accuracy:Location.Accuracy.Balanced});setNear({lat:x.coords.latitude,lon:x.coords.longitude});await persistSort('nearest')}catch(e:any){Alert.alert('تعذر تحديد الموقع',e?.message||'تحقق من خدمة الموقع وحاول مرة أخرى.')}finally{setLocationBusy(false)}};
   const chooseSort=async(next:Sort)=>{if(next==='nearest'){await nearest();return}await persistSort(next)};
 
   const favoriteIds=useMemo(()=>new Set(favorites),[favorites]);
@@ -68,7 +69,7 @@ export function SearchScreen({listings,favorites,onFavorite,onOpen,initialCatego
     if(sort==='most_viewed')return[...arr].sort((x,y)=>Number(y.viewsToday||0)-Number(x.viewsToday||0)||y.createdAt-x.createdAt);
     return[...arr].sort((x,y)=>y.createdAt-x.createdAt);
   },[searchableListings,category,query,near,sort]);
-  const savedMatches=useMemo(()=>saved.reduce((n,s)=>{const q=normalize(s.q);return n+searchableListings.filter(({item,text})=>(s.category==='all'||item.category===s.category)&&text.includes(q)).length},0),[saved,searchableListings]);
+  const savedMatches=useMemo(()=>{let total=0;for(const s of saved){const q=normalize(s.q);for(const{item,text}of searchableListings){if((s.category==='all'||item.category===s.category)&&text.includes(q))total++}}return total},[saved,searchableListings]);
   const isUsernameQuery=query.trim().startsWith('@');
 
   return <View style={styles.root}>
