@@ -20,6 +20,34 @@ function medianOf(values: number[]): number {
   return (left + right) / 2;
 }
 
+function lowerBound(values: number[], target: number) {
+  let low = 0;
+  let high = values.length;
+  while (low < high) {
+    const middle = (low + high) >>> 1;
+    if ((values[middle] ?? Number.POSITIVE_INFINITY) < target) low = middle + 1;
+    else high = middle;
+  }
+  return low;
+}
+
+function medianWithoutListingPrice(sortedPrices: number[], listingPrice: number) {
+  const validListingPrice = Number.isFinite(listingPrice) && listingPrice > 0;
+  const candidateIndex = validListingPrice ? lowerBound(sortedPrices, listingPrice) : -1;
+  const excludedIndex = candidateIndex >= 0 && sortedPrices[candidateIndex] === listingPrice ? candidateIndex : -1;
+  const peerCount = sortedPrices.length - (excludedIndex >= 0 ? 1 : 0);
+  if (peerCount <= 0) return 0;
+
+  const valueAtPeerIndex = (index: number) => {
+    const sourceIndex = excludedIndex >= 0 && index >= excludedIndex ? index + 1 : index;
+    return sortedPrices[sourceIndex] ?? 0;
+  };
+
+  const middle = Math.floor(peerCount / 2);
+  if (peerCount % 2 === 1) return valueAtPeerIndex(middle);
+  return (valueAtPeerIndex(middle - 1) + valueAtPeerIndex(middle)) / 2;
+}
+
 export function scoreListingRisk(listing: Listing, peerPrices: number[]): ListingRisk {
   let score = 0;
   const reasons: string[] = [];
@@ -54,13 +82,22 @@ export function scoreListingRisk(listing: Listing, peerPrices: number[]): Listin
 }
 
 export function rankRiskyListings(listings: Listing[]) {
-  return listings
-    .filter((listing) => listing.status === 'active')
+  const activeListings = listings.filter((listing) => listing.status === 'active');
+  const sortedPricesByCategory = new Map<Listing['category'], number[]>();
+
+  for (const listing of activeListings) {
+    if (!Number.isFinite(listing.price) || listing.price <= 0) continue;
+    const prices = sortedPricesByCategory.get(listing.category) ?? [];
+    prices.push(listing.price);
+    sortedPricesByCategory.set(listing.category, prices);
+  }
+  for (const prices of sortedPricesByCategory.values()) prices.sort((a, b) => a - b);
+
+  return activeListings
     .map((listing) => {
-      const peers = listings
-        .filter((other) => other.status === 'active' && other.category === listing.category && other.id !== listing.id)
-        .map((other) => other.price);
-      return { listing, risk: scoreListingRisk(listing, peers) };
+      const prices = sortedPricesByCategory.get(listing.category) ?? [];
+      const peerMedian = medianWithoutListingPrice(prices, listing.price);
+      return { listing, risk: scoreListingRisk(listing, peerMedian > 0 ? [peerMedian] : []) };
     })
     .sort((a, b) => b.risk.score - a.risk.score);
 }
