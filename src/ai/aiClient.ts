@@ -149,7 +149,7 @@ export async function callAiTask<T = { output?: string; replies?: string[] }>(mo
     if (raw) {
       const cached = JSON.parse(raw) as { at: number; value: T };
       if (Date.now() - cached.at < ttlMs) return cached.value;
-      void AsyncStorage.removeItem(key);
+      void AsyncStorage.removeItem(key).catch(() => {});
     }
   } catch {}
 
