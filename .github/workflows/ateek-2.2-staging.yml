@@ -20,6 +20,10 @@ jobs:
     env:
       NODE_ENV: production
       CI: true
+      ATEEK_RELEASE_KEYSTORE_B64: ${{ secrets.ATEEK_RELEASE_KEYSTORE_B64 }}
+      ATEEK_RELEASE_STORE_PASSWORD: ${{ secrets.ATEEK_RELEASE_STORE_PASSWORD }}
+      ATEEK_RELEASE_KEY_ALIAS: ${{ secrets.ATEEK_RELEASE_KEY_ALIAS }}
+      ATEEK_RELEASE_KEY_PASSWORD: ${{ secrets.ATEEK_RELEASE_KEY_PASSWORD }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -37,6 +41,22 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+
+      - name: Validate stable release signing credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in ATEEK_RELEASE_KEYSTORE_B64 ATEEK_RELEASE_STORE_PASSWORD ATEEK_RELEASE_KEY_ALIAS ATEEK_RELEASE_KEY_PASSWORD; do
+            if [ -z "${!name:-}" ]; then
+              echo "Missing required GitHub Actions secret: $name"
+              exit 1
+            fi
+          done
+          KEYSTORE="$RUNNER_TEMP/ateek-release.keystore"
+          printf '%s' "$ATEEK_RELEASE_KEYSTORE_B64" | base64 --decode > "$KEYSTORE"
+          test -s "$KEYSTORE"
+          keytool -list -keystore "$KEYSTORE" -storepass "$ATEEK_RELEASE_STORE_PASSWORD" -alias "$ATEEK_RELEASE_KEY_ALIAS" >/dev/null
+          echo "ATEEK_RELEASE_KEYSTORE=$KEYSTORE" >> "$GITHUB_ENV"
 
       - name: Generate branded assets
         run: |
@@ -130,6 +150,24 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon
 
+      - name: Re-sign staging APK with stable release key
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK_PATH="android/app/build/outputs/apk/release/app-release.apk"
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          test -x "$APKSIGNER"
+          SIGNED_APK="$RUNNER_TEMP/ateek-release-signed.apk"
+          "$APKSIGNER" sign \
+            --ks "$ATEEK_RELEASE_KEYSTORE" \
+            --ks-key-alias "$ATEEK_RELEASE_KEY_ALIAS" \
+            --ks-pass env:ATEEK_RELEASE_STORE_PASSWORD \
+            --key-pass env:ATEEK_RELEASE_KEY_PASSWORD \
+            --out "$SIGNED_APK" \
+            "$APK_PATH"
+          test -s "$SIGNED_APK"
+          mv "$SIGNED_APK" "$APK_PATH"
+
       - name: Verify staging APK
         run: |
           set -euo pipefail
@@ -154,19 +192,35 @@ jobs:
           printf 'APK bytes=%s\nSHA-256=%s\nABI=arm64-v8a\nPackage=com.yosef.ateek\nVersion=2.2.0\nVersionCode=16\nDebuggable=NO\nAAB=DISABLED\nPhysical Android device test=NOT PERFORMED BY CI\n' "$APK_BYTES" "$SHA" > metrics-out/METRICS.txt
           APK_ANALYZER="$(find "$ANDROID_HOME" -type f -name apkanalyzer -perm -111 -print -quit 2>/dev/null)"
           test -n "$APK_ANALYZER"
-          "$APK_ANALYZER" apk summary "$APK_PATH" > metrics-out/APKANALYZER.txt
+          {
+            echo '=== APK SUMMARY ==='
+            "$APK_ANALYZER" apk summary "$APK_PATH"
+            echo '=== APK FILES ==='
+            "$APK_ANALYZER" files list "$APK_PATH"
+            echo '=== DEX PACKAGES ==='
+            "$APK_ANALYZER" dex packages "$APK_PATH"
+          } > metrics-out/APKANALYZER.txt
+          grep -Fq '=== APK SUMMARY ===' metrics-out/APKANALYZER.txt
           grep -Fq 'com.yosef.ateek' metrics-out/APKANALYZER.txt
+          grep -Eq '(^|[[:space:]])16([[:space:]]|$)' metrics-out/APKANALYZER.txt
+          grep -Fq '2.2.0' metrics-out/APKANALYZER.txt
+          grep -Fq '=== APK FILES ===' metrics-out/APKANALYZER.txt
+          grep -Fq '=== DEX PACKAGES ===' metrics-out/APKANALYZER.txt
           cat metrics-out/METRICS.txt
 
-      - name: Verify APK signer and capture certificate evidence
+      - name: Verify APK signer and reject debug certificates
         run: |
           set -euo pipefail
           APK_PATH="android/app/build/outputs/apk/release/app-release.apk"
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
           test -x "$APKSIGNER"
           "$APKSIGNER" verify --verbose --print-certs "$APK_PATH" | tee metrics-out/APKSIGNER.txt
-          grep -Eq '^Number of signers: [1-9][0-9]*$' metrics-out/APKSIGNER.txt
+          grep -Eq '^Number of signers: 1$' metrics-out/APKSIGNER.txt
           grep -Eq '^Verified using v(2|3|3\.1|3\.2) scheme .*: true$' metrics-out/APKSIGNER.txt
+          if grep -Eqi 'certificate DN: .*CN=Android Debug|certificate DN: CN=Android Debug' metrics-out/APKSIGNER.txt; then
+            echo 'Refusing release APK signed with Android Debug certificate'
+            exit 1
+          fi
           CERT_SHA256="$(awk '
             /^Signer #[0-9]+ certificate SHA-256 digest: / { sub(/^.*digest: /, ""); print; exit }
             /^V[0-9.]+ Signer: certificate SHA-256 digest: / { sub(/^.*digest: /, ""); print; exit }
