@@ -92,7 +92,8 @@ test('home coalesces realtime reel refreshes and memoizes favorite lookup', () =
   const home = fs.readFileSync('src/screens/HomeScreen.tsx','utf8');
   assert.match(home, /loading=false,refreshQueued=false/);
   assert.match(home, /if\(loading\)\{refreshQueued=true;return\}/);
-  assert.match(home, /if\(alive&&refreshQueued\)\{refreshQueued=false;void load\(\)\}/);
+  assert.match(home, /if\(alive&&refreshQueued\)\{refreshQueued=false;safeLoad\(\)\}/);
+  assert.match(home, /const safeLoad=\(\)=>void load\(\)\.catch\(\(\)=>\{\}\)/);
   assert.match(home, /const favoriteIds=useMemo\(\(\)=>new Set\(favorites\),\[favorites\]\)/);
   assert.match(home, /favoriteIds\.has\(item\.id\)/);
   assert.doesNotMatch(home, /favorites\.includes\(item\.id\)/);
