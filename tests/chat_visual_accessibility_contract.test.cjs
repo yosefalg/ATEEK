@@ -26,3 +26,12 @@ test('offer decision controls remain visually distinct and large enough for deli
   assert.match(transform, /miniReject: \{ minHeight: 38/);
   assert.match(transform, /completeButton: \{ minHeight: 40/);
 });
+
+test('negotiation actions expose explicit screen-reader roles, labels, and disabled state', () => {
+  assert.match(transform, /accessibilityLabel=\"تقديم عرض سعر\"/);
+  assert.match(transform, /accessibilityLabel=\"قبول عرض السعر\"/);
+  assert.match(transform, /accessibilityLabel=\"رفض عرض السعر\"/);
+  assert.match(transform, /accessibilityLabel=\"تأكيد استلام السلعة\"/);
+  assert.match(transform, /accessibilityRole=\"button\"/);
+  assert.match(transform, /accessibilityState=\{\{ disabled: busy \}\}/);
+});
