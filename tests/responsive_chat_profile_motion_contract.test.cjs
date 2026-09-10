@@ -1,0 +1,21 @@
+const fs = require('fs');
+const assert = require('assert');
+
+const run = fs.readFileSync('scripts/run191-responsive-chat-profile-motion.mjs', 'utf8');
+const pipeline = fs.readFileSync('scripts/run77-reels-transform.mjs', 'utf8');
+
+assert(run.includes(`onOpenListing: (item: Listing) => void }) {\\n  const [body, setBody] = useState('');`), 'Run191 must target the Run130 SpatialDMHub signature');
+assert(run.includes(`<View style={styles.composerDock}>`), 'Run191 must target the Run163 composerDock shell');
+assert(run.includes(`const contentWidth = Math.min(width, 720);`));
+assert(run.includes(`const compact = width < 380;`));
+assert(run.includes(`paddingHorizontal: compact ? 10 : 16`));
+assert(run.includes(`styles.composerDock, { width: contentWidth`));
+assert(run.includes(`android_ripple={{ color: 'rgba(94,234,212,0.10)' }}`));
+assert(run.includes(`const OBSIDIAN = '#101827';`));
+assert(run.includes(`openSpatialProfile`) === false, 'Run191 must preserve Run190 real profile navigation instead of replacing it');
+const run130 = pipeline.indexOf(`await import('./run130-chat-context-navigation.mjs');`);
+const run163 = pipeline.indexOf(`await import('./run163-chat-layout-polish.mjs');`);
+const run190 = pipeline.indexOf(`await import('./run190-chat-seller-soft-theme.mjs');`);
+const run191 = pipeline.indexOf(`await import('./run191-responsive-chat-profile-motion.mjs');`);
+assert(run130 >= 0 && run163 > run130 && run190 > run163 && run191 > run190, 'Run191 must execute after the transforms that define its production anchors');
+console.log('responsive chat/profile/motion contract passed');
