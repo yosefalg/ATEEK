@@ -38,30 +38,6 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Validate release signing material
-        env:
-          ATEEK_ANDROID_KEYSTORE_B64: ${{ secrets.ATEEK_ANDROID_KEYSTORE_B64 }}
-          ATEEK_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ATEEK_ANDROID_KEYSTORE_PASSWORD }}
-          ATEEK_ANDROID_KEY_ALIAS: ${{ secrets.ATEEK_ANDROID_KEY_ALIAS }}
-          ATEEK_ANDROID_KEY_PASSWORD: ${{ secrets.ATEEK_ANDROID_KEY_PASSWORD }}
-          ATEEK_ANDROID_CERT_SHA256: ${{ secrets.ATEEK_ANDROID_CERT_SHA256 }}
-        run: |
-          set -euo pipefail
-          missing=0
-          for var in ATEEK_ANDROID_KEYSTORE_B64 ATEEK_ANDROID_KEYSTORE_PASSWORD ATEEK_ANDROID_KEY_ALIAS ATEEK_ANDROID_KEY_PASSWORD ATEEK_ANDROID_CERT_SHA256; do
-            if [ -z "${!var:-}" ]; then
-              echo "::error title=Missing release signing secret::$var is required for a production-grade release APK"
-              missing=1
-            fi
-          done
-          [ "$missing" -eq 0 ]
-          EXPECTED_CERT="$(printf '%s' "$ATEEK_ANDROID_CERT_SHA256" | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
-          [[ "$EXPECTED_CERT" =~ ^[0-9a-f]{64}$ ]]
-          printf '%s' "$ATEEK_ANDROID_KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/ateek-release.keystore"
-          test -s "$RUNNER_TEMP/ateek-release.keystore"
-          chmod 600 "$RUNNER_TEMP/ateek-release.keystore"
-          echo "ATEEK_KEYSTORE_PATH=$RUNNER_TEMP/ateek-release.keystore" >> "$GITHUB_ENV"
-
       - name: Generate branded assets
         run: |
           sudo apt-get update -qq
@@ -112,6 +88,30 @@ jobs:
           npm test
           npx expo-doctor@latest
           npx expo export --platform android --output-dir dist-ci
+
+      - name: Validate release signing material
+        env:
+          ATEEK_ANDROID_KEYSTORE_B64: ${{ secrets.ATEEK_ANDROID_KEYSTORE_B64 }}
+          ATEEK_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ATEEK_ANDROID_KEYSTORE_PASSWORD }}
+          ATEEK_ANDROID_KEY_ALIAS: ${{ secrets.ATEEK_ANDROID_KEY_ALIAS }}
+          ATEEK_ANDROID_KEY_PASSWORD: ${{ secrets.ATEEK_ANDROID_KEY_PASSWORD }}
+          ATEEK_ANDROID_CERT_SHA256: ${{ secrets.ATEEK_ANDROID_CERT_SHA256 }}
+        run: |
+          set -euo pipefail
+          missing=0
+          for var in ATEEK_ANDROID_KEYSTORE_B64 ATEEK_ANDROID_KEYSTORE_PASSWORD ATEEK_ANDROID_KEY_ALIAS ATEEK_ANDROID_KEY_PASSWORD ATEEK_ANDROID_CERT_SHA256; do
+            if [ -z "${!var:-}" ]; then
+              echo "::error title=Missing release signing secret::$var is required for a production-grade release APK"
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ]
+          EXPECTED_CERT="$(printf '%s' "$ATEEK_ANDROID_CERT_SHA256" | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
+          [[ "$EXPECTED_CERT" =~ ^[0-9a-f]{64}$ ]]
+          printf '%s' "$ATEEK_ANDROID_KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/ateek-release.keystore"
+          test -s "$RUNNER_TEMP/ateek-release.keystore"
+          chmod 600 "$RUNNER_TEMP/ateek-release.keystore"
+          echo "ATEEK_KEYSTORE_PATH=$RUNNER_TEMP/ateek-release.keystore" >> "$GITHUB_ENV"
 
       - name: Generate Android project
         run: npx expo prebuild --platform android --clean
