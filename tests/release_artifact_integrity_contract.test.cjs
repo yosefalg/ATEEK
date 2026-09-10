@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 
 const workflow = fs.readFileSync('.github/workflows/ateek-2.2.yml', 'utf8');
+const stagingWorkflow = fs.readFileSync('.github/workflows/ateek-2.2-staging.yml', 'utf8');
 
 test('production release artifact remains APK-only arm64 and size bounded', () => {
   assert.match(workflow, /MAX_BYTES=\$\(\(35\*1024\*1024\)\)/);
@@ -28,4 +29,15 @@ test('release verifier is safe under set -o pipefail and cannot false-fail on ea
   assert.match(workflow, /APK_ANALYZER="\$\(find "\$ANDROID_HOME" -type f -name apkanalyzer -perm -111 -print -quit 2>\/dev\/null\)"/);
   assert.doesNotMatch(workflow, /printf '%s\\n' "\$BADGING" \| head -n 1/);
   assert.doesNotMatch(workflow, /find "\$ANDROID_HOME"[^\n]+\| head -n 1/);
+});
+
+test('staging produces the same APKANALYZER evidence sections required in production', () => {
+  for (const marker of ['=== APK SUMMARY ===', '=== APK FILES ===', '=== DEX PACKAGES ===']) {
+    assert.match(stagingWorkflow, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  }
+  assert.match(stagingWorkflow, /"\$APK_ANALYZER" apk summary "\$APK_PATH"/);
+  assert.match(stagingWorkflow, /"\$APK_ANALYZER" files list "\$APK_PATH"/);
+  assert.match(stagingWorkflow, /"\$APK_ANALYZER" dex packages "\$APK_PATH"/);
+  assert.match(stagingWorkflow, /grep -Eq '\(\^\|\[\[:space:\]\]\)16\(\[\[:space:\]\]\|\$\)' metrics-out\/APKANALYZER\.txt/);
+  assert.match(stagingWorkflow, /grep -Fq '2\.2\.0' metrics-out\/APKANALYZER\.txt/);
 });
