@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 
 const source = fs.readFileSync('src/screens/OnboardingScreen.tsx', 'utf8');
+const gateSource = fs.readFileSync('src/components/OnboardingGate.tsx', 'utf8');
 
 test('onboarding keeps bounded responsive paging', () => {
   assert.match(source, /const pageWidth = Math\.max\(1, width\)/);
@@ -30,4 +31,9 @@ test('onboarding exposes progress and actionable accessibility hints', () => {
   assert.match(source, /accessibilityLabel=\{`الصفحة \$\{index \+ 1\} من \$\{pages\.length\}`\}/);
   assert.match(source, /accessibilityHint=\{index === pages\.length - 1/);
   assert.match(source, /accessibilityHint="ينهي المقدمة ويفتح عتيك مباشرة"/);
+});
+
+test('onboarding completion persistence cannot leak an unhandled storage rejection', () => {
+  assert.match(gateSource, /AsyncStorage\.setItem\(KEY, '1'\)\.catch\(\(\) => \{\}\)/);
+  assert.match(gateSource, /setDone\(true\)/);
 });
