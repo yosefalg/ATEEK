@@ -19,12 +19,18 @@ test('offline flush removes only confirmed sent ids from the latest queue snapsh
   assert.doesNotMatch(source, /await writeQueue\(pending\)/);
 });
 
-test('offline flush stops on connectivity failure without deleting unsent work', () => {
-  assert.match(source, /catch\(e\)\{\s*if\(looksNetworkError\(e\)\)break;\s*throw e;\s*\}/s);
+test('offline flush stops on connectivity failure without converting it into a terminal business error', () => {
+  assert.match(source, /catch\(e\)\{\s*if\(looksNetworkError\(e\)\)break;\s*terminalError=e;\s*break;\s*\}/s);
+  assert.match(source, /if\(terminalError\)throw terminalError/);
 });
 
-test('offline flush fails closed on non-network replay errors to preserve action ordering', () => {
-  assert.match(source, /if\(looksNetworkError\(e\)\)break;\s*throw e;/s);
+test('offline flush fails closed on non-network replay errors while cleaning confirmed work first', () => {
+  const catchIndex = source.indexOf('catch(e){\n        if(looksNetworkError(e))break;\n        terminalError=e;\n        break;');
+  const cleanupIndex = source.indexOf('if(sentIds.size){');
+  const throwIndex = source.indexOf('if(terminalError)throw terminalError;');
+  assert.ok(catchIndex >= 0, 'terminal replay error must stop ordered replay');
+  assert.ok(cleanupIndex > catchIndex, 'confirmed action cleanup must run after replay stops');
+  assert.ok(throwIndex > cleanupIndex, 'terminal error must be rethrown only after confirmed cleanup');
 });
 
 test('persisted offline queue accepts only known queueable action names and object payloads', () => {
