@@ -152,8 +152,21 @@ jobs:
           printf 'APK bytes=%s\nSHA-256=%s\nABI=arm64-v8a\nPackage=com.yosef.ateek\nVersion=2.2.0\nVersionCode=16\nDebuggable=NO\nAAB=DISABLED\nPhysical Android device test=NOT PERFORMED BY CI\n' "$APK_BYTES" "$SHA" > metrics-out/METRICS.txt
           APK_ANALYZER="$(find "$ANDROID_HOME" -type f -name apkanalyzer -perm -111 -print -quit 2>/dev/null)"
           test -n "$APK_ANALYZER"
-          "$APK_ANALYZER" apk summary "$APK_PATH" > metrics-out/APKANALYZER.txt
+          {
+            echo '=== APK SUMMARY ==='
+            "$APK_ANALYZER" apk summary "$APK_PATH"
+            echo '=== APK FILES ==='
+            "$APK_ANALYZER" files list "$APK_PATH"
+            echo '=== DEX PACKAGES ==='
+            "$APK_ANALYZER" dex packages "$APK_PATH"
+          } > metrics-out/APKANALYZER.txt
+          grep -Fq '=== APK SUMMARY ===' metrics-out/APKANALYZER.txt
           grep -Fq 'com.yosef.ateek' metrics-out/APKANALYZER.txt
+          grep -Eq '(^|[[:space:]])16([[:space:]]|$)' metrics-out/APKANALYZER.txt
+          grep -Fq '2.2.0' metrics-out/APKANALYZER.txt
+          grep -Fq '=== APK FILES ===' metrics-out/APKANALYZER.txt
+          grep -Fq '=== DEX PACKAGES ===' metrics-out/APKANALYZER.txt
+          test -s metrics-out/APKANALYZER.txt
           cat metrics-out/METRICS.txt
 
       - name: Prepare artifacts
