@@ -63,7 +63,7 @@ jobs:
           const root=l.packages?.[''];
           if(!root) throw new Error('lockfile root package missing');
           if(l.name!==p.name||root.name!==p.name) throw new Error('lockfile name mismatch');
-          if(l.version!==p.version||root.version!==p.version) throw new Error('lockfile version mismatch');
+          if(l.version!==p.version||root.version!==p.version) throw new Error(`lockfile version mismatch: ${l.version}/${root.version} vs ${p.version}`);
           for(const section of ['dependencies','devDependencies']){
             const a=p[section]||{}, b=root[section]||{};
             const mismatch=Object.keys(a).filter(k=>b[k]!==a[k]);
@@ -157,6 +157,19 @@ jobs:
           "$APK_ANALYZER" apk summary "$APK_PATH" > metrics-out/APKANALYZER.txt
           grep -Fq 'com.yosef.ateek' metrics-out/APKANALYZER.txt
           cat metrics-out/METRICS.txt
+
+      - name: Verify APK signer and capture certificate evidence
+        run: |
+          set -euo pipefail
+          APK_PATH="android/app/build/outputs/apk/release/app-release.apk"
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          test -x "$APKSIGNER"
+          "$APKSIGNER" verify --verbose --print-certs "$APK_PATH" | tee metrics-out/APKSIGNER.txt
+          CERT_SHA256="$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' metrics-out/APKSIGNER.txt | head -n 1 | tr -d '\r')"
+          test -n "$CERT_SHA256"
+          grep -Eq '^Verified$|^Verifies$' metrics-out/APKSIGNER.txt || true
+          printf 'Signer certificate SHA-256=%s\n' "$CERT_SHA256" >> metrics-out/METRICS.txt
+          test -s metrics-out/APKSIGNER.txt
 
       - name: Prepare artifacts
         run: cp android/app/build/outputs/apk/release/app-release.apk app-release.apk
