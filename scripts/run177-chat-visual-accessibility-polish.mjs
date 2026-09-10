@@ -10,23 +10,23 @@ const replace = (from, to, label) => {
 
 const replacements = [
   [
-    '<Pressable disabled={busy} onPress={sendOffer} style={({ pressed }) => [styles.offerButton, pressed && styles.pressed, busy && styles.disabled]}>',
-    '<Pressable accessibilityRole="button" accessibilityLabel="تقديم عرض سعر" accessibilityState={{ disabled: busy }} disabled={busy} onPress={sendOffer} style={({ pressed }) => [styles.offerButton, pressed && styles.pressed, busy && styles.disabled]}>',
+    `                accessibilityRole="button"\n                accessibilityLabel="تقديم العرض"\n                disabled={busy}`,
+    `                accessibilityRole="button"\n                accessibilityLabel="تقديم عرض سعر"\n                accessibilityState={{ disabled: busy }}\n                disabled={busy}`,
     'offer submit accessibility',
   ],
   [
-    `                <Pressable\n                  disabled={busy}\n                  onPress={() => Alert.alert('تأكيد الاتفاق؟', 'سيصبح الإعلان غير متاح للعروض الجديدة.', [`,
-    `                <Pressable\n                  accessibilityRole="button"\n                  accessibilityLabel="قبول عرض السعر"\n                  accessibilityState={{ disabled: busy }}\n                  disabled={busy}\n                  onPress={() => Alert.alert('تأكيد الاتفاق؟', 'سيصبح الإعلان غير متاح للعروض الجديدة.', [`,
+    `                      <Pressable\n                        disabled={busy}\n                        onPress={() => Alert.alert('تأكيد الاتفاق؟', 'سيصبح الإعلان غير متاح للعروض الجديدة.', [`,
+    `                      <Pressable\n                        accessibilityRole="button"\n                        accessibilityLabel="قبول عرض السعر"\n                        accessibilityState={{ disabled: busy }}\n                        disabled={busy}\n                        onPress={() => Alert.alert('تأكيد الاتفاق؟', 'سيصبح الإعلان غير متاح للعروض الجديدة.', [`,
     'offer accept accessibility',
   ],
   [
-    "<Pressable disabled={busy} onPress={() => void run('respond', { offer_id: offer.id, status: 'rejected' })} style={styles.miniReject}>",
-    "<Pressable accessibilityRole=\"button\" accessibilityLabel=\"رفض عرض السعر\" accessibilityState={{ disabled: busy }} disabled={busy} onPress={() => void run('respond', { offer_id: offer.id, status: 'rejected' })} style={styles.miniReject}>",
+    "                      <Pressable disabled={busy} onPress={() => void run('respond', { offer_id: offer.id, status: 'rejected' })} style={styles.miniReject}>",
+    "                      <Pressable accessibilityRole=\"button\" accessibilityLabel=\"رفض عرض السعر\" accessibilityState={{ disabled: busy }} disabled={busy} onPress={() => void run('respond', { offer_id: offer.id, status: 'rejected' })} style={styles.miniReject}>",
     'offer reject accessibility',
   ],
   [
-    `              <Pressable\n                disabled={busy}\n                onPress={() => Alert.alert('استلمت السلعة؟', 'أكّد فقط بعد استلامها وفحصها.', [`,
-    `              <Pressable\n                accessibilityRole="button"\n                accessibilityLabel="تأكيد استلام السلعة"\n                accessibilityState={{ disabled: busy }}\n                disabled={busy}\n                onPress={() => Alert.alert('استلمت السلعة؟', 'أكّد فقط بعد استلامها وفحصها.', [`,
+    `                    <Pressable\n                      disabled={busy}\n                      onPress={() => Alert.alert('استلمت السلعة؟', 'أكّد فقط بعد استلامها وفحصها.', [`,
+    `                    <Pressable\n                      accessibilityRole="button"\n                      accessibilityLabel="تأكيد استلام السلعة"\n                      accessibilityState={{ disabled: busy }}\n                      disabled={busy}\n                      onPress={() => Alert.alert('استلمت السلعة؟', 'أكّد فقط بعد استلامها وفحصها.', [`,
     'offer completion accessibility',
   ],
   ["  chatSafetyText: { flex: 1, color: '#A8B7B2', fontSize: 9, lineHeight: 15, textAlign: 'right' },", "  chatSafetyText: { flex: 1, color: '#B8C7C2', fontSize: 11, lineHeight: 17, textAlign: 'right' },", 'safety text readability'],
