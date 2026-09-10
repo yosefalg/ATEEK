@@ -34,10 +34,11 @@ async function readQueue():Promise<QueueItem[]>{
       return[];
     }
     const rows=parsed.filter(isQueueItem);
-    if(rows.length!==parsed.length){
-      await AsyncStorage.setItem(KEY,JSON.stringify(compactQueueForStorage(rows))).catch(()=>{});
+    const compacted=compactQueueForStorage(rows);
+    if(compacted.length!==parsed.length){
+      await AsyncStorage.setItem(KEY,JSON.stringify(compacted)).catch(()=>{});
     }
-    return rows;
+    return compacted;
   }catch{
     await AsyncStorage.removeItem(KEY).catch(()=>{});
     return[];
