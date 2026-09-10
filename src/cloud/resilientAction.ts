@@ -15,9 +15,6 @@ function isQueueItem(value:unknown):value is QueueItem{
   if(!isRecord(value))return false;
   return typeof value.id==='string'&&value.id.length>0&&typeof value.name==='string'&&QUEUEABLE.has(value.name)&&isRecord(value.payload)&&typeof value.createdAt==='number'&&Number.isFinite(value.createdAt);
 }
-async function readQueue():Promise<QueueItem[]>{
-  try{const raw=await AsyncStorage.getItem(KEY);const rows=raw?JSON.parse(raw):[];return Array.isArray(rows)?rows.filter(isQueueItem):[];}catch{return[];}
-}
 function compactQueueForStorage(rows:QueueItem[]){
   if(rows.length<=MAX_QUEUE_ITEMS)return rows;
   let removable=rows.length-MAX_QUEUE_ITEMS;
@@ -25,6 +22,26 @@ function compactQueueForStorage(rows:QueueItem[]){
     if(removable>0&&(row.name==='favorite'||row.name==='read')){removable--;return false;}
     return true;
   });
+}
+async function readQueue():Promise<QueueItem[]>{
+  let raw:string|null;
+  try{raw=await AsyncStorage.getItem(KEY);}catch{return[];}
+  if(!raw)return[];
+  try{
+    const parsed:unknown=JSON.parse(raw);
+    if(!Array.isArray(parsed)){
+      await AsyncStorage.removeItem(KEY).catch(()=>{});
+      return[];
+    }
+    const rows=parsed.filter(isQueueItem);
+    if(rows.length!==parsed.length){
+      await AsyncStorage.setItem(KEY,JSON.stringify(compactQueueForStorage(rows))).catch(()=>{});
+    }
+    return rows;
+  }catch{
+    await AsyncStorage.removeItem(KEY).catch(()=>{});
+    return[];
+  }
 }
 async function writeQueue(rows:QueueItem[]){await AsyncStorage.setItem(KEY,JSON.stringify(compactQueueForStorage(rows)));}
 async function mutateQueue<T>(task:()=>Promise<T>):Promise<T>{
