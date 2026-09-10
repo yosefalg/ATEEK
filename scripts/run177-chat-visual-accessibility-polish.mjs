@@ -9,6 +9,26 @@ const replace = (from, to, label) => {
 };
 
 const replacements = [
+  [
+    '<Pressable disabled={busy} onPress={sendOffer} style={({ pressed }) => [styles.offerButton, pressed && styles.pressed, busy && styles.disabled]}>',
+    '<Pressable accessibilityRole="button" accessibilityLabel="تقديم عرض سعر" accessibilityState={{ disabled: busy }} disabled={busy} onPress={sendOffer} style={({ pressed }) => [styles.offerButton, pressed && styles.pressed, busy && styles.disabled]}>',
+    'offer submit accessibility',
+  ],
+  [
+    `                <Pressable\n                  disabled={busy}\n                  onPress={() => Alert.alert('تأكيد الاتفاق؟', 'سيصبح الإعلان غير متاح للعروض الجديدة.', [`,
+    `                <Pressable\n                  accessibilityRole="button"\n                  accessibilityLabel="قبول عرض السعر"\n                  accessibilityState={{ disabled: busy }}\n                  disabled={busy}\n                  onPress={() => Alert.alert('تأكيد الاتفاق؟', 'سيصبح الإعلان غير متاح للعروض الجديدة.', [`,
+    'offer accept accessibility',
+  ],
+  [
+    "<Pressable disabled={busy} onPress={() => void run('respond', { offer_id: offer.id, status: 'rejected' })} style={styles.miniReject}>",
+    "<Pressable accessibilityRole=\"button\" accessibilityLabel=\"رفض عرض السعر\" accessibilityState={{ disabled: busy }} disabled={busy} onPress={() => void run('respond', { offer_id: offer.id, status: 'rejected' })} style={styles.miniReject}>",
+    'offer reject accessibility',
+  ],
+  [
+    `              <Pressable\n                disabled={busy}\n                onPress={() => Alert.alert('استلمت السلعة؟', 'أكّد فقط بعد استلامها وفحصها.', [`,
+    `              <Pressable\n                accessibilityRole="button"\n                accessibilityLabel="تأكيد استلام السلعة"\n                accessibilityState={{ disabled: busy }}\n                disabled={busy}\n                onPress={() => Alert.alert('استلمت السلعة؟', 'أكّد فقط بعد استلامها وفحصها.', [`,
+    'offer completion accessibility',
+  ],
   ["  chatSafetyText: { flex: 1, color: '#A8B7B2', fontSize: 9, lineHeight: 15, textAlign: 'right' },", "  chatSafetyText: { flex: 1, color: '#B8C7C2', fontSize: 11, lineHeight: 17, textAlign: 'right' },", 'safety text readability'],
   ["  dealToolsButton: { minHeight: 42, alignSelf: 'flex-end', borderRadius: 14, borderWidth: 1, borderColor: '#2D4E48', backgroundColor: '#101A19', paddingHorizontal: 12, flexDirection: 'row-reverse', alignItems: 'center', gap: 7 },", "  dealToolsButton: { minHeight: 46, alignSelf: 'stretch', borderRadius: 16, borderWidth: 1, borderColor: '#315A52', backgroundColor: '#101C1A', paddingHorizontal: 14, flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', gap: 8 },", 'negotiation touch target'],
   ["  dealToolsText: { color: '#D7EEE7', fontSize: 10, fontWeight: '900' },", "  dealToolsText: { color: '#E2F4EF', fontSize: 12, fontWeight: '900' },", 'negotiation label readability'],
@@ -36,4 +56,4 @@ const replacements = [
 for (const [from, to, label] of replacements) replace(from, to, label);
 
 fs.writeFileSync(file, s);
-console.log('Run #177 chat visual/accessibility polish applied: larger readable type, stronger hierarchy, and safer touch targets without changing deal semantics.');
+console.log('Run #177 chat visual/accessibility polish applied: readable negotiation UI, explicit screen-reader actions, and safer touch targets without changing deal semantics.');
