@@ -48,6 +48,17 @@ test('persisted offline queue rejects malformed identity and timestamps before r
 test('malformed persisted queue self-heals without deleting data on a storage read failure', () => {
   assert.match(source, /try\{raw=await AsyncStorage\.getItem\(KEY\);\}catch\{return\[\];\}/);
   assert.match(source, /if\(!Array\.isArray\(parsed\)\)\{\s*await AsyncStorage\.removeItem\(KEY\)\.catch\(\(\)=>\{\}\);\s*return\[\];\s*\}/s);
-  assert.match(source, /if\(rows\.length!==parsed\.length\)\{\s*await AsyncStorage\.setItem\(KEY,JSON\.stringify\(compactQueueForStorage\(rows\)\)\)\.catch\(\(\)=>\{\}\);\s*\}/s);
+  assert.match(source, /const rows=parsed\.filter\(isQueueItem\);\s*const compacted=compactQueueForStorage\(rows\);/s);
+  assert.match(source, /if\(compacted\.length!==parsed\.length\)\{\s*await AsyncStorage\.setItem\(KEY,JSON\.stringify\(compacted\)\)\.catch\(\(\)=>\{\}\);\s*\}/s);
+  assert.match(source, /return compacted;/);
   assert.match(source, /catch\{\s*await AsyncStorage\.removeItem\(KEY\)\.catch\(\(\)=>\{\}\);\s*return\[\];\s*\}/s);
+});
+
+test('queue reads use the same compacted snapshot that is repaired in storage', () => {
+  const compactIndex = source.indexOf('const compacted=compactQueueForStorage(rows);');
+  const repairIndex = source.indexOf("await AsyncStorage.setItem(KEY,JSON.stringify(compacted)).catch(()=>{});");
+  const returnIndex = source.indexOf('return compacted;');
+  assert.ok(compactIndex >= 0, 'readQueue must normalize valid rows through the storage compactor');
+  assert.ok(repairIndex > compactIndex, 'normalized queue must be persisted before returning');
+  assert.ok(returnIndex > repairIndex, 'callers must receive the same normalized snapshot that was persisted');
 });
