@@ -52,12 +52,12 @@ export function AddListingScreen({ onAdd, onDone }: { onAdd: (item: Listing) => 
       try {
         parsed = JSON.parse(raw);
       } catch {
-        void AsyncStorage.removeItem(DRAFT_KEY);
+        void AsyncStorage.removeItem(DRAFT_KEY).catch(() => {});
         setDraftReady(true);
         return;
       }
       if (!isDraft(parsed)) {
-        void AsyncStorage.removeItem(DRAFT_KEY);
+        void AsyncStorage.removeItem(DRAFT_KEY).catch(() => {});
         setDraftReady(true);
         return;
       }
@@ -67,7 +67,7 @@ export function AddListingScreen({ onAdd, onDone }: { onAdd: (item: Listing) => 
           style: 'destructive',
           onPress: () => {
             if (!active) return;
-            void AsyncStorage.removeItem(DRAFT_KEY);
+            void AsyncStorage.removeItem(DRAFT_KEY).catch(() => {});
             setDraftReady(true);
           },
         },
