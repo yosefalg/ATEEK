@@ -42,22 +42,6 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Validate stable release signing credentials
-        shell: bash
-        run: |
-          set -euo pipefail
-          for name in ATEEK_RELEASE_KEYSTORE_B64 ATEEK_RELEASE_STORE_PASSWORD ATEEK_RELEASE_KEY_ALIAS ATEEK_RELEASE_KEY_PASSWORD; do
-            if [ -z "${!name:-}" ]; then
-              echo "Missing required GitHub Actions secret: $name"
-              exit 1
-            fi
-          done
-          KEYSTORE="$RUNNER_TEMP/ateek-release.keystore"
-          printf '%s' "$ATEEK_RELEASE_KEYSTORE_B64" | base64 --decode > "$KEYSTORE"
-          test -s "$KEYSTORE"
-          keytool -list -keystore "$KEYSTORE" -storepass "$ATEEK_RELEASE_STORE_PASSWORD" -alias "$ATEEK_RELEASE_KEY_ALIAS" >/dev/null
-          echo "ATEEK_RELEASE_KEYSTORE=$KEYSTORE" >> "$GITHUB_ENV"
-
       - name: Generate branded assets
         run: |
           sudo apt-get update -qq
@@ -108,6 +92,22 @@ jobs:
           npm test
           npx expo-doctor@latest
           npx expo export --platform android --output-dir dist-ci
+
+      - name: Validate stable release signing credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in ATEEK_RELEASE_KEYSTORE_B64 ATEEK_RELEASE_STORE_PASSWORD ATEEK_RELEASE_KEY_ALIAS ATEEK_RELEASE_KEY_PASSWORD; do
+            if [ -z "${!name:-}" ]; then
+              echo "Missing required GitHub Actions secret: $name"
+              exit 1
+            fi
+          done
+          KEYSTORE="$RUNNER_TEMP/ateek-release.keystore"
+          printf '%s' "$ATEEK_RELEASE_KEYSTORE_B64" | base64 --decode > "$KEYSTORE"
+          test -s "$KEYSTORE"
+          keytool -list -keystore "$KEYSTORE" -storepass "$ATEEK_RELEASE_STORE_PASSWORD" -alias "$ATEEK_RELEASE_KEY_ALIAS" >/dev/null
+          echo "ATEEK_RELEASE_KEYSTORE=$KEYSTORE" >> "$GITHUB_ENV"
 
       - name: Generate Android project
         run: npx expo prebuild --platform android --clean
