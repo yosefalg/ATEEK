@@ -37,12 +37,13 @@ export function HomeScreen({listings,favorites,onFavorite,onOpen,onNavigate,noti
         if(!c.error)setReelCount(c.count??0);
       }finally{
         loading=false;
-        if(alive&&refreshQueued){refreshQueued=false;void load()}
+        if(alive&&refreshQueued){refreshQueued=false;safeLoad()}
       }
     };
-    void load().catch(()=>{});
-    const ch=supabase.channel('home-run77-reels').on('postgres_changes',{event:'*',schema:'public',table:'reels'},()=>void load()).subscribe();
-    return()=>{alive=false;refreshQueued=false;void supabase.removeChannel(ch)};
+    const safeLoad=()=>void load().catch(()=>{});
+    safeLoad();
+    const ch=supabase.channel('home-run77-reels').on('postgres_changes',{event:'*',schema:'public',table:'reels'},safeLoad).subscribe();
+    return()=>{alive=false;refreshQueued=false;void supabase.removeChannel(ch).catch(()=>{})};
   },[]);
   const latestListings=useMemo(()=>listings.slice().sort((a,b)=>b.createdAt-a.createdAt).slice(0,5),[listings]);
   const favoriteIds=useMemo(()=>new Set(favorites),[favorites]);
