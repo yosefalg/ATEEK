@@ -16,3 +16,12 @@ test('cloud refresh coalesces overlapping requests, indexes profiles, and refres
   assert.match(cloud, /appStateSubscription\.remove\(\)/);
   assert.match(cloud, /\.finally\(\(\)=>\{if\(alive\.current\)void refresh\(\);\}\)/);
 });
+
+test('cloud realtime teardown contains removeChannel promise failures', () => {
+  const cloud = fs.readFileSync('src/cloud/useCloud.ts', 'utf8');
+  assert.match(
+    cloud,
+    /return\(\)=>\{alive\.current=false;appStateSubscription\.remove\(\);clearInterval\(timer\);void supabase\.removeChannel\(channel\)\.catch\(\(\)=>\{\}\);\};/,
+  );
+  assert.doesNotMatch(cloud, /void supabase\.removeChannel\(channel\);/);
+});
