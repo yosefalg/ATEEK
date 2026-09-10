@@ -15,7 +15,7 @@ export function OnboardingGate({ children }: PropsWithChildren) {
   }, []);
   const complete = () => {
     setDone(true);
-    void AsyncStorage.setItem(KEY, '1');
+    void AsyncStorage.setItem(KEY, '1').catch(() => {});
   };
   if (done === null) return <View style={{ flex: 1, backgroundColor: ui.colors.background, justifyContent: 'center' }}><ActivityIndicator color={ui.colors.accent} /></View>;
   if (!done) return <OnboardingScreen onDone={complete} />;
