@@ -8,7 +8,7 @@ let cloud=fs.readFileSync(cloudFile,'utf8');
 cloud=replaceIfNeeded(
   cloud,
   "const timer=setInterval(()=>{if(AppState.currentState==='active')void refresh();},lowData?60000:15000);return()=>{alive.current=false;clearInterval(timer);void supabase.removeChannel(channel);};",
-  "const appStateSubscription=AppState.addEventListener('change',state=>{if(state==='active')void refresh();});const timer=setInterval(()=>{if(AppState.currentState==='active')void refresh();},lowData?60000:15000);return()=>{alive.current=false;appStateSubscription.remove();clearInterval(timer);void supabase.removeChannel(channel);};",
+  "const appStateSubscription=AppState.addEventListener('change',state=>{if(state==='active')void refresh();});const timer=setInterval(()=>{if(AppState.currentState==='active')void refresh();},lowData?60000:15000);return()=>{alive.current=false;appStateSubscription.remove();clearInterval(timer);void supabase.removeChannel(channel).catch(()=>{});};",
   'refresh immediately when app returns to foreground',
 );
 fs.writeFileSync(cloudFile,cloud);
