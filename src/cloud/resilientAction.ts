@@ -60,12 +60,14 @@ export async function flushOfflineQueue(){
   try{
     const rows=await readQueue();
     const sentIds=new Set<string>();
+    let terminalError:unknown;
     for(let i=0;i<rows.length;i++){
       const row=rows[i]!;
       try{await action(row.name,row.payload);sent++;sentIds.add(row.id);}
       catch(e){
         if(looksNetworkError(e))break;
-        throw e;
+        terminalError=e;
+        break;
       }
     }
     if(sentIds.size){
@@ -74,6 +76,7 @@ export async function flushOfflineQueue(){
         await writeQueue(current.filter(row=>!sentIds.has(row.id)));
       });
     }
+    if(terminalError)throw terminalError;
     return {sent,pending:await queueLength()};
   }finally{flushing=false;}
 }
