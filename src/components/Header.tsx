@@ -2,15 +2,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, shadows } from '../theme/colors';
+import { useLocale } from '../i18n/LocaleProvider';
 
 export function Header({ onNotifications }: { onNotifications?: () => void }) {
+  const { t } = useLocale();
   const notificationsEnabled=typeof onNotifications==='function';
   return (
     <LinearGradient colors={[colors.forest, '#0A1D18']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.header}>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="الإشعارات"
-        accessibilityHint={notificationsEnabled?'يفتح مركز الإشعارات':'الإشعارات غير متاحة في هذه الشاشة'}
+        accessibilityLabel={t('header.notifications')}
+        accessibilityHint={t(notificationsEnabled?'header.notifications.openHint':'header.notifications.unavailableHint')}
         accessibilityState={{disabled:!notificationsEnabled}}
         disabled={!notificationsEnabled}
         style={[styles.iconButton,!notificationsEnabled&&styles.iconButtonDisabled]}
@@ -25,7 +27,7 @@ export function Header({ onNotifications }: { onNotifications?: () => void }) {
         </View>
         <View>
           <View style={styles.nameRow}><Text style={styles.name}>عتيك</Text><Text style={styles.beta}>ATEEK</Text></View>
-          <Text style={styles.tagline}>كل شيء له قيمة من جديد</Text>
+          <Text style={styles.tagline}>{t('header.tagline')}</Text>
         </View>
       </View>
     </LinearGradient>
