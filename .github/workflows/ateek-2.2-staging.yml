@@ -92,7 +92,7 @@ jobs:
       - name: Generate Android project
         run: npx expo prebuild --platform android --clean
 
-      - name: Apply native hardening, release signing config and adjustResize
+      - name: Apply native hardening and adjustResize
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -119,21 +119,51 @@ jobs:
               g=g.replace('react {','react {\n    hermesFlags = ["-O", "-output-source-map"]',1)
           if 'excludes += ["**/libjsc.so", "**/libjscexecutor.so"]' not in g:
               g=g.replace('android {','android {\n    packagingOptions {\n        jniLibs {\n            pickFirsts += ["**/libc++_shared.so"]\n            excludes += ["**/libjsc.so", "**/libjscexecutor.so"]\n        }\n    }',1)
-          g,n=re.subn(r'(buildTypes\s*\{[\s\S]*?release\s*\{[\s\S]*?)signingConfig\s+signingConfigs\.debug',r'\1signingConfig signingConfigs.release',g,count=1)
+          g,n=re.subn(r'(buildTypes\s*\{[\s\S]*?release\s*\{[\s\S]*?)\s*signingConfig\s+signingConfigs\.debug',r'\1',g,count=1)
           if n != 1:
               raise SystemExit('Could not replace generated release debug signing config')
-          signing='''    signingConfigs {\n        release {\n            storeFile file(System.getenv("ATEEK_KEYSTORE_PATH"))\n            storePassword System.getenv("ATEEK_ANDROID_KEYSTORE_PASSWORD")\n            keyAlias System.getenv("ATEEK_ANDROID_KEY_ALIAS")\n            keyPassword System.getenv("ATEEK_ANDROID_KEY_PASSWORD")\n        }\n    }\n'''
-          g=g.replace('    buildTypes {',signing+'\n    buildTypes {',1)
-          if 'signingConfig signingConfigs.release' not in g or 'ATEEK_KEYSTORE_PATH' not in g:
-              raise SystemExit('Release signing injection failed')
           gradle.write_text(g)
           PY
           grep -Fq 'android:usesCleartextTraffic="false"' android/app/src/main/AndroidManifest.xml
           grep -Eq 'android:windowSoftInputMode="adjustResize"' android/app/src/main/AndroidManifest.xml
           grep -Fq 'org.gradle.jvmargs=-Xmx3g -XX:MaxMetaspaceSize=1024m -Dfile.encoding=UTF-8' android/gradle.properties
           grep -Fq 'excludes += ["**/libjsc.so", "**/libjscexecutor.so"]' android/app/build.gradle
-          grep -Fq 'signingConfig signingConfigs.release' android/app/build.gradle
-          grep -Fq 'ATEEK_KEYSTORE_PATH' android/app/build.gradle
+          ! grep -Eq 'release[[:space:]]*\{[\s\S]*signingConfig[[:space:]]+signingConfigs\.debug' android/app/build.gradle
+
+      - name: Compile unsigned arm64 release for native validation
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon
+
+      - name: Verify unsigned native validation APK
+        run: |
+          set -euo pipefail
+          APK_PATH="$(find android/app/build/outputs/apk/release -maxdepth 1 -type f -name '*release*.apk' -print -quit)"
+          test -n "$APK_PATH"
+          test -s "$APK_PATH"
+          test ! -e android/app/build/outputs/bundle/release/app-release.aab
+          unzip -t "$APK_PATH" >/dev/null
+          AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
+          BADGING="$($AAPT dump badging "$APK_PATH")"
+          PACKAGE_LINE="${BADGING%%$'\n'*}"
+          grep -Fq "package: name='com.yosef.ateek'" <<< "$PACKAGE_LINE"
+          grep -Eq "versionCode='16'.*versionName='2\.2\.0'|versionName='2\.2\.0'.*versionCode='16'" <<< "$PACKAGE_LINE"
+          ! grep -q '^application-debuggable' <<< "$BADGING"
+          APK_ENTRIES="$(unzip -Z1 "$APK_PATH")"
+          APK_ABIS="$(printf '%s\n' "$APK_ENTRIES" | awk -F/ '/^lib\//{print $2}' | sort -u | tr '\n' ' ')"
+          [ "$APK_ABIS" = "arm64-v8a " ]
+          ! grep -qE '^lib/arm64-v8a/lib(jsc|jscexecutor)\.so$' <<< "$APK_ENTRIES"
+          APK_BYTES=$(stat -c%s "$APK_PATH")
+          [ "$APK_BYTES" -le $((35*1024*1024)) ]
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          test -x "$APKSIGNER"
+          if "$APKSIGNER" verify "$APK_PATH" >/dev/null 2>&1; then
+            echo '::error title=Unexpected signer::Native validation APK must remain unsigned before the release-signing gate'
+            exit 1
+          fi
+          echo "Unsigned native release validation passed: $APK_PATH ($APK_BYTES bytes)"
+          rm -f android/app/build/outputs/apk/release/*.apk
 
       - name: Validate release signing material
         env:
@@ -158,6 +188,25 @@ jobs:
           test -s "$RUNNER_TEMP/ateek-release.keystore"
           chmod 600 "$RUNNER_TEMP/ateek-release.keystore"
           echo "ATEEK_KEYSTORE_PATH=$RUNNER_TEMP/ateek-release.keystore" >> "$GITHUB_ENV"
+
+      - name: Inject pinned release signing config
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          gradle=Path('android/app/build.gradle')
+          g=gradle.read_text()
+          signing='''    signingConfigs {\n        release {\n            storeFile file(System.getenv("ATEEK_KEYSTORE_PATH"))\n            storePassword System.getenv("ATEEK_ANDROID_KEYSTORE_PASSWORD")\n            keyAlias System.getenv("ATEEK_ANDROID_KEY_ALIAS")\n            keyPassword System.getenv("ATEEK_ANDROID_KEY_PASSWORD")\n        }\n    }\n'''
+          if 'ATEEK_KEYSTORE_PATH' in g:
+              raise SystemExit('Release signing config already present before secret validation')
+          g=g.replace('    buildTypes {', signing+'\n    buildTypes {', 1)
+          g,n=re.subn(r'(buildTypes\s*\{[\s\S]*?release\s*\{)',r'\1\n            signingConfig signingConfigs.release',g,count=1)
+          if n != 1 or 'signingConfig signingConfigs.release' not in g or 'ATEEK_KEYSTORE_PATH' not in g:
+              raise SystemExit('Release signing injection failed')
+          gradle.write_text(g)
+          PY
+          grep -Fq 'signingConfig signingConfigs.release' android/app/build.gradle
+          grep -Fq 'ATEEK_KEYSTORE_PATH' android/app/build.gradle
 
       - name: Build arm64 staging APK only
         env:
