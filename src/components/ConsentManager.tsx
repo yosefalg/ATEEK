@@ -31,9 +31,11 @@ export function ConsentManager({ children }: PropsWithChildren) {
   const [marketing, setMarketing] = useState(false);
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
     let mounted = true;
+    mountedRef.current = true;
 
     const load = async () => {
       try {
@@ -67,13 +69,14 @@ export function ConsentManager({ children }: PropsWithChildren) {
     void load();
     return () => {
       mounted = false;
+      mountedRef.current = false;
     };
   }, []);
 
   const save = async (nextAnalytics = analytics, nextMarketing = marketing) => {
     if (savingRef.current) return;
     savingRef.current = true;
-    setSaving(true);
+    if (mountedRef.current) setSaving(true);
 
     const value: Consents = {
       essential: true,
@@ -84,14 +87,17 @@ export function ConsentManager({ children }: PropsWithChildren) {
 
     try {
       await AsyncStorage.setItem(KEY, JSON.stringify(value));
+      if (!mountedRef.current) return;
       setAnalytics(nextAnalytics);
       setMarketing(nextMarketing);
       setVisible(false);
     } catch {
-      Alert.alert('تعذر حفظ الاختيارات', 'تحقق من مساحة التخزين ثم حاول مرة أخرى.');
+      if (mountedRef.current) {
+        Alert.alert('تعذر حفظ الاختيارات', 'تحقق من مساحة التخزين ثم حاول مرة أخرى.');
+      }
     } finally {
       savingRef.current = false;
-      setSaving(false);
+      if (mountedRef.current) setSaving(false);
     }
   };
 
