@@ -7,7 +7,15 @@ export function Header({ onNotifications }: { onNotifications?: () => void }) {
   const notificationsEnabled=typeof onNotifications==='function';
   return (
     <LinearGradient colors={[colors.forest, '#0A1D18']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.header}>
-      <Pressable accessibilityRole="button" accessibilityLabel="الإشعارات" accessibilityState={{disabled:!notificationsEnabled}} disabled={!notificationsEnabled} style={[styles.iconButton,!notificationsEnabled&&styles.iconButtonDisabled]} onPress={onNotifications}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="الإشعارات"
+        accessibilityHint={notificationsEnabled?'يفتح مركز الإشعارات':'الإشعارات غير متاحة في هذه الشاشة'}
+        accessibilityState={{disabled:!notificationsEnabled}}
+        disabled={!notificationsEnabled}
+        style={[styles.iconButton,!notificationsEnabled&&styles.iconButtonDisabled]}
+        onPress={onNotifications}
+      >
         <Ionicons name="notifications-outline" size={22} color={colors.cream} />
       </Pressable>
       <View style={styles.brand}>
