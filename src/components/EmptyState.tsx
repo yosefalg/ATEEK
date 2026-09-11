@@ -9,6 +9,7 @@ export function EmptyState({ icon, title, body }: { icon: keyof typeof Ionicons.
       accessible
       accessibilityRole="text"
       accessibilityLabel={`${title}. ${body}`}
+      accessibilityLiveRegion="polite"
       style={styles.root}
     >
       <View style={[styles.icon, { backgroundColor: colors.forest }]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
