@@ -39,6 +39,8 @@ async function getSellerMetrics(sellerId: string): Promise<Metrics | null> {
       const metrics = data as Metrics;
       cacheSellerMetrics(sellerId, metrics);
       return metrics;
+    } catch {
+      return null;
     } finally {
       pending.delete(sellerId);
     }
