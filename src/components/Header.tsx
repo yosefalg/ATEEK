@@ -15,10 +15,11 @@ export function Header({ onNotifications }: { onNotifications?: () => void }) {
         accessibilityHint={t(notificationsEnabled?'header.notifications.openHint':'header.notifications.unavailableHint')}
         accessibilityState={{disabled:!notificationsEnabled}}
         disabled={!notificationsEnabled}
+        hitSlop={8}
         style={[styles.iconButton,!notificationsEnabled&&styles.iconButtonDisabled]}
         onPress={onNotifications}
       >
-        <Ionicons name="notifications-outline" size={22} color={colors.cream} />
+        <Ionicons accessible={false} name="notifications-outline" size={22} color={colors.cream} />
       </Pressable>
       <View style={styles.brand}>
         <View style={styles.logo} accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
