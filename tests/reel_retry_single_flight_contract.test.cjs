@@ -11,3 +11,10 @@ test('reel retry is single-flight and always releases its lock', () => {
   assert.match(source, /await player\.replaceAsync\(source\);/);
   assert.match(source, /finally \{\s*retryInFlight\.current = false;\s*\}/s);
 });
+
+test('reel fallback normalizes thumbnail URLs and hides decorative media from accessibility', () => {
+  assert.match(source, /typeof reel\.thumbnail_url === 'string' \? reel\.thumbnail_url\.trim\(\) : ''/);
+  assert.match(source, /return directThumbnail \|\| cloudinaryVideoThumbnail\(reel\.hls_url\) \|\| cloudinaryVideoThumbnail\(reel\.playback_url\) \|\| null;/);
+  assert.match(source, /<Image accessible=\{false\} importantForAccessibility="no-hide-descendants"/);
+  assert.match(source, /onError=\{\(\) => setThumbnailFailed\(true\)\}/);
+});

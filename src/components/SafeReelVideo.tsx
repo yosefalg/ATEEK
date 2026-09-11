@@ -25,7 +25,8 @@ function logVideoError(reelId: string | undefined | null, message: string) {
 }
 
 function resolveThumbnail(reel: ReelVideoInput) {
-  return reel.thumbnail_url ?? cloudinaryVideoThumbnail(reel.hls_url) ?? cloudinaryVideoThumbnail(reel.playback_url) ?? null;
+  const directThumbnail = typeof reel.thumbnail_url === 'string' ? reel.thumbnail_url.trim() : '';
+  return directThumbnail || cloudinaryVideoThumbnail(reel.hls_url) || cloudinaryVideoThumbnail(reel.playback_url) || null;
 }
 
 function GuardedPlayer({ reel, source, active, failedLabel, retryLabel }: { reel: ReelVideoInput; source: VideoSource; active: boolean; failedLabel: string; retryLabel: string }) {
@@ -106,7 +107,7 @@ function FallbackCard({ reel, label, retryLabel, thumbnail, onRetry }: { reel: R
   const [thumbnailFailed, setThumbnailFailed] = useState(false);
   useEffect(() => setThumbnailFailed(false), [thumbnail]);
   const showThumbnail = !!thumbnail && !thumbnailFailed;
-  return <View style={[StyleSheet.absoluteFill, s.invalid]}>{showThumbnail ? <Image source={{ uri: thumbnail! }} style={StyleSheet.absoluteFill} resizeMode="cover" onError={() => setThumbnailFailed(true)} /> : null}<View style={s.fallbackShade} /><Ionicons name={showThumbnail?'image-outline':'videocam-off-outline'} size={36} color={ui.colors.muted} /><Text style={s.invalidText}>{label}</Text>{!!reel.caption && <Text numberOfLines={3} style={s.caption}>{reel.caption}</Text>}{onRetry?<Pressable accessibilityRole="button" accessibilityLabel={retryLabel} onPress={onRetry} style={s.retry}><Ionicons name="refresh" size={18} color={ui.colors.background} /><Text style={s.retryText}>{retryLabel}</Text></Pressable>:null}</View>;
+  return <View style={[StyleSheet.absoluteFill, s.invalid]}>{showThumbnail ? <Image accessible={false} importantForAccessibility="no-hide-descendants" source={{ uri: thumbnail! }} style={StyleSheet.absoluteFill} resizeMode="cover" onError={() => setThumbnailFailed(true)} /> : null}<View style={s.fallbackShade} /><Ionicons name={showThumbnail?'image-outline':'videocam-off-outline'} size={36} color={ui.colors.muted} /><Text style={s.invalidText}>{label}</Text>{!!reel.caption && <Text numberOfLines={3} style={s.caption}>{reel.caption}</Text>}{onRetry?<Pressable accessibilityRole="button" accessibilityLabel={retryLabel} onPress={onRetry} style={s.retry}><Ionicons name="refresh" size={18} color={ui.colors.background} /><Text style={s.retryText}>{retryLabel}</Text></Pressable>:null}</View>;
 }
 
 function InvalidReelFallback({ reel, label, retryLabel }: { reel: ReelVideoInput; label: string; retryLabel: string }) {
