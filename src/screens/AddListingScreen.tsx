@@ -40,6 +40,7 @@ export function AddListingScreen({ onAdd, onDone }: { onAdd: (item: Listing) => 
   const draftGenerationRef = useRef(0);
   const publishedRef = useRef(false);
   const publishInFlightRef = useRef(false);
+  const analyzeInFlightRef = useRef(false);
 
   useEffect(() => {
     let active = true;
@@ -137,7 +138,8 @@ export function AddListingScreen({ onAdd, onDone }: { onAdd: (item: Listing) => 
   };
 
   const analyzeImage = async () => {
-    if (!image || analyzing || publishing) return;
+    if (!image || analyzeInFlightRef.current || analyzing || publishing) return;
+    analyzeInFlightRef.current = true;
     setAnalyzing(true);
     try {
       const compressed = await ImageManipulator.manipulateAsync(image, [{ resize: { width: 900 } }], { compress: 0.58, format: ImageManipulator.SaveFormat.JPEG });
@@ -154,6 +156,7 @@ export function AddListingScreen({ onAdd, onDone }: { onAdd: (item: Listing) => 
       const message = error instanceof Error ? error.message : 'حاول بصورة أخرى أو لاحقاً.';
       Alert.alert('تعذّر تحليل الصورة', message);
     } finally {
+      analyzeInFlightRef.current = false;
       setAnalyzing(false);
     }
   };
