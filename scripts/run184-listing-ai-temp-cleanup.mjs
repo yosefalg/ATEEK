@@ -15,8 +15,8 @@ replace(
 );
 
 replace(
-  "    } finally {\n      setAnalyzing(false);\n    }\n  };",
-  "    } finally {\n      if (compressedUri && compressedUri !== image) {\n        await FileSystem.deleteAsync(compressedUri, { idempotent: true }).catch(() => {});\n      }\n      setAnalyzing(false);\n    }\n  };",
+  "    } finally {\n      analyzeInFlightRef.current = false;\n      setAnalyzing(false);\n    }\n  };",
+  "    } finally {\n      if (compressedUri && compressedUri !== image) {\n        await FileSystem.deleteAsync(compressedUri, { idempotent: true }).catch(() => {});\n      }\n      analyzeInFlightRef.current = false;\n      setAnalyzing(false);\n    }\n  };",
   'clean AI analysis temporary image',
 );
 
@@ -24,9 +24,10 @@ for (const needle of [
   'let compressedUri: string | null = null;',
   'compressedUri = compressed.uri;',
   'FileSystem.deleteAsync(compressedUri, { idempotent: true })',
+  'analyzeInFlightRef.current = false;',
 ]) {
   if (!s.includes(needle)) throw new Error(`Run184 transform postcondition missing: ${needle}`);
 }
 
 fs.writeFileSync(file, s);
-console.log('Run #184 listing AI reliability applied: temporary analysis images are cleaned after success or failure.');
+console.log('Run #184 listing AI reliability applied: temporary analysis images are cleaned after success or failure while preserving the analysis single-flight guard.');
