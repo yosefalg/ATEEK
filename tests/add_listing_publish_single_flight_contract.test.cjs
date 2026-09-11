@@ -22,7 +22,8 @@ test('listing AI analysis is synchronously single-flight before React state comm
   assert.match(source, /const analyzeInFlightRef = useRef\(false\);/);
   assert.match(source, /if \(!image \|\| analyzeInFlightRef\.current \|\| analyzing \|\| publishing\) return;/);
   assert.match(source, /analyzeInFlightRef\.current = true;\s*setAnalyzing\(true\);/s);
-  assert.match(source, /finally \{\s*analyzeInFlightRef\.current = false;\s*setAnalyzing\(false\);/s);
+  assert.match(source, /finally \{[\s\S]*?analyzeInFlightRef\.current = false;\s*setAnalyzing\(false\);/);
+  assert.match(source, /FileSystem\.deleteAsync\(compressedUri, \{ idempotent: true \}\)\.catch\(\(\) => \{\}\);[\s\S]*?analyzeInFlightRef\.current = false;/);
 });
 
 test('analysis single-flight guard preserves the real Supabase classifier path', () => {
