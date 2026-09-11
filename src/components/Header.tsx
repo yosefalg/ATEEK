@@ -33,6 +33,6 @@ const styles = StyleSheet.create({
   name: { color: colors.cream, fontSize: 23, fontWeight: '900', textAlign: 'right' },
   beta: { color: colors.gold, fontSize: 9, fontWeight: '900', letterSpacing: 1.2 },
   tagline: { color: colors.goldSoft, fontSize: 10, marginTop: -2, textAlign: 'right' },
-  iconButton: { width: 42, height: 42, borderRadius: 14, backgroundColor: 'rgba(255,255,255,.08)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,.06)' },
+  iconButton: { width: 44, height: 44, borderRadius: 14, backgroundColor: 'rgba(255,255,255,.08)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,.06)' },
   iconButtonDisabled:{opacity:.55}
 });

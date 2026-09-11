@@ -16,3 +16,7 @@ test('notification control is disabled when no real navigation handler exists', 
   assert.match(source, /disabled=\{!notificationsEnabled\}/);
   assert.match(source, /onPress=\{onNotifications\}/);
 });
+
+test('notification control keeps a minimum 44dp touch target', () => {
+  assert.match(source, /iconButton:\s*\{[^}]*width:\s*44,[^}]*height:\s*44,/s);
+});
