@@ -9,6 +9,49 @@ export type ReelVideoInput = {
 
 export type SafeVideoSource = { uri: string; kind: 'hls' | 'file' };
 
+function isPrivateIpv4(host: string) {
+  const parts = host.split('.');
+  if (parts.length !== 4 || parts.some((part) => !/^\d{1,3}$/.test(part))) return false;
+  const octets = parts.map(Number);
+  if (octets.some((part) => part < 0 || part > 255)) return false;
+  const [a, b] = octets;
+  return (
+    a === 0 ||
+    a === 10 ||
+    a === 127 ||
+    (a === 100 && b >= 64 && b <= 127) ||
+    (a === 169 && b === 254) ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168) ||
+    (a === 198 && (b === 18 || b === 19)) ||
+    a >= 224
+  );
+}
+
+function isPrivateIpv6(host: string) {
+  const normalized = host.replace(/^\[|\]$/g, '').toLowerCase();
+  if (!normalized.includes(':')) return false;
+  if (normalized === '::' || normalized === '::1') return true;
+  if (normalized.startsWith('fc') || normalized.startsWith('fd')) return true;
+  if (/^fe[89ab]/.test(normalized)) return true;
+  if (normalized.startsWith('::ffff:')) {
+    const mapped = normalized.slice('::ffff:'.length);
+    return isPrivateIpv4(mapped);
+  }
+  return false;
+}
+
+function isLocalNetworkHost(hostname: string) {
+  const host = hostname.replace(/^\[|\]$/g, '').toLowerCase();
+  return (
+    host === 'localhost' ||
+    host.endsWith('.localhost') ||
+    host.endsWith('.local') ||
+    isPrivateIpv4(host) ||
+    isPrivateIpv6(host)
+  );
+}
+
 function parseHttps(value?: string | null) {
   if (!value || typeof value !== 'string') return null;
   const trimmed = value.trim();
@@ -16,8 +59,7 @@ function parseHttps(value?: string | null) {
   try {
     const u = new URL(trimmed);
     if (u.protocol !== 'https:' || !u.hostname || u.username || u.password) return null;
-    const host = u.hostname.toLowerCase();
-    if (host === 'localhost' || host.endsWith('.local') || host === '127.0.0.1' || host === '0.0.0.0') return null;
+    if (isLocalNetworkHost(u.hostname)) return null;
     return u;
   } catch {
     return null;
