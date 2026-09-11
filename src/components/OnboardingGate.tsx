@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { PropsWithChildren, useEffect, useState } from 'react';
+import { PropsWithChildren, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { ui } from '../theme/tokens';
@@ -8,6 +8,7 @@ const KEY = 'ateek.onboarding.production.v21';
 
 export function OnboardingGate({ children }: PropsWithChildren) {
   const [done, setDone] = useState<boolean | null>(null);
+  const completionWriteRef = useRef<Promise<void> | null>(null);
   useEffect(() => {
     let alive = true;
     AsyncStorage.getItem(KEY).then((v) => { if (alive) setDone(v === '1'); }).catch(() => { if (alive) setDone(false); });
@@ -15,7 +16,11 @@ export function OnboardingGate({ children }: PropsWithChildren) {
   }, []);
   const complete = () => {
     setDone(true);
-    void AsyncStorage.setItem(KEY, '1').catch(() => {});
+    if (completionWriteRef.current) return;
+    const write = AsyncStorage.setItem(KEY, '1')
+      .catch(() => {})
+      .finally(() => { if (completionWriteRef.current === write) completionWriteRef.current = null; });
+    completionWriteRef.current = write;
   };
   if (done === null) return <View style={{ flex: 1, backgroundColor: ui.colors.background, justifyContent: 'center' }}><ActivityIndicator color={ui.colors.accent} /></View>;
   if (!done) return <OnboardingScreen onDone={complete} />;
