@@ -89,34 +89,10 @@ jobs:
           npx expo-doctor@latest
           npx expo export --platform android --output-dir dist-ci
 
-      - name: Validate release signing material
-        env:
-          ATEEK_ANDROID_KEYSTORE_B64: ${{ secrets.ATEEK_ANDROID_KEYSTORE_B64 }}
-          ATEEK_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ATEEK_ANDROID_KEYSTORE_PASSWORD }}
-          ATEEK_ANDROID_KEY_ALIAS: ${{ secrets.ATEEK_ANDROID_KEY_ALIAS }}
-          ATEEK_ANDROID_KEY_PASSWORD: ${{ secrets.ATEEK_ANDROID_KEY_PASSWORD }}
-          ATEEK_ANDROID_CERT_SHA256: ${{ secrets.ATEEK_ANDROID_CERT_SHA256 }}
-        run: |
-          set -euo pipefail
-          missing=0
-          for var in ATEEK_ANDROID_KEYSTORE_B64 ATEEK_ANDROID_KEYSTORE_PASSWORD ATEEK_ANDROID_KEY_ALIAS ATEEK_ANDROID_KEY_PASSWORD ATEEK_ANDROID_CERT_SHA256; do
-            if [ -z "${!var:-}" ]; then
-              echo "::error title=Missing release signing secret::$var is required for a production-grade release APK"
-              missing=1
-            fi
-          done
-          [ "$missing" -eq 0 ]
-          EXPECTED_CERT="$(printf '%s' "$ATEEK_ANDROID_CERT_SHA256" | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
-          [[ "$EXPECTED_CERT" =~ ^[0-9a-f]{64}$ ]]
-          printf '%s' "$ATEEK_ANDROID_KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/ateek-release.keystore"
-          test -s "$RUNNER_TEMP/ateek-release.keystore"
-          chmod 600 "$RUNNER_TEMP/ateek-release.keystore"
-          echo "ATEEK_KEYSTORE_PATH=$RUNNER_TEMP/ateek-release.keystore" >> "$GITHUB_ENV"
-
       - name: Generate Android project
         run: npx expo prebuild --platform android --clean
 
-      - name: Apply native hardening, release signing and adjustResize
+      - name: Apply native hardening, release signing config and adjustResize
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -154,8 +130,34 @@ jobs:
           PY
           grep -Fq 'android:usesCleartextTraffic="false"' android/app/src/main/AndroidManifest.xml
           grep -Eq 'android:windowSoftInputMode="adjustResize"' android/app/src/main/AndroidManifest.xml
+          grep -Fq 'org.gradle.jvmargs=-Xmx3g -XX:MaxMetaspaceSize=1024m -Dfile.encoding=UTF-8' android/gradle.properties
+          grep -Fq 'excludes += ["**/libjsc.so", "**/libjscexecutor.so"]' android/app/build.gradle
           grep -Fq 'signingConfig signingConfigs.release' android/app/build.gradle
           grep -Fq 'ATEEK_KEYSTORE_PATH' android/app/build.gradle
+
+      - name: Validate release signing material
+        env:
+          ATEEK_ANDROID_KEYSTORE_B64: ${{ secrets.ATEEK_ANDROID_KEYSTORE_B64 }}
+          ATEEK_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ATEEK_ANDROID_KEYSTORE_PASSWORD }}
+          ATEEK_ANDROID_KEY_ALIAS: ${{ secrets.ATEEK_ANDROID_KEY_ALIAS }}
+          ATEEK_ANDROID_KEY_PASSWORD: ${{ secrets.ATEEK_ANDROID_KEY_PASSWORD }}
+          ATEEK_ANDROID_CERT_SHA256: ${{ secrets.ATEEK_ANDROID_CERT_SHA256 }}
+        run: |
+          set -euo pipefail
+          missing=0
+          for var in ATEEK_ANDROID_KEYSTORE_B64 ATEEK_ANDROID_KEYSTORE_PASSWORD ATEEK_ANDROID_KEY_ALIAS ATEEK_ANDROID_KEY_PASSWORD ATEEK_ANDROID_CERT_SHA256; do
+            if [ -z "${!var:-}" ]; then
+              echo "::error title=Missing release signing secret::$var is required for a production-grade release APK"
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ]
+          EXPECTED_CERT="$(printf '%s' "$ATEEK_ANDROID_CERT_SHA256" | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
+          [[ "$EXPECTED_CERT" =~ ^[0-9a-f]{64}$ ]]
+          printf '%s' "$ATEEK_ANDROID_KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/ateek-release.keystore"
+          test -s "$RUNNER_TEMP/ateek-release.keystore"
+          chmod 600 "$RUNNER_TEMP/ateek-release.keystore"
+          echo "ATEEK_KEYSTORE_PATH=$RUNNER_TEMP/ateek-release.keystore" >> "$GITHUB_ENV"
 
       - name: Build arm64 staging APK only
         env:
