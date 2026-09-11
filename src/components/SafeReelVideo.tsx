@@ -31,6 +31,7 @@ function resolveThumbnail(reel: ReelVideoInput) {
 function GuardedPlayer({ reel, source, active, failedLabel, retryLabel }: { reel: ReelVideoInput; source: VideoSource; active: boolean; failedLabel: string; retryLabel: string }) {
   const startedAt = useRef(globalThis.performance?.now?.() ?? Date.now());
   const reportedReady = useRef(false);
+  const retryInFlight = useRef(false);
   const [fallback, setFallback] = useState(false);
   const [retrySerial, setRetrySerial] = useState(0);
   const player = useVideoPlayer(source, (instance) => { instance.loop = true; });
@@ -78,6 +79,8 @@ function GuardedPlayer({ reel, source, active, failedLabel, retryLabel }: { reel
   }, [active, player, status, fallback, reel.id]);
 
   const retry = async () => {
+    if (retryInFlight.current) return;
+    retryInFlight.current = true;
     startedAt.current = globalThis.performance?.now?.() ?? Date.now();
     reportedReady.current = false;
     setFallback(false);
@@ -88,6 +91,8 @@ function GuardedPlayer({ reel, source, active, failedLabel, retryLabel }: { reel
     } catch (e) {
       logVideoError(reel.id, `VIDEO_RETRY_ERROR:${String(e)}`);
       setFallback(true);
+    } finally {
+      retryInFlight.current = false;
     }
   };
 
