@@ -9,7 +9,7 @@ test('reel retry is single-flight and always releases its lock', () => {
   assert.match(source, /const retryInFlight = useRef\(false\);/);
   assert.match(source, /if \(retryInFlight\.current\) return;\s*retryInFlight\.current = true;/s);
   assert.match(source, /await player\.replaceAsync\(source\);/);
-  assert.match(source, /finally \{\s*retryInFlight\.current = false;\s*setRetrying\(false\);\s*\}/s);
+  assert.match(source, /finally \{\s*retryInFlight\.current = false;\s*if \(mountedRef\.current\) setRetrying\(false\);\s*\}/s);
 });
 
 test('reel retry exposes native busy and disabled state while replacement is active', () => {
@@ -17,6 +17,15 @@ test('reel retry exposes native busy and disabled state while replacement is act
   assert.match(source, /retryInFlight\.current = true;\s*setRetrying\(true\);/s);
   assert.match(source, /accessibilityState=\{\{ disabled: retrying, busy: retrying \}\} disabled=\{retrying\}/);
   assert.match(source, /retrying\?<ActivityIndicator size="small" color=\{ui\.colors\.background\} \/>:/);
+});
+
+test('reel retry does not resume playback or update retry UI after unmount', () => {
+  assert.match(source, /const mountedRef = useRef\(true\);/);
+  assert.match(source, /const activeRef = useRef\(active\);\s*activeRef\.current = active;/s);
+  assert.match(source, /useEffect\(\(\) => \(\) => \{\s*mountedRef\.current = false;\s*retryInFlight\.current = false;\s*\}, \[\]\);/s);
+  assert.match(source, /if \(mountedRef\.current && activeRef\.current\) player\.play\(\);/);
+  assert.match(source, /if \(mountedRef\.current\) setFallback\(true\);/);
+  assert.match(source, /if \(mountedRef\.current\) setRetrying\(false\);/);
 });
 
 test('reel fallback normalizes thumbnail URLs and hides decorative media from accessibility', () => {

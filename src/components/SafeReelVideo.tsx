@@ -33,6 +33,9 @@ function GuardedPlayer({ reel, source, active, failedLabel, retryLabel }: { reel
   const startedAt = useRef(globalThis.performance?.now?.() ?? Date.now());
   const reportedReady = useRef(false);
   const retryInFlight = useRef(false);
+  const mountedRef = useRef(true);
+  const activeRef = useRef(active);
+  activeRef.current = active;
   const [fallback, setFallback] = useState(false);
   const [retrying, setRetrying] = useState(false);
   const [retrySerial, setRetrySerial] = useState(0);
@@ -41,6 +44,11 @@ function GuardedPlayer({ reel, source, active, failedLabel, retryLabel }: { reel
   const status = event.status;
   const error = event.error;
   const thumbnail = resolveThumbnail(reel);
+
+  useEffect(() => () => {
+    mountedRef.current = false;
+    retryInFlight.current = false;
+  }, []);
 
   useEffect(() => {
     if (status === 'readyToPlay') {
@@ -90,13 +98,13 @@ function GuardedPlayer({ reel, source, active, failedLabel, retryLabel }: { reel
     setRetrySerial((v) => v + 1);
     try {
       await player.replaceAsync(source);
-      if (active) player.play();
+      if (mountedRef.current && activeRef.current) player.play();
     } catch (e) {
       logVideoError(reel.id, `VIDEO_RETRY_ERROR:${String(e)}`);
-      setFallback(true);
+      if (mountedRef.current) setFallback(true);
     } finally {
       retryInFlight.current = false;
-      setRetrying(false);
+      if (mountedRef.current) setRetrying(false);
     }
   };
 
