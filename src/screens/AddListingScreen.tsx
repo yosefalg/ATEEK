@@ -39,6 +39,7 @@ export function AddListingScreen({ onAdd, onDone }: { onAdd: (item: Listing) => 
   const draftWriteChainRef = useRef<Promise<void>>(Promise.resolve());
   const draftGenerationRef = useRef(0);
   const publishedRef = useRef(false);
+  const publishInFlightRef = useRef(false);
 
   useEffect(() => {
     let active = true;
@@ -158,11 +159,12 @@ export function AddListingScreen({ onAdd, onDone }: { onAdd: (item: Listing) => 
   };
 
   const publish = async () => {
-    if (publishing || analyzing) return;
+    if (publishInFlightRef.current || publishing || analyzing) return;
     if (!title.trim() || !amount || !image) {
       Alert.alert('أكمل بيانات الإعلان', 'أضف صورة وعنوانًا وسعرًا صحيحًا أكبر من صفر.');
       return;
     }
+    publishInFlightRef.current = true;
     setPublishing(true);
     try {
       await onAdd({
@@ -189,6 +191,7 @@ export function AddListingScreen({ onAdd, onDone }: { onAdd: (item: Listing) => 
       const message = error instanceof Error ? error.message : 'تحقق من اتصال الإنترنت ثم أعد المحاولة.';
       Alert.alert('تعذّر نشر الإعلان', message);
     } finally {
+      publishInFlightRef.current = false;
       setPublishing(false);
     }
   };
