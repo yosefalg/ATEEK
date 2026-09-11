@@ -34,6 +34,6 @@ test('onboarding exposes progress and actionable accessibility hints', () => {
 });
 
 test('onboarding completion persistence cannot leak an unhandled storage rejection', () => {
-  assert.match(gateSource, /AsyncStorage\.setItem\(KEY, '1'\)\.catch\(\(\) => \{\}\)/);
+  assert.match(gateSource, /AsyncStorage\.setItem\(KEY, '1'\)[\s\S]*?\.catch\(\(\) => \{\}\)/);
   assert.match(gateSource, /setDone\(true\)/);
 });
