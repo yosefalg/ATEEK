@@ -18,3 +18,14 @@ test('essential-only choice persists exact optional consent values', () => {
   assert.match(source, /setAnalytics\(nextAnalytics\)/);
   assert.match(source, /setMarketing\(nextMarketing\)/);
 });
+
+test('privacy switches expose one explicit accessible control without duplicate copy announcements', () => {
+  assert.match(source, /accessibilityRole="switch"/);
+  assert.match(source, /accessibilityLabel=\{title\}/);
+  assert.match(source, /accessibilityHint=\{note\}/);
+  assert.match(source, /accessibilityState=\{\{ disabled, checked: value \}\}/);
+  assert.match(source, /accessible=\{false\}/);
+  assert.match(source, /accessibilityElementsHidden/);
+  assert.match(source, /importantForAccessibility="no-hide-descendants"/);
+  assert.doesNotMatch(source, /style=\{styles\.rowCopy\} accessible accessibilityLabel=/);
+});

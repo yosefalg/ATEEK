@@ -167,10 +167,17 @@ function Row({
         value={value}
         disabled={disabled}
         onValueChange={onChange}
+        accessibilityRole="switch"
         accessibilityLabel={title}
         accessibilityHint={note}
+        accessibilityState={{ disabled, checked: value }}
       />
-      <View style={styles.rowCopy} accessible accessibilityLabel={`${title}. ${note}`}>
+      <View
+        style={styles.rowCopy}
+        accessible={false}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      >
         <Text style={[styles.rowTitle, { color: colors.ink }]}>{title}</Text>
         <Text style={[styles.note, { color: colors.muted }]}>{note}</Text>
       </View>
