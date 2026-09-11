@@ -22,3 +22,9 @@ test('similar listing thumbnails recover from remote image failures and reset fo
   assert.match(source,/image&&!failed\?<Image accessible=\{false\} source=\{\{uri:image\}\} onError=\{\(\)=>setFailed\(true\)\}/);
   assert.match(source,/xs\.map\(x=><SimilarListingRow key=\{x\.id\} item=\{x\} onOpen=\{onOpen\}\/\>\)/);
 });
+
+test('share card recovers from remote image failures before capture and resets for new media',()=>{
+  assert.match(source,/\[imageFailed,setImageFailed\]=useState\(false\);useEffect\(\(\)=>setImageFailed\(false\),\[image\]\)/);
+  assert.match(source,/image&&!imageFailed\?<Image accessible=\{false\} source=\{\{uri:image\}\} onError=\{\(\)=>setImageFailed\(true\)\} style=\{s\.shareImage\}/);
+  assert.match(source,/:<View accessible=\{false\} style=\{\[s\.shareImage,s\.shareImageFallback\]\}\/>/);
+});
