@@ -34,6 +34,7 @@ function GuardedPlayer({ reel, source, active, failedLabel, retryLabel }: { reel
   const reportedReady = useRef(false);
   const retryInFlight = useRef(false);
   const [fallback, setFallback] = useState(false);
+  const [retrying, setRetrying] = useState(false);
   const [retrySerial, setRetrySerial] = useState(0);
   const player = useVideoPlayer(source, (instance) => { instance.loop = true; });
   const event = useEvent(player, 'statusChange', { status: player.status });
@@ -82,6 +83,7 @@ function GuardedPlayer({ reel, source, active, failedLabel, retryLabel }: { reel
   const retry = async () => {
     if (retryInFlight.current) return;
     retryInFlight.current = true;
+    setRetrying(true);
     startedAt.current = globalThis.performance?.now?.() ?? Date.now();
     reportedReady.current = false;
     setFallback(false);
@@ -94,20 +96,21 @@ function GuardedPlayer({ reel, source, active, failedLabel, retryLabel }: { reel
       setFallback(true);
     } finally {
       retryInFlight.current = false;
+      setRetrying(false);
     }
   };
 
-  if (fallback) return <FallbackCard reel={reel} label={failedLabel} retryLabel={retryLabel} thumbnail={thumbnail} onRetry={() => void retry()} />;
+  if (fallback) return <FallbackCard reel={reel} label={failedLabel} retryLabel={retryLabel} thumbnail={thumbnail} onRetry={() => void retry()} retrying={retrying} />;
   return <View style={StyleSheet.absoluteFill}><VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} surfaceType="textureView" />{status !== 'readyToPlay' && status !== 'error' ? <VideoLoading /> : null}</View>;
 }
 
 function VideoLoading() { return <View style={[StyleSheet.absoluteFill, s.loading]}><ActivityIndicator size="small" color={ui.colors.accent} /></View>; }
 
-function FallbackCard({ reel, label, retryLabel, thumbnail, onRetry }: { reel: ReelVideoInput; label: string; retryLabel: string; thumbnail?: string | null; onRetry?: () => void }) {
+function FallbackCard({ reel, label, retryLabel, thumbnail, onRetry, retrying = false }: { reel: ReelVideoInput; label: string; retryLabel: string; thumbnail?: string | null; onRetry?: () => void; retrying?: boolean }) {
   const [thumbnailFailed, setThumbnailFailed] = useState(false);
   useEffect(() => setThumbnailFailed(false), [thumbnail]);
   const showThumbnail = !!thumbnail && !thumbnailFailed;
-  return <View style={[StyleSheet.absoluteFill, s.invalid]}>{showThumbnail ? <Image accessible={false} importantForAccessibility="no-hide-descendants" source={{ uri: thumbnail! }} style={StyleSheet.absoluteFill} resizeMode="cover" onError={() => setThumbnailFailed(true)} /> : null}<View style={s.fallbackShade} /><Ionicons name={showThumbnail?'image-outline':'videocam-off-outline'} size={36} color={ui.colors.muted} /><Text style={s.invalidText}>{label}</Text>{!!reel.caption && <Text numberOfLines={3} style={s.caption}>{reel.caption}</Text>}{onRetry?<Pressable accessibilityRole="button" accessibilityLabel={retryLabel} onPress={onRetry} style={s.retry}><Ionicons name="refresh" size={18} color={ui.colors.background} /><Text style={s.retryText}>{retryLabel}</Text></Pressable>:null}</View>;
+  return <View style={[StyleSheet.absoluteFill, s.invalid]}>{showThumbnail ? <Image accessible={false} importantForAccessibility="no-hide-descendants" source={{ uri: thumbnail! }} style={StyleSheet.absoluteFill} resizeMode="cover" onError={() => setThumbnailFailed(true)} /> : null}<View style={s.fallbackShade} /><Ionicons name={showThumbnail?'image-outline':'videocam-off-outline'} size={36} color={ui.colors.muted} /><Text style={s.invalidText}>{label}</Text>{!!reel.caption && <Text numberOfLines={3} style={s.caption}>{reel.caption}</Text>}{onRetry?<Pressable accessibilityRole="button" accessibilityLabel={retryLabel} accessibilityState={{ disabled: retrying, busy: retrying }} disabled={retrying} onPress={onRetry} style={[s.retry, retrying && s.retryDisabled]}>{retrying?<ActivityIndicator size="small" color={ui.colors.background} />:<Ionicons name="refresh" size={18} color={ui.colors.background} />}<Text style={s.retryText}>{retryLabel}</Text></Pressable>:null}</View>;
 }
 
 function InvalidReelFallback({ reel, label, retryLabel }: { reel: ReelVideoInput; label: string; retryLabel: string }) {
@@ -134,5 +137,6 @@ const s = StyleSheet.create({
   invalidText: { fontFamily: 'System', color: '#A7AFC2', fontWeight: '700', textAlign: 'center', writingDirection: 'auto', zIndex: 2 },
   caption: { fontFamily: 'System', color: '#F7F8FC', textAlign: 'center', lineHeight: 20, zIndex: 2 },
   retry: { zIndex: 2, minHeight: 44, borderRadius: 14, backgroundColor: '#E0B86A', paddingHorizontal: 15, flexDirection: 'row-reverse', gap: 8, alignItems: 'center', justifyContent: 'center' },
+  retryDisabled: { opacity: 0.72 },
   retryText: { fontFamily: 'System', color: '#080A10', fontWeight: '900' },
 });
