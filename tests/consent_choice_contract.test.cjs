@@ -29,3 +29,11 @@ test('privacy switches expose one explicit accessible control without duplicate 
   assert.match(source, /importantForAccessibility="no-hide-descendants"/);
   assert.doesNotMatch(source, /style=\{styles\.rowCopy\} accessible accessibilityLabel=/);
 });
+
+test('privacy consent saves are synchronously single-flight to prevent competing writes', () => {
+  assert.match(source, /const savingRef = useRef\(false\)/);
+  assert.match(source, /if \(savingRef\.current\) return;/);
+  assert.match(source, /savingRef\.current = true;\s*setSaving\(true\);/s);
+  assert.match(source, /finally \{\s*savingRef\.current = false;\s*setSaving\(false\);\s*\}/s);
+  assert.doesNotMatch(source, /if \(saving\) return;/);
+});

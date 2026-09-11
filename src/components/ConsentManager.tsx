@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { PropsWithChildren, useEffect, useState } from 'react';
+import { PropsWithChildren, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Modal, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { ThemeColors, useAteekTheme } from '../theme/ThemeProvider';
 
@@ -30,6 +30,7 @@ export function ConsentManager({ children }: PropsWithChildren) {
   const [analytics, setAnalytics] = useState(false);
   const [marketing, setMarketing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
 
   useEffect(() => {
     let mounted = true;
@@ -70,7 +71,8 @@ export function ConsentManager({ children }: PropsWithChildren) {
   }, []);
 
   const save = async (nextAnalytics = analytics, nextMarketing = marketing) => {
-    if (saving) return;
+    if (savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
 
     const value: Consents = {
@@ -88,6 +90,7 @@ export function ConsentManager({ children }: PropsWithChildren) {
     } catch {
       Alert.alert('تعذر حفظ الاختيارات', 'تحقق من مساحة التخزين ثم حاول مرة أخرى.');
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
