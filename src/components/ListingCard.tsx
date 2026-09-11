@@ -52,6 +52,8 @@ async function getSellerMetrics(sellerId: string): Promise<Metrics | null> {
 
 export function ListingCard({ item, favorite, onFavorite, onPress }: Props) {
   const { colors, lowData } = useAteekTheme();
+  const imageUri = item.image?.trim() ?? '';
+  const hasImage = imageUri.length > 0;
   const [loaded, setLoaded] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
   const [metrics, setMetrics] = useState<Metrics | null>(item.sellerId ? cache.get(item.sellerId) ?? null : null);
@@ -69,7 +71,7 @@ export function ListingCard({ item, favorite, onFavorite, onPress }: Props) {
   useEffect(() => {
     setLoaded(false);
     setImageFailed(false);
-  }, [item.image]);
+  }, [imageUri]);
 
   useEffect(() => {
     let alive = true;
@@ -121,12 +123,12 @@ export function ListingCard({ item, favorite, onFavorite, onPress }: Props) {
       >
         <View style={[styles.edge, { backgroundColor: colors.line }]} />
         <View style={[styles.imageWrap, { backgroundColor: colors.forestSoft }]}>
-          {!loaded && !imageFailed && <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.forestSoft }]} />}
-          {imageFailed ? (
+          {hasImage && !loaded && !imageFailed && <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.forestSoft }]} />}
+          {!hasImage || imageFailed ? (
             <View
               accessible
               accessibilityRole="image"
-              accessibilityLabel={`تعذر تحميل صورة ${item.title}`}
+              accessibilityLabel={imageFailed ? `تعذر تحميل صورة ${item.title}` : `لا توجد صورة للإعلان ${item.title}`}
               style={[styles.imageFallback, { backgroundColor: colors.forestSoft }]}
             >
               <Ionicons name="image-outline" size={28} color={colors.muted} />
@@ -134,7 +136,7 @@ export function ListingCard({ item, favorite, onFavorite, onPress }: Props) {
           ) : (
             <Image
               accessibilityLabel={`صورة ${item.title}`}
-              source={{ uri: item.image }}
+              source={{ uri: imageUri }}
               resizeMode="cover"
               progressiveRenderingEnabled
               fadeDuration={lowData ? 0 : 180}
