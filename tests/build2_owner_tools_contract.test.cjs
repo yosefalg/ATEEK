@@ -15,3 +15,10 @@ test('owner mutations and share capture remain synchronously single-flight',()=>
   assert.match(source,/if\(busyRef\.current\)return;busyRef\.current=true;setBusy\(true\)/);
   assert.match(source,/if\(!ref\.current\|\|busyRef\.current\)return;busyRef\.current=true;setBusy\(true\)/);
 });
+
+test('similar listing thumbnails recover from remote image failures and reset for new media',()=>{
+  assert.match(source,/function SimilarListingRow\(/);
+  assert.match(source,/\[failed,setFailed\]=useState\(false\);useEffect\(\(\)=>setFailed\(false\),\[image\]\)/);
+  assert.match(source,/image&&!failed\?<Image accessible=\{false\} source=\{\{uri:image\}\} onError=\{\(\)=>setFailed\(true\)\}/);
+  assert.match(source,/xs\.map\(x=><SimilarListingRow key=\{x\.id\} item=\{x\} onOpen=\{onOpen\}\/\>\)/);
+});
