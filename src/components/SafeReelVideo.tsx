@@ -45,6 +45,12 @@ function GuardedPlayer({ reel, source, active, failedLabel, retryLabel }: { reel
   const error = event.error;
   const thumbnail = resolveThumbnail(reel);
 
+  useEffect(() => {
+    // React Strict Mode can run setup -> cleanup -> setup in development.
+    // Re-arm the mounted guard on every effect setup so retries remain usable.
+    mountedRef.current = true;
+  }, []);
+
   useEffect(() => () => {
     mountedRef.current = false;
     retryInFlight.current = false;
