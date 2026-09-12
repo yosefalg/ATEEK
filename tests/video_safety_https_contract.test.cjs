@@ -23,14 +23,27 @@ test('IPv4 safety rejects non-public protocol and documentation address blocks',
   assert.match(source, /a === 203 && b === 0 && c === 113/);
 });
 
-test('IPv6 safety fails closed for mapped IPv4, multicast, and deprecated site-local literals', () => {
+test('IPv6 safety fails closed for mapped IPv4, multicast, deprecated site-local, and documentation literals', () => {
   assert.match(source, /if \(normalized\.startsWith\('::ffff:'\)\) return true;/);
   assert.match(source, /if \(normalized\.startsWith\('ff'\)\) return true;/);
   assert.match(source, /if \(\/\^fe\[cdef\]\/\.test\(normalized\)\) return true;/);
+  assert.match(source, /normalized === '2001:db8::' \|\| normalized\.startsWith\('2001:db8:'\)/);
 });
 
 test('local hostname safety canonicalizes DNS root dots and localdomain aliases', () => {
   assert.match(source, /replace\(\/\\\.\$\/, ''\)/);
   assert.match(source, /host === 'localdomain'/);
   assert.match(source, /host\.endsWith\('\.localdomain'\)/);
+});
+
+test('reserved DNS namespaces cannot be used as reel media origins', () => {
+  assert.match(source, /isReservedHostname\(host\)/);
+  assert.match(source, /host === 'home\.arpa'/);
+  assert.match(source, /host\.endsWith\('\.home\.arpa'\)/);
+  assert.match(source, /host === 'test'/);
+  assert.match(source, /host\.endsWith\('\.test'\)/);
+  assert.match(source, /host === 'invalid'/);
+  assert.match(source, /host\.endsWith\('\.invalid'\)/);
+  assert.match(source, /host === 'example'/);
+  assert.match(source, /host\.endsWith\('\.example'\)/);
 });

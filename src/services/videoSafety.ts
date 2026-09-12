@@ -39,11 +39,25 @@ function isPrivateIpv6(host: string) {
   if (/^fe[89ab]/.test(normalized)) return true;
   if (/^fe[cdef]/.test(normalized)) return true;
   if (normalized.startsWith('ff')) return true;
+  if (normalized === '2001:db8::' || normalized.startsWith('2001:db8:')) return true;
   // IPv4-mapped IPv6 literals can encode loopback/private IPv4 in hexadecimal
   // (for example ::ffff:7f00:1). Reels never need literal mapped addresses,
   // so fail closed instead of attempting partial textual IPv4 decoding here.
   if (normalized.startsWith('::ffff:')) return true;
   return false;
+}
+
+function isReservedHostname(host: string) {
+  return (
+    host === 'home.arpa' ||
+    host.endsWith('.home.arpa') ||
+    host === 'test' ||
+    host.endsWith('.test') ||
+    host === 'invalid' ||
+    host.endsWith('.invalid') ||
+    host === 'example' ||
+    host.endsWith('.example')
+  );
 }
 
 function isLocalNetworkHost(hostname: string) {
@@ -57,6 +71,7 @@ function isLocalNetworkHost(hostname: string) {
     host === 'localdomain' ||
     host.endsWith('.localdomain') ||
     host.endsWith('.local') ||
+    isReservedHostname(host) ||
     isPrivateIpv4(host) ||
     isPrivateIpv6(host)
   );
