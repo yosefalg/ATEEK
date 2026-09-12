@@ -254,8 +254,8 @@ export function AddListingScreen({ onAdd, onDone }: { onAdd: (item: Listing) => 
           <Text style={styles.statusText}>{statusText}</Text>
         </View>}
 
-        <Field label="عنوان الإعلان" value={title} onChangeText={setTitle} placeholder="مثال: ساعة جيب عتيقة" />
-        <Field label="السعر بالدينار العراقي" value={price} onChangeText={setPrice} placeholder="مثال: 150000" keyboardType="number-pad" />
+        <Field label="عنوان الإعلان" value={title} onChangeText={setTitle} placeholder="مثال: ساعة جيب عتيقة" disabled={busy} />
+        <Field label="السعر بالدينار العراقي" value={price} onChangeText={setPrice} placeholder="مثال: 150000" keyboardType="number-pad" disabled={busy} />
         {!!price.trim() && !amount && <Text style={styles.validationText} accessibilityRole="alert">أدخل سعرًا صحيحًا أكبر من صفر</Text>}
 
         <Text style={styles.label} accessibilityRole="header">القسم</Text>
@@ -276,8 +276,8 @@ export function AddListingScreen({ onAdd, onDone }: { onAdd: (item: Listing) => 
           })}
         </ScrollView>
 
-        <Field label="المحافظة" value={location} onChangeText={setLocation} placeholder="النجف" />
-        <Field label="وصف السلعة" value={description} onChangeText={setDescription} placeholder="اذكر الحالة والعمر وأهم التفاصيل..." multiline />
+        <Field label="المحافظة" value={location} onChangeText={setLocation} placeholder="النجف" disabled={busy} />
+        <Field label="وصف السلعة" value={description} onChangeText={setDescription} placeholder="اذكر الحالة والعمر وأهم التفاصيل..." multiline disabled={busy} />
 
         <Pressable
           style={[styles.publish, !canPublish && styles.disabled]}
@@ -296,17 +296,19 @@ export function AddListingScreen({ onAdd, onDone }: { onAdd: (item: Listing) => 
   );
 }
 
-function Field(props: { label: string; value: string; onChangeText: (value: string) => void; placeholder: string; multiline?: boolean; keyboardType?: 'default' | 'number-pad' }) {
-  const { label, ...inputProps } = props;
+function Field(props: { label: string; value: string; onChangeText: (value: string) => void; placeholder: string; multiline?: boolean; keyboardType?: 'default' | 'number-pad'; disabled?: boolean }) {
+  const { label, disabled = false, ...inputProps } = props;
   return <View style={styles.field}>
     <Text style={styles.label}>{label}</Text>
     <TextInput
       maxLength={props.multiline ? 2000 : 120}
       {...inputProps}
-      style={[styles.input, props.multiline && styles.multiline]}
+      editable={!disabled}
+      style={[styles.input, props.multiline && styles.multiline, disabled && styles.disabled]}
       placeholderTextColor={colors.muted}
       textAlign="right"
       accessibilityLabel={label}
+      accessibilityState={{ disabled }}
     />
   </View>;
 }
