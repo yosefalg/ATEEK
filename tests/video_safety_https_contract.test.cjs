@@ -22,3 +22,9 @@ test('IPv6 safety fails closed for mapped IPv4, multicast, and deprecated site-l
   assert.match(source, /if \(normalized\.startsWith\('ff'\)\) return true;/);
   assert.match(source, /if \(\/\^fe\[cdef\]\/\.test\(normalized\)\) return true;/);
 });
+
+test('local hostname safety canonicalizes DNS root dots and localdomain aliases', () => {
+  assert.match(source, /replace\(\/\\\.\$\/, ''\)/);
+  assert.match(source, /host === 'localdomain'/);
+  assert.match(source, /host\.endsWith\('\.localdomain'\)/);
+});

@@ -45,10 +45,15 @@ function isPrivateIpv6(host: string) {
 }
 
 function isLocalNetworkHost(hostname: string) {
-  const host = hostname.replace(/^\[|\]$/g, '').toLowerCase();
+  // URL.hostname preserves an explicit DNS root dot (for example localhost.).
+  // Canonicalize it before local-name checks so equivalent local aliases cannot
+  // bypass the media URL guard.
+  const host = hostname.replace(/^\[|\]$/g, '').toLowerCase().replace(/\.$/, '');
   return (
     host === 'localhost' ||
     host.endsWith('.localhost') ||
+    host === 'localdomain' ||
+    host.endsWith('.localdomain') ||
     host.endsWith('.local') ||
     isPrivateIpv4(host) ||
     isPrivateIpv6(host)
