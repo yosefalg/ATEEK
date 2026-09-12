@@ -19,6 +19,10 @@ test('onboarding recenters the active page after a viewport resize', () => {
   assert.match(source, /cancelAnimationFrame\(frame\)/);
 });
 
+test('onboarding releases a page-transition lock after viewport recentering', () => {
+  assert.match(source, /requestAnimationFrame\(\(\) => \{[\s\S]*?scrollToOffset\(\{ offset: pageWidth \* index, animated: false \}\);[\s\S]*?setMoving\(false\);[\s\S]*?\}\)/);
+});
+
 test('onboarding keeps lightweight list rendering', () => {
   assert.match(source, /initialNumToRender=\{1\}/);
   assert.match(source, /maxToRenderPerBatch=\{2\}/);

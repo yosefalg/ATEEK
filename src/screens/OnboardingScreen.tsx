@@ -22,6 +22,7 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
     previousPageWidth.current = pageWidth;
     const frame = requestAnimationFrame(() => {
       ref.current?.scrollToOffset({ offset: pageWidth * index, animated: false });
+      setMoving(false);
     });
     return () => cancelAnimationFrame(frame);
   }, [index, pageWidth]);
