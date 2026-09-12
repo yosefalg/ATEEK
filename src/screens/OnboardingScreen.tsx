@@ -65,7 +65,7 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
       />
       <Text style={s.progress} accessibilityLiveRegion="polite" accessibilityLabel={`الصفحة ${index + 1} من ${pages.length}`}>{index + 1} / {pages.length}</Text>
       <View style={s.dots} importantForAccessibility="no-hide-descendants">{pages.map((_, i) => <View key={i} style={[s.dot, i === index && s.dotActive]} />)}</View>
-      <Pressable accessibilityRole="button" accessibilityLabel={primaryLabel} accessibilityHint={index === pages.length - 1 ? 'ينهي المقدمة ويفتح عتيك' : 'ينتقل إلى صفحة المقدمة التالية'} onPress={next} style={s.primary}><Text style={s.primaryText}>{primaryLabel}</Text><Ionicons name="arrow-back" size={ui.icon} color={ui.colors.background} /></Pressable>
+      <Pressable accessibilityRole="button" accessibilityLabel={primaryLabel} accessibilityHint={index === pages.length - 1 ? 'ينهي المقدمة ويفتح عتيك' : 'ينتقل إلى صفحة المقدمة التالية'} onPress={next} style={s.primary}><Text style={s.primaryText}>{primaryLabel}</Text><Ionicons accessible={false} importantForAccessibility="no" name="arrow-back" size={ui.icon} color={ui.colors.background} /></Pressable>
       <Pressable accessibilityRole="button" accessibilityLabel="تخطي المقدمة" accessibilityHint="ينهي المقدمة ويفتح عتيك مباشرة" onPress={onDone} style={s.skip}><Text style={s.skipText}>تخطي</Text></Pressable>
     </View>
   );
