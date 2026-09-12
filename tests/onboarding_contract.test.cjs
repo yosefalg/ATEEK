@@ -39,20 +39,28 @@ test('onboarding exposes progress and actionable accessibility hints', () => {
 
 test('onboarding next navigation is single-flight while paging animation is active', () => {
   assert.match(source, /const \[moving, setMoving\] = useState\(false\)/);
-  assert.match(source, /if \(moving\) return/);
+  assert.match(source, /if \(moving \|\| completing\) return/);
   assert.match(source, /setMoving\(true\)[\s\S]*?scrollToIndex\(\{ index: index \+ 1, animated: true \}\)/);
   assert.match(source, /onMomentumScrollEnd=[\s\S]*?setMoving\(false\)/);
   assert.match(source, /onScrollToIndexFailed=[\s\S]*?setMoving\(false\)/);
+});
+
+test('onboarding completion is synchronously single-flight for finish and skip actions', () => {
+  assert.match(source, /const completionRef = useRef\(false\)/);
+  assert.match(source, /const finish = \(\) => \{[\s\S]*?if \(completionRef\.current\) return;[\s\S]*?completionRef\.current = true;[\s\S]*?setCompleting\(true\);[\s\S]*?onDone\(\);/);
+  assert.match(source, /if \(index >= pages\.length - 1\) return finish\(\)/);
+  assert.match(source, /disabled=\{completing\} onPress=\{finish\}/);
 });
 
 test('onboarding blocks gesture paging while programmatic page navigation is active', () => {
   assert.match(source, /scrollEnabled=\{!moving\}/);
 });
 
-test('onboarding next control exposes the busy state to touch and assistive technology', () => {
-  assert.match(source, /accessibilityState=\{\{ disabled: moving \}\}/);
-  assert.match(source, /disabled=\{moving\}/);
-  assert.match(source, /style=\{\[s\.primary, moving && s\.primaryBusy\]\}/);
+test('onboarding controls expose completion busy state to touch and assistive technology', () => {
+  assert.match(source, /const controlsDisabled = moving \|\| completing/);
+  assert.match(source, /accessibilityState=\{\{ disabled: controlsDisabled, busy: completing \}\}/);
+  assert.match(source, /disabled=\{controlsDisabled\}/);
+  assert.match(source, /accessibilityState=\{\{ disabled: completing, busy: completing \}\}/);
 });
 
 test('onboarding completion persistence cannot leak an unhandled storage rejection', () => {

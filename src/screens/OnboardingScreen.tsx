@@ -14,8 +14,10 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
   const pageWidth = Math.max(1, width);
   const ref = useRef<FlatList<(typeof pages)[number]>>(null);
   const previousPageWidth = useRef(pageWidth);
+  const completionRef = useRef(false);
   const [index, setIndex] = useState(0);
   const [moving, setMoving] = useState(false);
+  const [completing, setCompleting] = useState(false);
 
   useEffect(() => {
     if (previousPageWidth.current === pageWidth) return;
@@ -27,14 +29,22 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
     return () => cancelAnimationFrame(frame);
   }, [index, pageWidth]);
 
+  const finish = () => {
+    if (completionRef.current) return;
+    completionRef.current = true;
+    setCompleting(true);
+    onDone();
+  };
+
   const next = () => {
-    if (moving) return;
-    if (index >= pages.length - 1) return onDone();
+    if (moving || completing) return;
+    if (index >= pages.length - 1) return finish();
     if (!ref.current) return;
     setMoving(true);
     ref.current.scrollToIndex({ index: index + 1, animated: true });
   };
   const primaryLabel = index === pages.length - 1 ? 'ابدأ استخدام عتيك' : 'التالي';
+  const controlsDisabled = moving || completing;
   return (
     <View style={s.root}>
       <View style={s.brandRow} accessible accessibilityRole="header"><Text style={s.brand}>ATEEK</Text><Text style={s.ar}>عتيك</Text></View>
@@ -75,8 +85,8 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
       />
       <Text style={s.progress} accessibilityLiveRegion="polite" accessibilityLabel={`الصفحة ${index + 1} من ${pages.length}`}>{index + 1} / {pages.length}</Text>
       <View style={s.dots} importantForAccessibility="no-hide-descendants">{pages.map((_, i) => <View key={i} style={[s.dot, i === index && s.dotActive]} />)}</View>
-      <Pressable accessibilityRole="button" accessibilityLabel={primaryLabel} accessibilityHint={index === pages.length - 1 ? 'ينهي المقدمة ويفتح عتيك' : 'ينتقل إلى صفحة المقدمة التالية'} accessibilityState={{ disabled: moving }} disabled={moving} onPress={next} style={[s.primary, moving && s.primaryBusy]}><Text style={s.primaryText}>{primaryLabel}</Text><Ionicons accessible={false} importantForAccessibility="no" name="arrow-back" size={ui.icon} color={ui.colors.background} /></Pressable>
-      <Pressable accessibilityRole="button" accessibilityLabel="تخطي المقدمة" accessibilityHint="ينهي المقدمة ويفتح عتيك مباشرة" onPress={onDone} style={s.skip}><Text style={s.skipText}>تخطي</Text></Pressable>
+      <Pressable accessibilityRole="button" accessibilityLabel={primaryLabel} accessibilityHint={index === pages.length - 1 ? 'ينهي المقدمة ويفتح عتيك' : 'ينتقل إلى صفحة المقدمة التالية'} accessibilityState={{ disabled: controlsDisabled, busy: completing }} disabled={controlsDisabled} onPress={next} style={[s.primary, controlsDisabled && s.primaryBusy]}><Text style={s.primaryText}>{primaryLabel}</Text><Ionicons accessible={false} importantForAccessibility="no" name="arrow-back" size={ui.icon} color={ui.colors.background} /></Pressable>
+      <Pressable accessibilityRole="button" accessibilityLabel="تخطي المقدمة" accessibilityHint="ينهي المقدمة ويفتح عتيك مباشرة" accessibilityState={{ disabled: completing, busy: completing }} disabled={completing} onPress={finish} style={s.skip}><Text style={s.skipText}>تخطي</Text></Pressable>
     </View>
   );
 }
