@@ -15,6 +15,7 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
   const ref = useRef<FlatList<(typeof pages)[number]>>(null);
   const previousPageWidth = useRef(pageWidth);
   const [index, setIndex] = useState(0);
+  const [moving, setMoving] = useState(false);
 
   useEffect(() => {
     if (previousPageWidth.current === pageWidth) return;
@@ -26,8 +27,11 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
   }, [index, pageWidth]);
 
   const next = () => {
+    if (moving) return;
     if (index >= pages.length - 1) return onDone();
-    ref.current?.scrollToIndex({ index: index + 1, animated: true });
+    if (!ref.current) return;
+    setMoving(true);
+    ref.current.scrollToIndex({ index: index + 1, animated: true });
   };
   const primaryLabel = index === pages.length - 1 ? 'ابدأ استخدام عتيك' : 'التالي';
   return (
@@ -45,10 +49,14 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
         windowSize={3}
         removeClippedSubviews
         getItemLayout={(_, itemIndex) => ({ length: pageWidth, offset: pageWidth * itemIndex, index: itemIndex })}
-        onScrollToIndexFailed={({ index: failedIndex }) => ref.current?.scrollToOffset({ offset: pageWidth * failedIndex, animated: true })}
+        onScrollToIndexFailed={({ index: failedIndex }) => {
+          setMoving(false);
+          ref.current?.scrollToOffset({ offset: pageWidth * failedIndex, animated: true });
+        }}
         onMomentumScrollEnd={(e) => {
           const nextIndex = Math.round(e.nativeEvent.contentOffset.x / pageWidth);
           setIndex(Math.max(0, Math.min(pages.length - 1, nextIndex)));
+          setMoving(false);
         }}
         renderItem={({ item, index: pageIndex }) => (
           <View
@@ -65,7 +73,7 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
       />
       <Text style={s.progress} accessibilityLiveRegion="polite" accessibilityLabel={`الصفحة ${index + 1} من ${pages.length}`}>{index + 1} / {pages.length}</Text>
       <View style={s.dots} importantForAccessibility="no-hide-descendants">{pages.map((_, i) => <View key={i} style={[s.dot, i === index && s.dotActive]} />)}</View>
-      <Pressable accessibilityRole="button" accessibilityLabel={primaryLabel} accessibilityHint={index === pages.length - 1 ? 'ينهي المقدمة ويفتح عتيك' : 'ينتقل إلى صفحة المقدمة التالية'} onPress={next} style={s.primary}><Text style={s.primaryText}>{primaryLabel}</Text><Ionicons accessible={false} importantForAccessibility="no" name="arrow-back" size={ui.icon} color={ui.colors.background} /></Pressable>
+      <Pressable accessibilityRole="button" accessibilityLabel={primaryLabel} accessibilityHint={index === pages.length - 1 ? 'ينهي المقدمة ويفتح عتيك' : 'ينتقل إلى صفحة المقدمة التالية'} accessibilityState={{ disabled: moving }} disabled={moving} onPress={next} style={[s.primary, moving && s.primaryBusy]}><Text style={s.primaryText}>{primaryLabel}</Text><Ionicons accessible={false} importantForAccessibility="no" name="arrow-back" size={ui.icon} color={ui.colors.background} /></Pressable>
       <Pressable accessibilityRole="button" accessibilityLabel="تخطي المقدمة" accessibilityHint="ينهي المقدمة ويفتح عتيك مباشرة" onPress={onDone} style={s.skip}><Text style={s.skipText}>تخطي</Text></Pressable>
     </View>
   );
@@ -85,6 +93,7 @@ const s = StyleSheet.create({
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#3A3F4A' },
   dotActive: { width: 24, backgroundColor: ui.colors.accent },
   primary: { marginHorizontal: ui.spacing.standard, minHeight: 54, borderRadius: ui.radius.card, backgroundColor: ui.colors.accent, flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center' },
+  primaryBusy: { opacity: 0.72 },
   primaryText: { color: ui.colors.background, fontWeight: '900' },
   skip: { minHeight: 48, alignItems: 'center', justifyContent: 'center' },
   skipText: { color: ui.colors.muted, fontWeight: '700' },

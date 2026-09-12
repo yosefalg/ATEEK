@@ -33,6 +33,20 @@ test('onboarding exposes progress and actionable accessibility hints', () => {
   assert.match(source, /accessibilityHint="ينهي المقدمة ويفتح عتيك مباشرة"/);
 });
 
+test('onboarding next navigation is single-flight while paging animation is active', () => {
+  assert.match(source, /const \[moving, setMoving\] = useState\(false\)/);
+  assert.match(source, /if \(moving\) return/);
+  assert.match(source, /setMoving\(true\)[\s\S]*?scrollToIndex\(\{ index: index \+ 1, animated: true \}\)/);
+  assert.match(source, /onMomentumScrollEnd=[\s\S]*?setMoving\(false\)/);
+  assert.match(source, /onScrollToIndexFailed=[\s\S]*?setMoving\(false\)/);
+});
+
+test('onboarding next control exposes the busy state to touch and assistive technology', () => {
+  assert.match(source, /accessibilityState=\{\{ disabled: moving \}\}/);
+  assert.match(source, /disabled=\{moving\}/);
+  assert.match(source, /style=\{\[s\.primary, moving && s\.primaryBusy\]\}/);
+});
+
 test('onboarding completion persistence cannot leak an unhandled storage rejection', () => {
   assert.match(gateSource, /AsyncStorage\.setItem\(KEY, '1'\)[\s\S]*?\.catch\(\(\) => \{\}\)/);
   assert.match(gateSource, /setDone\(true\)/);
