@@ -170,32 +170,32 @@ export function AIAssistantScreen() {
         <Text style={[s.subtitle, { color: colors.muted }]}>{model} • {modeLabel}{remaining != null ? ` • متبقي ${remaining}` : ''}</Text>
       </View>
       <Pressable accessibilityRole="button" accessibilityLabel="محادثة جديدة" onPress={newChat} style={[s.newButton, { borderColor: colors.line, backgroundColor: colors.glass }]}>
-        <Ionicons name="create-outline" size={21} color={colors.gold}/>
+        <Ionicons accessible={false} name="create-outline" size={21} color={colors.gold}/>
       </Pressable>
     </View>
 
     <FlatList horizontal inverted data={modes} keyExtractor={item => item.id} showsHorizontalScrollIndicator={false} contentContainerStyle={s.modes} style={s.modeList} renderItem={({ item }) => {
       const active = item.id === mode;
-      return <Pressable accessibilityRole="button" accessibilityState={{ selected: active }} accessibilityLabel={`وضع ${item.label}`} disabled={busy} onPress={() => setMode(item.id)} style={[s.modeChip, { borderColor: active ? colors.gold : colors.line, backgroundColor: active ? colors.forestSoft : colors.glass }]}>
-        <Ionicons name={item.icon} size={16} color={active ? colors.gold : colors.muted}/><Text style={[s.modeText, { color: active ? colors.ink : colors.muted }]}>{item.label}</Text>
+      return <Pressable accessibilityRole="button" accessibilityState={{ selected: active, disabled: busy }} accessibilityLabel={`وضع ${item.label}`} disabled={busy} onPress={() => setMode(item.id)} style={[s.modeChip, { borderColor: active ? colors.gold : colors.line, backgroundColor: active ? colors.forestSoft : colors.glass }]}>
+        <Ionicons accessible={false} name={item.icon} size={16} color={active ? colors.gold : colors.muted}/><Text style={[s.modeText, { color: active ? colors.ink : colors.muted }]}>{item.label}</Text>
       </Pressable>;
     }}/>
 
     <FlatList ref={listRef} data={messages} keyExtractor={item => item.id} contentContainerStyle={messages.length ? s.messages : s.emptyMessages} keyboardShouldPersistTaps="handled" onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })} renderItem={({ item }) => {
       const mine = item.role === 'user';
       return <View style={[s.bubble, mine ? s.userBubble : s.aiBubble, { backgroundColor: mine ? colors.gold : colors.glassStrong, borderColor: mine ? colors.gold : colors.line }]}>
-        {!mine && <View style={s.aiLabel}><Ionicons name="sparkles" size={14} color={colors.gold}/><Text style={[s.aiLabelText, { color: colors.gold }]}>ATEEK AI</Text></View>}
-        {item.body ? <Text selectable style={[s.body, { color: mine ? colors.forest : colors.ink }]}>{item.body}</Text> : <View style={s.typing}><ActivityIndicator size="small" color={colors.gold}/><Text style={[s.typingText, { color: colors.muted }]}>يفكر…</Text></View>}
-        {!mine && !!item.body && <Pressable accessibilityRole="button" accessibilityLabel="مشاركة الرد" onPress={() => void Share.share({ message: item.body }).catch(() => {})} style={s.share}><Ionicons name="share-social-outline" size={17} color={colors.muted}/><Text style={[s.shareText, { color: colors.muted }]}>مشاركة</Text></Pressable>}
+        {!mine && <View style={s.aiLabel}><Ionicons accessible={false} name="sparkles" size={14} color={colors.gold}/><Text style={[s.aiLabelText, { color: colors.gold }]}>ATEEK AI</Text></View>}
+        {item.body ? <Text selectable style={[s.body, { color: mine ? colors.forest : colors.ink }]}>{item.body}</Text> : <View accessibilityLiveRegion="polite" accessibilityLabel="ATEEK AI يفكر" style={s.typing}><ActivityIndicator accessibilityElementsHidden size="small" color={colors.gold}/><Text style={[s.typingText, { color: colors.muted }]}>يفكر…</Text></View>}
+        {!mine && !!item.body && <Pressable accessibilityRole="button" accessibilityLabel="مشاركة الرد" onPress={() => void Share.share({ message: item.body }).catch(() => {})} style={s.share}><Ionicons accessible={false} name="share-social-outline" size={17} color={colors.muted}/><Text style={[s.shareText, { color: colors.muted }]}>مشاركة</Text></Pressable>}
       </View>;
-    }} ListEmptyComponent={<View style={s.welcome}><View style={[s.logo, { backgroundColor: colors.forestSoft, borderColor: colors.line }]}><Ionicons name="sparkles" size={34} color={colors.gold}/></View><Text style={[s.welcomeTitle, { color: colors.ink }]}>مساعد عتيك الذكي</Text><Text style={[s.welcomeBody, { color: colors.muted }]}>اسأل عن التحف، البيع والشراء، تحسين إعلانك، أو أي سؤال عام. لا ترسل كلمات مرور أو بيانات دفع.</Text></View>}/>
+    }} ListEmptyComponent={<View style={s.welcome}><View style={[s.logo, { backgroundColor: colors.forestSoft, borderColor: colors.line }]}><Ionicons accessible={false} name="sparkles" size={34} color={colors.gold}/></View><Text style={[s.welcomeTitle, { color: colors.ink }]}>مساعد عتيك الذكي</Text><Text style={[s.welcomeBody, { color: colors.muted }]}>اسأل عن التحف، البيع والشراء، تحسين إعلانك، أو أي سؤال عام. لا ترسل كلمات مرور أو بيانات دفع.</Text></View>}/>
 
     {!!error && <Text accessibilityRole="alert" style={[s.error, { color: colors.danger }]}>{error}</Text>}
     <View style={[s.composer, { borderTopColor: colors.line, backgroundColor: colors.glassStrong }]}>
-      <Pressable accessibilityRole="button" accessibilityLabel={busy ? 'المساعد يجيب الآن' : 'إرسال'} accessibilityState={{ disabled: busy || !input.trim() }} disabled={busy || !input.trim()} onPress={() => void send()} style={[s.send, { backgroundColor: colors.gold }, (busy || !input.trim()) && s.disabled]}>
-        {busy ? <ActivityIndicator size="small" color={colors.forest}/> : <Ionicons name="arrow-up" size={21} color={colors.forest}/>} 
+      <Pressable accessibilityRole="button" accessibilityLabel={busy ? 'المساعد يجيب الآن' : 'إرسال'} accessibilityState={{ disabled: busy || !input.trim(), busy }} disabled={busy || !input.trim()} onPress={() => void send()} style={[s.send, { backgroundColor: colors.gold }, (busy || !input.trim()) && s.disabled]}>
+        {busy ? <ActivityIndicator accessibilityElementsHidden size="small" color={colors.forest}/> : <Ionicons accessible={false} name="arrow-up" size={21} color={colors.forest}/>} 
       </Pressable>
-      <TextInput value={input} onChangeText={setInput} editable={!busy} multiline maxLength={8000} placeholder="اكتب رسالتك إلى ATEEK AI…" placeholderTextColor={colors.muted} onSubmitEditing={() => { if (!input.includes('\n')) void send(); }} accessibilityLabel="رسالة إلى ATEEK AI" style={[s.input, { color: colors.ink, backgroundColor: colors.glass, borderColor: colors.line }]}/>
+      <TextInput value={input} onChangeText={setInput} editable={!busy} multiline maxLength={8000} placeholder="اكتب رسالتك إلى ATEEK AI…" placeholderTextColor={colors.muted} onSubmitEditing={() => { if (!input.includes('\n')) void send(); }} accessibilityLabel="رسالة إلى ATEEK AI" accessibilityState={{ disabled: busy }} style={[s.input, { color: colors.ink, backgroundColor: colors.glass, borderColor: colors.line }]}/>
     </View>
   </KeyboardAvoidingView>;
 }
