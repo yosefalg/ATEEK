@@ -14,8 +14,8 @@ function isPrivateIpv4(host: string) {
   if (parts.length !== 4 || parts.some((part) => !/^\d{1,3}$/.test(part))) return false;
   const octets = parts.map(Number);
   if (octets.some((part) => part < 0 || part > 255)) return false;
-  const [a, b] = octets;
-  if (a === undefined || b === undefined) return false;
+  const [a, b, c] = octets;
+  if (a === undefined || b === undefined || c === undefined) return false;
   return (
     a === 0 ||
     a === 10 ||
@@ -23,8 +23,10 @@ function isPrivateIpv4(host: string) {
     (a === 100 && b >= 64 && b <= 127) ||
     (a === 169 && b === 254) ||
     (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 0 && (c === 0 || c === 2)) ||
     (a === 192 && b === 168) ||
-    (a === 198 && (b === 18 || b === 19)) ||
+    (a === 198 && (b === 18 || b === 19 || b === 51)) ||
+    (a === 203 && b === 0 && c === 113) ||
     a >= 224
   );
 }

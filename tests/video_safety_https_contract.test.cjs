@@ -17,6 +17,12 @@ test('shared reel media parser rejects insecure, credential-bearing, and local-n
   assert.match(source, /isPrivateIpv4\(host\) \|\|\s*isPrivateIpv6\(host\)/s);
 });
 
+test('IPv4 safety rejects non-public protocol and documentation address blocks', () => {
+  assert.match(source, /a === 192 && b === 0 && \(c === 0 \|\| c === 2\)/);
+  assert.match(source, /a === 198 && \(b === 18 \|\| b === 19 \|\| b === 51\)/);
+  assert.match(source, /a === 203 && b === 0 && c === 113/);
+});
+
 test('IPv6 safety fails closed for mapped IPv4, multicast, and deprecated site-local literals', () => {
   assert.match(source, /if \(normalized\.startsWith\('::ffff:'\)\) return true;/);
   assert.match(source, /if \(normalized\.startsWith\('ff'\)\) return true;/);
