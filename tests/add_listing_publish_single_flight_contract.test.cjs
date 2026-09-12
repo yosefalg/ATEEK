@@ -31,3 +31,16 @@ test('analysis single-flight guard preserves the real Supabase classifier path',
   assert.match(source, /imageBase64: base64/);
   assert.match(source, /if \(data\?\.category && categories\.some\(item => item\.id === data\.category\)\) setCategory/);
 });
+
+test('listing image picker is synchronously single-flight across permission and picker awaits', () => {
+  assert.match(source, /const pickImageInFlightRef = useRef\(false\);/);
+  assert.match(source, /if \(pickImageInFlightRef\.current \|\| publishing \|\| analyzing\) return;/);
+  assert.match(source, /pickImageInFlightRef\.current = true;\s*try \{/s);
+  assert.match(source, /finally \{\s*pickImageInFlightRef\.current = false;\s*\}/s);
+});
+
+test('image picker guard preserves the real permission and selected asset flow', () => {
+  assert.match(source, /ImagePicker\.requestMediaLibraryPermissionsAsync\(\)/);
+  assert.match(source, /ImagePicker\.launchImageLibraryAsync\(\{ mediaTypes: \['images'\], quality: 0\.75, allowsEditing: true \}\)/);
+  assert.match(source, /if \(!result\.canceled && result\.assets\[0\]\) setImage\(result\.assets\[0\]\.uri\);/);
+});
