@@ -222,9 +222,10 @@ export function AddListingScreen({ onAdd, onDone }: { onAdd: (item: Listing) => 
           accessibilityRole="button"
           accessibilityLabel={image ? 'تغيير صورة السلعة' : 'اختيار صورة للسلعة'}
           accessibilityHint="يفتح مكتبة الصور على الهاتف"
+          accessibilityState={{ disabled: busy, busy }}
         >
           {image ? <>
-            <Image source={{ uri: image }} style={styles.preview} accessibilityIgnoresInvertColors />
+            <Image source={{ uri: image }} style={styles.preview} accessibilityIgnoresInvertColors accessible={false} />
             <View style={styles.changeImageBadge} importantForAccessibility="no-hide-descendants">
               <Ionicons name="images-outline" size={16} color={colors.ink} />
               <Text style={styles.changeImageText}>تغيير الصورة</Text>
@@ -263,11 +264,12 @@ export function AddListingScreen({ onAdd, onDone }: { onAdd: (item: Listing) => 
             const selected = category === item.id;
             return <Pressable
               key={item.id}
+              disabled={busy}
               onPress={() => setCategory(item.id)}
-              style={[styles.category, styles.rtlItem, selected && styles.categoryActive]}
+              style={[styles.category, styles.rtlItem, selected && styles.categoryActive, busy && styles.disabled]}
               accessibilityRole="radio"
               accessibilityLabel={item.label}
-              accessibilityState={{ selected }}
+              accessibilityState={{ selected, disabled: busy }}
             >
               <Text style={[styles.categoryText, selected && styles.categoryTextActive]}>{item.label}</Text>
             </Pressable>;
