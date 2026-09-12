@@ -16,3 +16,9 @@ test('shared reel media parser rejects insecure, credential-bearing, and local-n
   assert.match(source, /host === 'localhost'/);
   assert.match(source, /isPrivateIpv4\(host\) \|\|\s*isPrivateIpv6\(host\)/s);
 });
+
+test('IPv6 safety fails closed for mapped IPv4, multicast, and deprecated site-local literals', () => {
+  assert.match(source, /if \(normalized\.startsWith\('::ffff:'\)\) return true;/);
+  assert.match(source, /if \(normalized\.startsWith\('ff'\)\) return true;/);
+  assert.match(source, /if \(\/\^fe\[cdef\]\/\.test\(normalized\)\) return true;/);
+});

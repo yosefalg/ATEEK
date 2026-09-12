@@ -35,10 +35,12 @@ function isPrivateIpv6(host: string) {
   if (normalized === '::' || normalized === '::1') return true;
   if (normalized.startsWith('fc') || normalized.startsWith('fd')) return true;
   if (/^fe[89ab]/.test(normalized)) return true;
-  if (normalized.startsWith('::ffff:')) {
-    const mapped = normalized.slice('::ffff:'.length);
-    return isPrivateIpv4(mapped);
-  }
+  if (/^fe[cdef]/.test(normalized)) return true;
+  if (normalized.startsWith('ff')) return true;
+  // IPv4-mapped IPv6 literals can encode loopback/private IPv4 in hexadecimal
+  // (for example ::ffff:7f00:1). Reels never need literal mapped addresses,
+  // so fail closed instead of attempting partial textual IPv4 decoding here.
+  if (normalized.startsWith('::ffff:')) return true;
   return false;
 }
 
