@@ -84,6 +84,10 @@ function parseHttps(value?: string | null) {
   try {
     const u = new URL(trimmed);
     if (u.protocol !== 'https:' || !u.hostname || u.username || u.password) return null;
+    // Reel media is served by the production HTTPS origins on the standard TLS
+    // endpoint. Reject explicit non-default ports so untrusted listing media
+    // cannot turn playback/thumbnail requests into arbitrary service probes.
+    if (u.port && u.port !== '443') return null;
     if (isLocalNetworkHost(u.hostname)) return null;
     return u;
   } catch {

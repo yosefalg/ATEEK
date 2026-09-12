@@ -17,6 +17,10 @@ test('shared reel media parser rejects insecure, credential-bearing, and local-n
   assert.match(source, /isPrivateIpv4\(host\) \|\|\s*isPrivateIpv6\(host\)/s);
 });
 
+test('shared reel media parser rejects explicit non-standard HTTPS ports', () => {
+  assert.match(source, /if \(u\.port && u\.port !== '443'\) return null;/);
+});
+
 test('IPv4 safety rejects non-public protocol and documentation address blocks', () => {
   assert.match(source, /a === 192 && b === 0 && \(c === 0 \|\| c === 2\)/);
   assert.match(source, /a === 198 && \(b === 18 \|\| b === 19 \|\| b === 51\)/);
