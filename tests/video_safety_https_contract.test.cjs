@@ -21,9 +21,11 @@ test('shared reel media parser rejects explicit non-standard HTTPS ports', () =>
   assert.match(source, /if \(u\.port && u\.port !== '443'\) return null;/);
 });
 
-test('IPv4 safety rejects non-public protocol and documentation address blocks', () => {
+test('IPv4 safety rejects non-public protocol and documentation address blocks without overblocking adjacent public space', () => {
   assert.match(source, /a === 192 && b === 0 && \(c === 0 \|\| c === 2\)/);
-  assert.match(source, /a === 198 && \(b === 18 \|\| b === 19 \|\| b === 51\)/);
+  assert.match(source, /a === 198 && \(b === 18 \|\| b === 19\)/);
+  assert.match(source, /a === 198 && b === 51 && c === 100/);
+  assert.doesNotMatch(source, /b === 18 \|\| b === 19 \|\| b === 51/);
   assert.match(source, /a === 203 && b === 0 && c === 113/);
 });
 
