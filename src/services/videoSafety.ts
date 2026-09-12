@@ -80,12 +80,10 @@ export function resolveReelVideoSource(input: ReelVideoInput): SafeVideoSource |
 }
 
 export function cloudinary720(uri: string) {
-  try {
-    const u = new URL(uri);
-    if (u.hostname.toLowerCase() !== 'res.cloudinary.com' || !u.pathname.includes('/video/upload/')) return null;
-    u.pathname = u.pathname.replace('/video/upload/', '/video/upload/f_auto,q_auto,w_1280,h_720,c_limit/');
-    return u.toString();
-  } catch { return null; }
+  const u = parseHttps(uri);
+  if (!u || u.hostname.toLowerCase() !== 'res.cloudinary.com' || !u.pathname.includes('/video/upload/')) return null;
+  u.pathname = u.pathname.replace('/video/upload/', '/video/upload/f_auto,q_auto,w_1280,h_720,c_limit/');
+  return u.toString();
 }
 
 export function cloudinaryVideoThumbnail(uri?: string | null) {
