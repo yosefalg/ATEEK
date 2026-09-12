@@ -16,3 +16,13 @@ test('reels cache rejects malformed, future, and expired snapshots and cleans th
   assert.match(cache, /await discardInvalidSnapshot\(\)/);
   assert.match(cache, /Cache cleanup must never block the live Supabase feed/);
 });
+
+test('reels cache serializes reads, cleanup, and writes so stale cleanup cannot delete a fresh snapshot', () => {
+  const cache = fs.readFileSync('src/services/reelsCache.ts', 'utf8');
+  assert.match(cache, /let cacheOperationChain: Promise<void> = Promise\.resolve\(\)/);
+  assert.match(cache, /function serializeCacheOperation<T>\(operation: \(\) => Promise<T>\): Promise<T>/);
+  assert.match(cache, /const run = cacheOperationChain\.then\(operation, operation\)/);
+  assert.match(cache, /cacheOperationChain = run\.then\([\s\S]*?\(\) => undefined,[\s\S]*?\(\) => undefined/);
+  assert.match(cache, /readReelsSnapshot[\s\S]*?return serializeCacheOperation\(async \(\) => \{[\s\S]*?AsyncStorage\.getItem\(CACHE_KEY\)/);
+  assert.match(cache, /writeReelsSnapshot[\s\S]*?return serializeCacheOperation\(async \(\) => \{[\s\S]*?AsyncStorage\.setItem\(CACHE_KEY, JSON\.stringify\(snapshot\)\)/);
+});
