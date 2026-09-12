@@ -22,7 +22,7 @@ export function OnboardingGate({ children }: PropsWithChildren) {
       .finally(() => { if (completionWriteRef.current === write) completionWriteRef.current = null; });
     completionWriteRef.current = write;
   };
-  if (done === null) return <View style={{ flex: 1, backgroundColor: ui.colors.background, justifyContent: 'center' }}><ActivityIndicator color={ui.colors.accent} /></View>;
+  if (done === null) return <View style={{ flex: 1, backgroundColor: ui.colors.background, justifyContent: 'center' }} accessibilityState={{ busy: true }}><ActivityIndicator accessible accessibilityRole="progressbar" color={ui.colors.accent} /></View>;
   if (!done) return <OnboardingScreen onDone={complete} />;
   return children;
 }
