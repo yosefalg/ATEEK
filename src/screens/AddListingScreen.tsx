@@ -41,6 +41,7 @@ export function AddListingScreen({ onAdd, onDone }: { onAdd: (item: Listing) => 
   const publishedRef = useRef(false);
   const publishInFlightRef = useRef(false);
   const analyzeInFlightRef = useRef(false);
+  const pickImageInFlightRef = useRef(false);
 
   useEffect(() => {
     let active = true;
@@ -123,7 +124,8 @@ export function AddListingScreen({ onAdd, onDone }: { onAdd: (item: Listing) => 
   const canPublish = Boolean(title.trim() && amount && image && !publishing && !analyzing);
 
   const pickImage = async () => {
-    if (publishing || analyzing) return;
+    if (pickImageInFlightRef.current || publishing || analyzing) return;
+    pickImageInFlightRef.current = true;
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
@@ -134,6 +136,8 @@ export function AddListingScreen({ onAdd, onDone }: { onAdd: (item: Listing) => 
       if (!result.canceled && result.assets[0]) setImage(result.assets[0].uri);
     } catch {
       Alert.alert('تعذّر فتح الصور', 'أعد المحاولة أو اختر صورة أخرى.');
+    } finally {
+      pickImageInFlightRef.current = false;
     }
   };
 
