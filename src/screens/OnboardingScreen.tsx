@@ -43,6 +43,7 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
         keyExtractor={(x) => x.title}
         horizontal
         pagingEnabled
+        scrollEnabled={!moving}
         showsHorizontalScrollIndicator={false}
         initialNumToRender={1}
         maxToRenderPerBatch={2}

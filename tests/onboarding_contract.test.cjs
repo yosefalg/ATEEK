@@ -41,6 +41,10 @@ test('onboarding next navigation is single-flight while paging animation is acti
   assert.match(source, /onScrollToIndexFailed=[\s\S]*?setMoving\(false\)/);
 });
 
+test('onboarding blocks gesture paging while programmatic page navigation is active', () => {
+  assert.match(source, /scrollEnabled=\{!moving\}/);
+});
+
 test('onboarding next control exposes the busy state to touch and assistive technology', () => {
   assert.match(source, /accessibilityState=\{\{ disabled: moving \}\}/);
   assert.match(source, /disabled=\{moving\}/);
