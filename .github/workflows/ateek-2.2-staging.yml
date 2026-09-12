@@ -162,8 +162,24 @@ jobs:
             echo '::error title=Unexpected signer::Native validation APK must remain unsigned before the release-signing gate'
             exit 1
           fi
+          SHA=$(sha256sum "$APK_PATH" | awk '{print $1}')
+          mkdir -p unsigned-validation-out
+          printf 'APK bytes=%s\nSHA-256=%s\nABI=arm64-v8a\nPackage=com.yosef.ateek\nVersion=2.2.0\nVersionCode=16\nDebuggable=NO\nSigning=UNSIGNED VALIDATION ONLY\nAAB=DISABLED\nPhysical Android device test=NOT PERFORMED BY CI\n' "$APK_BYTES" "$SHA" > unsigned-validation-out/METRICS.txt
+          APK_ANALYZER="$(find "$ANDROID_HOME" -type f -name apkanalyzer -perm -111 -print -quit 2>/dev/null)"
+          test -n "$APK_ANALYZER"
+          "$APK_ANALYZER" apk summary "$APK_PATH" > unsigned-validation-out/APKANALYZER.txt
+          grep -Fq 'com.yosef.ateek' unsigned-validation-out/APKANALYZER.txt
+          cat unsigned-validation-out/METRICS.txt
           echo "Unsigned native release validation passed: $APK_PATH ($APK_BYTES bytes)"
           rm -f android/app/build/outputs/apk/release/*.apk
+
+      - name: Upload unsigned validation evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: ATEEK-2.2-STAGING-UNSIGNED-VALIDATION-METRICS
+          path: unsigned-validation-out/*
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Validate release signing material
         env:
