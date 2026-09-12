@@ -65,8 +65,13 @@ if(!add.includes('const improveDescription = async')){
 }
 if(!add.includes("improving ? 'ATEEK AI يحسّن وصف الإعلان…'"))add=replaceOne(add,"  const busy = publishing || analyzing;\n  const statusText = analyzing ? 'مساعد عتيك يحلل الصورة…' : publishing ? 'يتم ضغط الصورة ورفع الإعلان بأمان…' : '';","  const busy = publishing || analyzing || improving;\n  const statusText = analyzing ? 'مساعد عتيك يحلل الصورة…' : improving ? 'ATEEK AI يحسّن وصف الإعلان…' : publishing ? 'يتم ضغط الصورة ورفع الإعلان بأمان…' : '';",'Add listing busy/status');
 if(!add.includes('تحسين الوصف بواسطة ATEEK AI')){
-  const descField=`        <Field label="وصف السلعة" value={description} onChangeText={setDescription} placeholder="اذكر الحالة والعمر وأهم التفاصيل..." multiline />`;
-  const descWithAi=`        <Field label="وصف السلعة" value={description} onChangeText={setDescription} placeholder="اذكر الحالة والعمر وأهم التفاصيل..." multiline />\n        <Pressable disabled={busy} style={[styles.aiAnalyze, busy && styles.disabled]} onPress={() => void improveDescription()} accessibilityRole="button" accessibilityLabel={improving ? 'جارٍ تحسين وصف الإعلان' : 'تحسين وصف الإعلان بواسطة ATEEK AI'} accessibilityState={{ disabled: busy, busy: improving }}>\n          {improving ? <ActivityIndicator size="small" color={colors.gold} /> : <Ionicons name="create-outline" size={20} color={colors.gold} importantForAccessibility="no" />}\n          <Text style={styles.aiAnalyzeText}>{improving ? 'جارٍ تحسين الوصف…' : 'تحسين الوصف بواسطة ATEEK AI'}</Text>\n        </Pressable>`;
+  const descFieldCandidates=[
+    `        <Field label="وصف السلعة" value={description} onChangeText={setDescription} placeholder="اذكر الحالة والعمر وأهم التفاصيل..." multiline />`,
+    `        <Field label="وصف السلعة" value={description} onChangeText={setDescription} placeholder="اذكر الحالة والعمر وأهم التفاصيل..." multiline disabled={busy} />`,
+  ];
+  const descField=descFieldCandidates.find(anchor=>add.includes(anchor));
+  if(!descField)throw new Error('Run100 anchor missing: Add listing improve UI');
+  const descWithAi=`${descField}\n        <Pressable disabled={busy} style={[styles.aiAnalyze, busy && styles.disabled]} onPress={() => void improveDescription()} accessibilityRole="button" accessibilityLabel={improving ? 'جارٍ تحسين وصف الإعلان' : 'تحسين وصف الإعلان بواسطة ATEEK AI'} accessibilityState={{ disabled: busy, busy: improving }}>\n          {improving ? <ActivityIndicator size="small" color={colors.gold} /> : <Ionicons name="create-outline" size={20} color={colors.gold} importantForAccessibility="no" />}\n          <Text style={styles.aiAnalyzeText}>{improving ? 'جارٍ تحسين الوصف…' : 'تحسين الوصف بواسطة ATEEK AI'}</Text>\n        </Pressable>`;
   add=replaceOne(add,descField,descWithAi,'Add listing improve UI');
 }
 fs.writeFileSync(addFile,add);
