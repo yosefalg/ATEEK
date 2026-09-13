@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { formatPrice } from '../data/seed';
+import { safeRemoteMediaUrl } from '../services/videoSafety';
 import { colors } from '../theme/colors';
 import { parsePrice } from '../utils/money';
 import { Listing } from '../types';
@@ -23,7 +24,7 @@ export function ListingDetails({ item, visible, favorite, onClose, onFavorite, o
   if (!item) return null;
   const offerValue = parsePrice(offer);
   const canSubmitOffer = Boolean(offerValue);
-  const imageUri = item.image?.trim() ?? '';
+  const imageUri = safeRemoteMediaUrl(item.image) ?? '';
   const hasImage = imageUri.length > 0;
   const showImageFallback = imageFailed || !hasImage;
   const submit = () => {

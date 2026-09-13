@@ -100,6 +100,11 @@ function parseHttps(value?: string | null) {
   }
 }
 
+export function safeRemoteMediaUrl(value?: string | null) {
+  const u = parseHttps(value);
+  return u?.toString() ?? null;
+}
+
 export function resolveReelVideoSource(input: ReelVideoInput): SafeVideoSource | null {
   const hls = parseHttps(input.hls_url);
   if (hls && hls.pathname.toLowerCase().endsWith('.m3u8')) {

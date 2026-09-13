@@ -10,6 +10,10 @@ test('Cloudinary 720 optimization reuses the hardened HTTPS parser', () => {
   assert.match(source, /if \(!u \|\| u\.hostname\.toLowerCase\(\) !== 'res\.cloudinary\.com' \|\| !u\.pathname\.includes\('\/video\/upload\/'\)\) return null;/);
 });
 
+test('shared public media URL guard reuses the hardened HTTPS parser', () => {
+  assert.match(source, /export function safeRemoteMediaUrl\(value\?: string \| null\) \{\s*const u = parseHttps\(value\);\s*return u\?\.toString\(\) \?\? null;\s*\}/s);
+});
+
 test('shared reel media parser rejects insecure, credential-bearing, and local-network URLs', () => {
   assert.match(source, /u\.protocol !== 'https:' \|\| !u\.hostname \|\| u\.username \|\| u\.password/);
   assert.match(source, /if \(isLocalNetworkHost\(u\.hostname\)\) return null;/);
