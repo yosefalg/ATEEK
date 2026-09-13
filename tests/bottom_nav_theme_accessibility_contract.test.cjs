@@ -21,3 +21,10 @@ test('bottom navigation follows the active locale direction', () => {
   assert.match(source, /flexDirection:isRTL\?'row-reverse':'row'/);
   assert.doesNotMatch(source, /bar:\{flex:1,flexDirection:'row-reverse'/);
 });
+
+test('hint state changes do not force unchanged navigation items to rerender', () => {
+  assert.match(source, /const NavItem=memo\(function NavItem/);
+  assert.match(source, /const showHint=useCallback\(/);
+  assert.match(source, /onChange=\{onChange\} onHint=\{showHint\}/);
+  assert.doesNotMatch(source, /onPress=\{\(\)=>onChange\(tab\.id\)\}/);
+});
