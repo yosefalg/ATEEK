@@ -73,9 +73,10 @@ export async function resilientAction(name:string,payload:Record<string,unknown>
   return {id:'queued-'+row.id,queued:true};
 }
 export async function flushOfflineQueue(){
-  if(flushing||!(await online()))return {sent:0,pending:await queueLength()};
+  if(flushing)return {sent:0,pending:await queueLength()};
   flushing=true;let sent=0;
   try{
+    if(!(await online()))return {sent:0,pending:await queueLength()};
     const rows=await mutateQueue(()=>readQueue());
     const sentIds=new Set<string>();
     let terminalError:unknown;

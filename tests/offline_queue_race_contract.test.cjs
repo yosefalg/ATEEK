@@ -16,6 +16,18 @@ test('offline queue serializes repair-capable reads with writes', () => {
   assert.match(source, /const rows=await mutateQueue\(\(\)=>readQueue\(\)\);/);
 });
 
+test('offline flush locks synchronously before the first network await', () => {
+  const functionIndex = source.indexOf('export async function flushOfflineQueue(){');
+  const guardIndex = source.indexOf('if(flushing)return {sent:0,pending:await queueLength()};', functionIndex);
+  const lockIndex = source.indexOf('flushing=true;let sent=0;', functionIndex);
+  const networkIndex = source.indexOf('if(!(await online()))return {sent:0,pending:await queueLength()};', functionIndex);
+  assert.ok(functionIndex >= 0, 'flush function must exist');
+  assert.ok(guardIndex > functionIndex, 'an already-active flush must return without replaying');
+  assert.ok(lockIndex > guardIndex, 'flush must claim its lock synchronously');
+  assert.ok(networkIndex > lockIndex, 'network probing must happen only after the flush lock is claimed');
+  assert.doesNotMatch(source, /if\(flushing\|\|!\(await online\(\)\)\)/);
+});
+
 test('offline flush removes only confirmed sent ids from the latest queue snapshot', () => {
   assert.match(source, /const sentIds=new Set<string>\(\)/);
   assert.match(source, /sentIds\.add\(row\.id\)/);
