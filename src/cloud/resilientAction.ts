@@ -23,9 +23,9 @@ function compactQueueForStorage(rows:QueueItem[]){
     return true;
   });
 }
-async function readQueue():Promise<QueueItem[]>{
+async function readQueue(strictStorage=false):Promise<QueueItem[]>{
   let raw:string|null;
-  try{raw=await AsyncStorage.getItem(KEY);}catch{return[];}
+  try{raw=await AsyncStorage.getItem(KEY);}catch(e){if(strictStorage)throw e;return[];}
   if(!raw)return[];
   try{
     const parsed:unknown=JSON.parse(raw);
@@ -69,7 +69,7 @@ export async function resilientAction(name:string,payload:Record<string,unknown>
     try{return await action(name,payload);}catch(e){if(!looksNetworkError(e))throw e;}
   }
   const row:QueueItem={id:Date.now().toString(36)+Math.random().toString(36).slice(2),name,payload,createdAt:Date.now()};
-  await mutateQueue(async()=>{const rows=await readQueue();await writeQueue(coalesceQueue(rows,row));});
+  await mutateQueue(async()=>{const rows=await readQueue(true);await writeQueue(coalesceQueue(rows,row));});
   return {id:'queued-'+row.id,queued:true};
 }
 export async function flushOfflineQueue(){
@@ -91,7 +91,7 @@ export async function flushOfflineQueue(){
     }
     if(sentIds.size){
       await mutateQueue(async()=>{
-        const current=await readQueue();
+        const current=await readQueue(true);
         await writeQueue(current.filter(row=>!sentIds.has(row.id)));
       });
     }

@@ -7,13 +7,20 @@ const source = fs.readFileSync('src/cloud/resilientAction.ts', 'utf8');
 test('offline queue serializes enqueue mutations so parallel actions cannot overwrite each other', () => {
   assert.match(source, /let queueMutation:Promise<void>=Promise\.resolve\(\)/);
   assert.match(source, /async function mutateQueue<T>/);
-  assert.match(source, /await mutateQueue\(async\(\)=>\{const rows=await readQueue\(\);await writeQueue\(coalesceQueue\(rows,row\)\);\}\)/);
+  assert.match(source, /await mutateQueue\(async\(\)=>\{const rows=await readQueue\(true\);await writeQueue\(coalesceQueue\(rows,row\)\);\}\)/);
   assert.match(source, /function coalesceQueue\(rows:QueueItem\[],incoming:QueueItem\)/);
 });
 
 test('offline queue serializes repair-capable reads with writes', () => {
   assert.match(source, /export async function queueLength\(\)\{return mutateQueue\(async\(\)=>\(await readQueue\(\)\)\.length\);\}/);
   assert.match(source, /const rows=await mutateQueue\(\(\)=>readQueue\(\)\);/);
+});
+
+test('offline queue mutations fail closed when storage cannot be read', () => {
+  assert.match(source, /async function readQueue\(strictStorage=false\):Promise<QueueItem\[]>/);
+  assert.match(source, /try\{raw=await AsyncStorage\.getItem\(KEY\);\}catch\(e\)\{if\(strictStorage\)throw e;return\[\];\}/);
+  assert.match(source, /const rows=await readQueue\(true\);await writeQueue\(coalesceQueue\(rows,row\)\)/);
+  assert.match(source, /const current=await readQueue\(true\);\s*await writeQueue\(current\.filter\(row=>!sentIds\.has\(row\.id\)\)\)/s);
 });
 
 test('offline flush locks synchronously before the first network await', () => {
@@ -31,7 +38,7 @@ test('offline flush locks synchronously before the first network await', () => {
 test('offline flush removes only confirmed sent ids from the latest queue snapshot', () => {
   assert.match(source, /const sentIds=new Set<string>\(\)/);
   assert.match(source, /sentIds\.add\(row\.id\)/);
-  assert.match(source, /const current=await readQueue\(\)/);
+  assert.match(source, /const current=await readQueue\(true\)/);
   assert.match(source, /current\.filter\(row=>!sentIds\.has\(row\.id\)\)/);
   assert.doesNotMatch(source, /await writeQueue\(pending\)/);
 });
@@ -62,8 +69,8 @@ test('persisted offline queue rejects malformed identity and timestamps before r
   assert.match(source, /typeof value\.createdAt==='number'&&Number\.isFinite\(value\.createdAt\)/);
 });
 
-test('malformed persisted queue self-heals without deleting data on a storage read failure', () => {
-  assert.match(source, /try\{raw=await AsyncStorage\.getItem\(KEY\);\}catch\{return\[\];\}/);
+test('malformed persisted queue self-heals without deleting data on a non-strict storage read failure', () => {
+  assert.match(source, /try\{raw=await AsyncStorage\.getItem\(KEY\);\}catch\(e\)\{if\(strictStorage\)throw e;return\[\];\}/);
   assert.match(source, /if\(!Array\.isArray\(parsed\)\)\{\s*await AsyncStorage\.removeItem\(KEY\)\.catch\(\(\)=>\{\}\);\s*return\[\];\s*\}/s);
   assert.match(source, /const rows=parsed\.filter\(isQueueItem\);\s*const compacted=compactQueueForStorage\(rows\);/s);
   assert.match(source, /if\(compacted\.length!==parsed\.length\)\{\s*await AsyncStorage\.setItem\(KEY,JSON\.stringify\(compacted\)\)\.catch\(\(\)=>\{\}\);\s*\}/s);
