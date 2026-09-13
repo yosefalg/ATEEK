@@ -30,6 +30,11 @@ test('session storage preserves the Storage contract for empty string values', (
   assert.match(source, /if \(typeof v\.version !== 'string' \|\| !Number\.isInteger\(v\.count\) \|\| v\.count < 1 \|\| v\.count > 100\)/);
 });
 
+test('corrupted session indexes fail closed and cleanup cannot block auth recovery', () => {
+  assert.match(source, /const raw = await SecureStore\.getItemAsync\(key\);\s*if \(!raw\) return null;\s*try \{\s*const v = JSON\.parse\(raw\);/s);
+  assert.match(source, /catch \{\s*await SecureStore\.deleteItemAsync\(key\)\.catch\(\(\) => \{\}\);\s*return null;\s*\}/s);
+});
+
 test('failed session writes roll back newly written SecureStore chunks before surfacing the error', () => {
   assert.match(source, /let written = 0;\s*try \{/s);
   assert.match(source, /written = i \+ 1;/);
