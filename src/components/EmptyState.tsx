@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
+import { memo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useAteekTheme } from '../theme/ThemeProvider';
 
-export function EmptyState({ icon, title, body }: { icon: keyof typeof Ionicons.glyphMap; title: string; body: string }) {
+export const EmptyState = memo(function EmptyState({ icon, title, body }: { icon: keyof typeof Ionicons.glyphMap; title: string; body: string }) {
   const { colors } = useAteekTheme();
   return (
     <View
@@ -19,7 +20,7 @@ export function EmptyState({ icon, title, body }: { icon: keyof typeof Ionicons.
       <Text style={[styles.body, { color: colors.muted }]}>{body}</Text>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   root: { padding: 35, alignItems: 'center' },
