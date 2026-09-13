@@ -9,9 +9,14 @@ type Index = { version: string; count: number };
 const index = async (key: string): Promise<Index | null> => {
   const raw = await SecureStore.getItemAsync(key);
   if (!raw) return null;
-  const v = JSON.parse(raw);
-  if (typeof v.version !== 'string' || !Number.isInteger(v.count) || v.count < 1 || v.count > 100) throw new Error('تعذّر قراءة الجلسة');
-  return v;
+  try {
+    const v = JSON.parse(raw);
+    if (typeof v.version !== 'string' || !Number.isInteger(v.count) || v.count < 1 || v.count > 100) throw new Error('تعذّر قراءة الجلسة');
+    return v;
+  } catch {
+    await SecureStore.deleteItemAsync(key).catch(() => {});
+    return null;
+  }
 };
 let storageOperation: Promise<void> = Promise.resolve();
 async function serializeStorage<T>(task: () => Promise<T>): Promise<T> {
