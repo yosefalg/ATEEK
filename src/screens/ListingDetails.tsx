@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { formatPrice } from '../data/seed';
 import { colors } from '../theme/colors';
@@ -10,18 +10,36 @@ export function ListingDetails({ item, visible, favorite, onClose, onFavorite, o
   const [offer, setOffer] = useState('');
   const [imageFailed, setImageFailed] = useState(false);
   const [imageRetry, setImageRetry] = useState(0);
+  const offerSubmissionRef = useRef(false);
   useEffect(() => {
     setOffer('');
     setImageFailed(false);
     setImageRetry(0);
+    offerSubmissionRef.current = false;
   }, [item?.id, item?.image, visible]);
+  useEffect(() => {
+    if (!offer) offerSubmissionRef.current = false;
+  }, [offer]);
   if (!item) return null;
   const offerValue = parsePrice(offer);
   const canSubmitOffer = Boolean(offerValue);
   const imageUri = item.image?.trim() ?? '';
   const hasImage = imageUri.length > 0;
   const showImageFallback = imageFailed || !hasImage;
-  const submit = () => { const value = parsePrice(offer); if (!value) return Alert.alert('أدخل سعرًا صحيحًا'); onOffer(value); setOffer(''); Alert.alert('أُضيفت مسودة العرض', 'محفوظة محليًا فقط. لم تُرسل للبائع؛ تجدها في حسابي ← عروضي.'); };
+  const submit = () => {
+    const value = parsePrice(offer);
+    if (!value) return Alert.alert('أدخل سعرًا صحيحًا');
+    if (offerSubmissionRef.current) return;
+    offerSubmissionRef.current = true;
+    try {
+      onOffer(value);
+      setOffer('');
+      Alert.alert('أُضيفت مسودة العرض', 'محفوظة محليًا فقط. لم تُرسل للبائع؛ تجدها في حسابي ← عروضي.');
+    } catch (error) {
+      offerSubmissionRef.current = false;
+      throw error;
+    }
+  };
   const retryImage = () => {
     if (!hasImage) return;
     setImageFailed(false);
