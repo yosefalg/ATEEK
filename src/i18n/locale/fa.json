@@ -43,5 +43,12 @@
   "reels.bidPlaceholder": "پیشنهاد شما",
   "reels.videoFailed": "پخش امن ویدیو ممکن نشد",
   "reels.videoInvalid": "نشانی ویدیو نامعتبر یا ناامن است",
-  "reels.skip": "رد کردن"
+  "reels.skip": "رد کردن",
+  "sellerTrust.loading": "در حال بارگذاری اطلاعات فروشنده",
+  "sellerTrust.verified": "حساب تأییدشده",
+  "sellerTrust.active": "فروشنده فعال",
+  "sellerTrust.completedDeals": "معامله‌های تکمیل‌شده",
+  "sellerTrust.accountAgeDays": "روز در ATEEK",
+  "sellerTrust.newAccountWarning": "حساب جدیدی است و هنوز معامله تکمیل‌شده‌ای ندارد. کالا را بررسی کنید و پیش از بازدید حضوری پرداخت نکنید.",
+  "sellerTrust.message": "پیام به فروشنده"
 }

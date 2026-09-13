@@ -43,5 +43,12 @@
   "reels.bidPlaceholder": "Your bid",
   "reels.videoFailed": "Could not play the video securely",
   "reels.videoInvalid": "The video URL is invalid or unsafe",
-  "reels.skip": "Skip"
+  "reels.skip": "Skip",
+  "sellerTrust.loading": "Loading seller information",
+  "sellerTrust.verified": "Verified account",
+  "sellerTrust.active": "Active seller",
+  "sellerTrust.completedDeals": "Completed deals",
+  "sellerTrust.accountAgeDays": "Days on ATEEK",
+  "sellerTrust.newAccountWarning": "New account with no completed deals yet. Inspect the item and do not pay before checking it in person.",
+  "sellerTrust.message": "Message seller"
 }

@@ -43,5 +43,12 @@
   "reels.bidPlaceholder": "مزايدتك",
   "reels.videoFailed": "تعذر تشغيل الفيديو بأمان",
   "reels.videoInvalid": "رابط الفيديو غير صالح أو غير آمن",
-  "reels.skip": "تخطي"
+  "reels.skip": "تخطي",
+  "sellerTrust.loading": "تحميل معلومات البائع",
+  "sellerTrust.verified": "حساب موثّق",
+  "sellerTrust.active": "بائع نشط",
+  "sellerTrust.completedDeals": "صفقة مكتملة",
+  "sellerTrust.accountAgeDays": "يوم بالحساب",
+  "sellerTrust.newAccountWarning": "حساب جديد بلا صفقات مكتملة بعد. افحص السلعة ولا تدفع قبل المعاينة.",
+  "sellerTrust.message": "مراسلة البائع"
 }

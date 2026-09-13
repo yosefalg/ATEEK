@@ -43,5 +43,12 @@
   "reels.bidPlaceholder": "Teklifiniz",
   "reels.videoFailed": "Video güvenli biçimde oynatılamadı",
   "reels.videoInvalid": "Video bağlantısı geçersiz veya güvenli değil",
-  "reels.skip": "Atla"
+  "reels.skip": "Atla",
+  "sellerTrust.loading": "Satıcı bilgileri yükleniyor",
+  "sellerTrust.verified": "Doğrulanmış hesap",
+  "sellerTrust.active": "Aktif satıcı",
+  "sellerTrust.completedDeals": "Tamamlanan işlemler",
+  "sellerTrust.accountAgeDays": "ATEEK'teki gün",
+  "sellerTrust.newAccountWarning": "Henüz tamamlanmış işlemi olmayan yeni hesap. Ürünü inceleyin ve yüz yüze kontrol etmeden ödeme yapmayın.",
+  "sellerTrust.message": "Satıcıya mesaj gönder"
 }
