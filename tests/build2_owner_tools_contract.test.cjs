@@ -47,3 +47,9 @@ test('share card recovers from remote image failures before capture and resets f
   assert.match(source,/image&&!imageFailed\?<Image accessible=\{false\} source=\{\{uri:image\}\} onError=\{\(\)=>setImageFailed\(true\)\} style=\{s\.shareImage\}/);
   assert.match(source,/:<View accessible=\{false\} style=\{\[s\.shareImage,s\.shareImageFallback\]\}\/>/);
 });
+
+test('share card deletes its temporary capture after native sharing succeeds or fails',()=>{
+  assert.match(source,/import \* as FileSystem from 'expo-file-system\/legacy';/);
+  assert.match(source,/let captureUri:string\|null=null;try\{captureUri=await captureRef\(/);
+  assert.match(source,/finally\{if\(captureUri\)await FileSystem\.deleteAsync\(captureUri,\{idempotent:true\}\)\.catch\(\(\)=>\{\}\);busyRef\.current=false;setBusy\(false\)\}/);
+});
