@@ -21,7 +21,6 @@ test('cloud cache bootstrap contains AsyncStorage read failures and still schedu
   const cloud = fs.readFileSync('src/cloud/useCloud.ts', 'utf8');
   assert.match(cloud, /AsyncStorage\.getItem\(cacheKey\)\.then\(/);
   assert.match(cloud, /\}\)\.catch\(\(\)=>\{\}\)\.finally\(\(\)=>\{if\(alive\.current\)void refresh\(\);\}\)/);
-  assert.doesNotMatch(cloud, /AsyncStorage\.getItem\(cacheKey\)\.then\([\s\S]*?\}\)\.finally\(/);
 });
 
 test('cloud realtime teardown contains removeChannel promise failures', () => {
