@@ -29,7 +29,12 @@ const storage = {
     return serializeStorage(async () => {
       const v = await index(key); if (!v) return null;
       const parts = await Promise.all(Array.from({ length: v.count }, (_,i) => SecureStore.getItemAsync(key + '.' + v.version + '.' + i)));
-      return parts.some(x => x === null) ? null : parts.join('');
+      if (parts.some(x => x === null)) {
+        await SecureStore.deleteItemAsync(key).catch(() => {});
+        for (let i=0;i<v.count;i++) if (parts[i] !== null) await SecureStore.deleteItemAsync(key + '.' + v.version + '.' + i).catch(() => {});
+        return null;
+      }
+      return parts.join('');
     });
   },
   async setItem(key: string, value: string) {

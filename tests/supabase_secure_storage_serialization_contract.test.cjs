@@ -35,6 +35,10 @@ test('corrupted session indexes fail closed and cleanup cannot block auth recove
   assert.match(source, /catch \{\s*await SecureStore\.deleteItemAsync\(key\)\.catch\(\(\) => \{\}\);\s*return null;\s*\}/s);
 });
 
+test('incomplete session chunks clear their published index and surviving chunks before auth recovery', () => {
+  assert.match(source, /if \(parts\.some\(x => x === null\)\) \{\s*await SecureStore\.deleteItemAsync\(key\)\.catch\(\(\) => \{\}\);\s*for \(let i=0;i<v\.count;i\+\+\) if \(parts\[i\] !== null\) await SecureStore\.deleteItemAsync\(key \+ '\.' \+ v\.version \+ '\.' \+ i\)\.catch\(\(\) => \{\}\);\s*return null;\s*\}/s);
+});
+
 test('failed session writes roll back newly written SecureStore chunks before surfacing the error', () => {
   assert.match(source, /let written = 0;\s*try \{/s);
   assert.match(source, /written = i \+ 1;/);
