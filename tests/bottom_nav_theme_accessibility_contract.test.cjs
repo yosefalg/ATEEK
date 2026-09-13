@@ -15,3 +15,9 @@ test('long-press navigation hints are announced without changing tab semantics',
   assert.match(source, /accessibilityRole="tab"/);
   assert.match(source, /accessibilityState=\{\{selected\}\}/);
 });
+
+test('bottom navigation follows the active locale direction', () => {
+  assert.match(source, /const\{isRTL\}=useLocale\(\)/);
+  assert.match(source, /flexDirection:isRTL\?'row-reverse':'row'/);
+  assert.doesNotMatch(source, /bar:\{flex:1,flexDirection:'row-reverse'/);
+});
