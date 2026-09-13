@@ -4,6 +4,7 @@ import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { supabase } from '../cloud/client';
 import { formatPrice } from '../data/seed';
+import { safeRemoteMediaUrl } from '../services/videoSafety';
 import { openSpatialProfile } from '../social/spatialSocialBus';
 import { haptics } from '../system/haptics';
 import { shadows } from '../theme/colors';
@@ -52,7 +53,7 @@ async function getSellerMetrics(sellerId: string): Promise<Metrics | null> {
 
 export function ListingCard({ item, favorite, onFavorite, onPress }: Props) {
   const { colors, lowData } = useAteekTheme();
-  const imageUri = item.image?.trim() ?? '';
+  const imageUri = safeRemoteMediaUrl(item.image) ?? '';
   const hasImage = imageUri.length > 0;
   const [loaded, setLoaded] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);

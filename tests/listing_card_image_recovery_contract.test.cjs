@@ -6,7 +6,7 @@ test('listing cards recover from failed remote images and reset for a new image'
   const source = fs.readFileSync('src/components/ListingCard.tsx', 'utf8');
 
   assert.match(source, /const \[imageFailed, setImageFailed\] = useState\(false\)/);
-  assert.match(source, /const imageUri = item\.image\?\.trim\(\) \?\? '';/);
+  assert.match(source, /const imageUri = safeRemoteMediaUrl\(item\.image\) \?\? '';/);
   assert.match(source, /setLoaded\(false\);\s*setImageFailed\(false\);\s*}, \[imageUri\]\);/s);
   assert.match(source, /onError=\{\(\) => \{\s*setImageFailed\(true\);\s*setLoaded\(true\);\s*}\}/s);
   assert.match(source, /!hasImage \|\| imageFailed \? \(/);
@@ -14,4 +14,13 @@ test('listing cards recover from failed remote images and reset for a new image'
     source.includes('accessibilityLabel={imageFailed ? `تعذر تحميل صورة ${item.title}` : `لا توجد صورة للإعلان ${item.title}`}'),
     'listing image fallback must announce both failed and missing-media states',
   );
+});
+
+test('listing cards only mount remote images accepted by the shared HTTPS media guard', () => {
+  const source = fs.readFileSync('src/components/ListingCard.tsx', 'utf8');
+
+  assert.match(source, /import \{ safeRemoteMediaUrl \} from '\.\.\/services\/videoSafety';/);
+  assert.match(source, /const imageUri = safeRemoteMediaUrl\(item\.image\) \?\? '';/);
+  assert.match(source, /source=\{\{ uri: imageUri }}\}/);
+  assert.doesNotMatch(source, /const imageUri = item\.image\?\.trim\(\) \?\? '';/);
 });
