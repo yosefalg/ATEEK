@@ -16,6 +16,13 @@ test('owner mutations and share capture remain synchronously single-flight',()=>
   assert.match(source,/if\(!ref\.current\|\|busyRef\.current\)return;busyRef\.current=true;setBusy\(true\)/);
 });
 
+test('build2 remote listing media uses the shared hardened HTTPS origin guard',()=>{
+  assert.match(source,/import \{ safeRemoteMediaUrl \} from '\.\.\/services\/videoSafety';/);
+  assert.match(source,/function SimilarListingRow\([^]*?const image=safeRemoteMediaUrl\(item\.image\)/);
+  assert.match(source,/export function ShareListingCard\([^]*?image=safeRemoteMediaUrl\(item\.image\)/);
+  assert.doesNotMatch(source,/image=item\.image\?\.trim\(\)/);
+});
+
 test('similar listing thumbnails recover from remote image failures and reset for new media',()=>{
   assert.match(source,/function SimilarListingRow\(/);
   assert.match(source,/\[failed,setFailed\]=useState\(false\);useEffect\(\(\)=>setFailed\(false\),\[image\]\)/);
