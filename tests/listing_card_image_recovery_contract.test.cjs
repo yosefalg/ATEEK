@@ -21,6 +21,6 @@ test('listing cards only mount remote images accepted by the shared HTTPS media 
 
   assert.match(source, /import \{ safeRemoteMediaUrl \} from '\.\.\/services\/videoSafety';/);
   assert.match(source, /const imageUri = safeRemoteMediaUrl\(item\.image\) \?\? '';/);
-  assert.match(source, /source=\{\{ uri: imageUri }}\}/);
+  assert.match(source, /source=\{\{\s*uri:\s*imageUri\s*\}\}/);
   assert.doesNotMatch(source, /const imageUri = item\.image\?\.trim\(\) \?\? '';/);
 });
