@@ -48,6 +48,14 @@ function isPrivateIpv6(host: string) {
   if (/^fe[cdef]/.test(normalized)) return true;
   if (normalized.startsWith('ff')) return true;
   if (normalized === '2001:db8::' || normalized.startsWith('2001:db8:')) return true;
+  // NAT64 and IPv6 transition prefixes can encode an IPv4 destination inside
+  // an apparently public IPv6 literal. Untrusted media never needs literal
+  // transition endpoints, so reject them before the networking stack can
+  // translate or tunnel the request toward a private IPv4 service.
+  if (normalized === '64:ff9b::' || normalized.startsWith('64:ff9b::')) return true;
+  if (normalized === '64:ff9b:1::' || normalized.startsWith('64:ff9b:1:')) return true;
+  if (normalized === '2001::' || normalized.startsWith('2001:0:')) return true;
+  if (normalized === '2002::' || normalized.startsWith('2002:')) return true;
   // IPv4-mapped IPv6 literals can encode loopback/private IPv4 in hexadecimal
   // (for example ::ffff:7f00:1). Reels never need literal mapped addresses,
   // so fail closed instead of attempting partial textual IPv4 decoding here.

@@ -44,6 +44,13 @@ test('IPv6 safety fails closed for mapped IPv4, multicast, deprecated site-local
   assert.match(source, /normalized === '2001:db8::' \|\| normalized\.startsWith\('2001:db8:'\)/);
 });
 
+test('IPv6 safety rejects NAT64 and transition literals that can conceal IPv4 destinations', () => {
+  assert.match(source, /normalized === '64:ff9b::' \|\| normalized\.startsWith\('64:ff9b::'\)/);
+  assert.match(source, /normalized === '64:ff9b:1::' \|\| normalized\.startsWith\('64:ff9b:1:'\)/);
+  assert.match(source, /normalized === '2001::' \|\| normalized\.startsWith\('2001:0:'\)/);
+  assert.match(source, /normalized === '2002::' \|\| normalized\.startsWith\('2002:'\)/);
+});
+
 test('local hostname safety canonicalizes DNS root dots and localdomain aliases', () => {
   assert.match(source, /replace\(\/\\\.\$\/, ''\)/);
   assert.match(source, /host === 'localdomain'/);
