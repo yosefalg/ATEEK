@@ -11,6 +11,11 @@ test('offline queue serializes enqueue mutations so parallel actions cannot over
   assert.match(source, /function coalesceQueue\(rows:QueueItem\[],incoming:QueueItem\)/);
 });
 
+test('offline queue serializes repair-capable reads with writes', () => {
+  assert.match(source, /export async function queueLength\(\)\{return mutateQueue\(async\(\)=>\(await readQueue\(\)\)\.length\);\}/);
+  assert.match(source, /const rows=await mutateQueue\(\(\)=>readQueue\(\)\);/);
+});
+
 test('offline flush removes only confirmed sent ids from the latest queue snapshot', () => {
   assert.match(source, /const sentIds=new Set<string>\(\)/);
   assert.match(source, /sentIds\.add\(row\.id\)/);

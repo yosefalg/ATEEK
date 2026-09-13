@@ -62,7 +62,7 @@ function coalesceQueue(rows:QueueItem[],incoming:QueueItem){
   }
   return [...rows,incoming];
 }
-export async function queueLength(){return (await readQueue()).length;}
+export async function queueLength(){return mutateQueue(async()=>(await readQueue()).length);}
 export async function resilientAction(name:string,payload:Record<string,unknown>):Promise<QueuedResult>{
   if(!QUEUEABLE.has(name))return action(name,payload);
   if(await online()){
@@ -76,7 +76,7 @@ export async function flushOfflineQueue(){
   if(flushing||!(await online()))return {sent:0,pending:await queueLength()};
   flushing=true;let sent=0;
   try{
-    const rows=await readQueue();
+    const rows=await mutateQueue(()=>readQueue());
     const sentIds=new Set<string>();
     let terminalError:unknown;
     for(let i=0;i<rows.length;i++){
