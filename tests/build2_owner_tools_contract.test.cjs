@@ -16,6 +16,18 @@ test('owner mutations and share capture remain synchronously single-flight',()=>
   assert.match(source,/if\(!ref\.current\|\|busyRef\.current\)return;busyRef\.current=true;setBusy\(true\)/);
 });
 
+test('seller tools expose busy state and action intent to assistive technology',()=>{
+  assert.match(source,/TextInput accessibilityLabel="السعر الجديد" accessibilityHint="أدخل السعر الجديد للإعلان بالأرقام" accessibilityState=\{\{disabled:busy\}\}/);
+  assert.match(source,/accessibilityLabel="حفظ السعر الجديد" accessibilityHint="يحفظ السعر الجديد لهذا الإعلان" accessibilityState=\{\{disabled:busy\}\}/);
+  assert.match(source,/accessibilityLabel="نسخ الإعلان كإعلان جديد" accessibilityHint="ينشئ إعلانًا جديدًا بنفس بيانات الإعلان الحالي وصورته" accessibilityState=\{\{disabled:busy\}\}/);
+  assert.match(source,/accessibilityLabel="مشاركة بطاقة الإعلان كصورة" accessibilityHint="ينشئ صورة من بطاقة الإعلان ويفتح خيارات المشاركة" accessibilityState=\{\{disabled:busy\}\}/);
+});
+
+test('similar listings expose title and price context without making thumbnails focusable',()=>{
+  assert.match(source,/accessibilityLabel=\{`فتح إعلان مشابه \$\{item\.title\}، \$\{formatPrice\(item\.price\)\}`\} accessibilityHint="يفتح تفاصيل الإعلان المشابه"/);
+  assert.match(source,/image&&!failed\?<Image accessible=\{false\}/);
+});
+
 test('build2 remote listing media uses the shared hardened HTTPS origin guard',()=>{
   assert.match(source,/import \{ safeRemoteMediaUrl \} from '\.\.\/services\/videoSafety';/);
   assert.match(source,/function SimilarListingRow\([^]*?const image=safeRemoteMediaUrl\(item\.image\)/);
