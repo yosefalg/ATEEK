@@ -24,3 +24,14 @@ test('logical session removal is not failed by best-effort stale chunk cleanup',
   assert.match(source, /await SecureStore\.deleteItemAsync\(key\);\s*if \(old\) for \(let i=0;i<old\.count;i\+\+\) await SecureStore\.deleteItemAsync\(key \+ '\.' \+ old\.version \+ '\.' \+ i\)\.catch\(\(\) => \{\}\);/s);
   assert.match(source, /auth: \{ storage, persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, lock: processLock \}/);
 });
+
+test('session storage preserves the Storage contract for empty string values', () => {
+  assert.match(source, /const count = Math\.max\(1, Math\.ceil\(value\.length \/ 500\)\);/);
+  assert.match(source, /if \(typeof v\.version !== 'string' \|\| !Number\.isInteger\(v\.count\) \|\| v\.count < 1 \|\| v\.count > 100\)/);
+});
+
+test('failed session writes roll back newly written SecureStore chunks before surfacing the error', () => {
+  assert.match(source, /let written = 0;\s*try \{/s);
+  assert.match(source, /written = i \+ 1;/);
+  assert.match(source, /catch \(error\) \{\s*for \(let i=0;i<written;i\+\+\) await SecureStore\.deleteItemAsync\(key \+ '\.' \+ version \+ '\.' \+ i\)\.catch\(\(\) => \{\}\);\s*throw error;\s*\}/s);
+});

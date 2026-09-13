@@ -30,10 +30,19 @@ const storage = {
   async setItem(key: string, value: string) {
     return serializeStorage(async () => {
       const old = await index(key), version = Date.now() + '-' + Math.random().toString(36).slice(2);
-      const count = Math.ceil(value.length / 500);
+      const count = Math.max(1, Math.ceil(value.length / 500));
       if (count > 100) throw new Error('حجم الجلسة غير متوقع');
-      for (let i=0;i<count;i++) await SecureStore.setItemAsync(key + '.' + version + '.' + i, value.slice(i*500,(i+1)*500));
-      await SecureStore.setItemAsync(key, JSON.stringify({version,count}));
+      let written = 0;
+      try {
+        for (let i=0;i<count;i++) {
+          await SecureStore.setItemAsync(key + '.' + version + '.' + i, value.slice(i*500,(i+1)*500));
+          written = i + 1;
+        }
+        await SecureStore.setItemAsync(key, JSON.stringify({version,count}));
+      } catch (error) {
+        for (let i=0;i<written;i++) await SecureStore.deleteItemAsync(key + '.' + version + '.' + i).catch(() => {});
+        throw error;
+      }
       if (old) for (let i=0;i<old.count;i++) await SecureStore.deleteItemAsync(key + '.' + old.version + '.' + i).catch(() => {});
     });
   },
