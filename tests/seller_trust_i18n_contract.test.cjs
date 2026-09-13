@@ -17,6 +17,11 @@ test('seller trust renders localized labels, numbers, and direction', () => {
   assert.doesNotMatch(source, />مراسلة البائع</);
 });
 
+test('seller trust groups metric labels and localized values for assistive technology', () => {
+  assert.match(source, /accessible accessibilityRole="text" accessibilityLabel=\{`\$\{t\('sellerTrust\.completedDeals'\)\}: \$\{formatNumber\(m\.completedDeals\)\}`\}/);
+  assert.match(source, /accessible accessibilityRole="text" accessibilityLabel=\{`\$\{t\('sellerTrust\.accountAgeDays'\)\}: \$\{formatNumber\(m\.accountAgeDays\)\}`\}/);
+});
+
 test('seller trust translation keys stay complete in every supported locale', () => {
   for (const locale of locales) {
     for (const key of keys) assert.equal(typeof locale[key], 'string', `missing ${key}`), assert.ok(locale[key].trim().length > 0, `empty ${key}`);
