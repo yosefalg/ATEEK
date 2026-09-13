@@ -10,8 +10,8 @@ test('seller trust renders localized labels, numbers, and direction', () => {
   assert.match(source, /useLocale/);
   assert.match(source, /const\{t,formatNumber,isRTL\}=useLocale\(\)/);
   for (const key of keys) assert.match(source, new RegExp(`t\\('${key.replaceAll('.', '\\.')}'\\)`));
-  assert.match(source, /formatNumber\(m\?\.completedDeals\?\?0\)/);
-  assert.match(source, /formatNumber\(m\?\.accountAgeDays\?\?0\)/);
+  assert.match(source, /formatNumber\(m\.completedDeals\)/);
+  assert.match(source, /formatNumber\(m\.accountAgeDays\)/);
   assert.match(source, /const flow=isRTL\?'row-reverse':'row'/);
   assert.doesNotMatch(source, />حساب موثّق</);
   assert.doesNotMatch(source, />مراسلة البائع</);
