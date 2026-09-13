@@ -13,23 +13,35 @@ const index = async (key: string): Promise<Index | null> => {
   if (typeof v.version !== 'string' || !Number.isInteger(v.count) || v.count < 1 || v.count > 100) throw new Error('تعذّر قراءة الجلسة');
   return v;
 };
+let storageOperation: Promise<void> = Promise.resolve();
+async function serializeStorage<T>(task: () => Promise<T>): Promise<T> {
+  const run = storageOperation.catch(() => {}).then(task);
+  storageOperation = run.then(() => {}, () => {});
+  return run;
+}
 const storage = {
   async getItem(key: string) {
-    const v = await index(key); if (!v) return null;
-    const parts = await Promise.all(Array.from({ length: v.count }, (_,i) => SecureStore.getItemAsync(key + '.' + v.version + '.' + i)));
-    return parts.some(x => x === null) ? null : parts.join('');
+    return serializeStorage(async () => {
+      const v = await index(key); if (!v) return null;
+      const parts = await Promise.all(Array.from({ length: v.count }, (_,i) => SecureStore.getItemAsync(key + '.' + v.version + '.' + i)));
+      return parts.some(x => x === null) ? null : parts.join('');
+    });
   },
   async setItem(key: string, value: string) {
-    const old = await index(key), version = Date.now() + '-' + Math.random().toString(36).slice(2);
-    const count = Math.ceil(value.length / 500);
-    if (count > 100) throw new Error('حجم الجلسة غير متوقع');
-    for (let i=0;i<count;i++) await SecureStore.setItemAsync(key + '.' + version + '.' + i, value.slice(i*500,(i+1)*500));
-    await SecureStore.setItemAsync(key, JSON.stringify({version,count}));
-    if (old) for (let i=0;i<old.count;i++) await SecureStore.deleteItemAsync(key + '.' + old.version + '.' + i).catch(() => {});
+    return serializeStorage(async () => {
+      const old = await index(key), version = Date.now() + '-' + Math.random().toString(36).slice(2);
+      const count = Math.ceil(value.length / 500);
+      if (count > 100) throw new Error('حجم الجلسة غير متوقع');
+      for (let i=0;i<count;i++) await SecureStore.setItemAsync(key + '.' + version + '.' + i, value.slice(i*500,(i+1)*500));
+      await SecureStore.setItemAsync(key, JSON.stringify({version,count}));
+      if (old) for (let i=0;i<old.count;i++) await SecureStore.deleteItemAsync(key + '.' + old.version + '.' + i).catch(() => {});
+    });
   },
   async removeItem(key: string) {
-    const old = await index(key); await SecureStore.deleteItemAsync(key);
-    if (old) for (let i=0;i<old.count;i++) await SecureStore.deleteItemAsync(key + '.' + old.version + '.' + i);
+    return serializeStorage(async () => {
+      const old = await index(key); await SecureStore.deleteItemAsync(key);
+      if (old) for (let i=0;i<old.count;i++) await SecureStore.deleteItemAsync(key + '.' + old.version + '.' + i).catch(() => {});
+    });
   }
 };
 export const supabase = createClient(PROJECT_URL, PUBLIC_KEY, {
