@@ -25,9 +25,12 @@ test('shared reel media parser rejects explicit non-standard HTTPS ports', () =>
   assert.match(source, /if \(u\.port && u\.port !== '443'\) return null;/);
 });
 
-test('IPv4 safety rejects hardened protocol, relay, benchmark, documentation, and multicast ranges', () => {
+test('IPv4 safety rejects hardened protocol, relay, benchmark, documentation, multicast, and AS112/AMT ranges', () => {
   assert.match(source, /\(a === 192 && b === 0\)/);
+  assert.match(source, /\(a === 192 && b === 31 && c === 196\)/);
+  assert.match(source, /\(a === 192 && b === 52 && c === 193\)/);
   assert.match(source, /\(a === 192 && b === 88\)/);
+  assert.match(source, /\(a === 192 && b === 175 && c === 48\)/);
   assert.match(source, /\(a === 198 && \(b === 18 \|\| b === 19\)\)/);
   assert.match(source, /\(a === 198 && b === 51\)/);
   assert.match(source, /\(a === 203 && b === 0\)/);
