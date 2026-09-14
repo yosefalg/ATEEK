@@ -88,7 +88,7 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
       <Text style={s.progress} accessibilityLiveRegion="polite" accessibilityLabel={`الصفحة ${index + 1} من ${pages.length}`}>{index + 1} / {pages.length}</Text>
       <View style={s.dots} importantForAccessibility="no-hide-descendants">{pages.map((_, i) => <View key={i} style={[s.dot, i === index && s.dotActive]} />)}</View>
       <Pressable accessibilityRole="button" accessibilityLabel={primaryLabel} accessibilityHint={index === pages.length - 1 ? 'ينهي المقدمة ويفتح عتيك' : 'ينتقل إلى صفحة المقدمة التالية'} accessibilityState={{ disabled: controlsDisabled, busy: completing }} disabled={controlsDisabled} onPress={next} style={[s.primary, controlsDisabled && s.primaryBusy]}><Text style={s.primaryText}>{primaryLabel}</Text><Ionicons accessible={false} importantForAccessibility="no" name="arrow-back" size={ui.icon} color={ui.colors.background} /></Pressable>
-      <Pressable accessibilityRole="button" accessibilityLabel="تخطي المقدمة" accessibilityHint="ينهي المقدمة ويفتح عتيك مباشرة" accessibilityState={{ disabled: completing, busy: completing }} disabled={completing} onPress={finish} style={s.skip}><Text style={s.skipText}>تخطي</Text></Pressable>
+      <Pressable accessibilityRole="button" accessibilityLabel="تخطي المقدمة" accessibilityHint="ينهي المقدمة ويفتح عتيك مباشرة" accessibilityState={{ disabled: controlsDisabled, busy: completing }} disabled={controlsDisabled} onPress={finish} style={s.skip}><Text style={s.skipText}>تخطي</Text></Pressable>
     </View>
   );
 }
