@@ -92,6 +92,7 @@ export function ListingCard({ item, favorite, onFavorite, onPress }: Props) {
       };
     }
 
+    setMetrics(null);
     void getSellerMetrics(sellerId).then(value => {
       if (alive && value) setMetrics(value);
     });
