@@ -24,7 +24,7 @@ const distance=(a:number,b:number,c:number,d:number)=>{const r=6371,to=(x:number
 const normalize=(value:string)=>value.trim().toLocaleLowerCase('ar');
 const normalizeUsername=(value:string)=>value.replace(/^@/,'').trim().toLowerCase();
 const searchable=(x:Listing)=>normalize(`${x.title} ${x.location} ${x.description}`);
-const parseStringArray=(raw:string|null)=>{if(!raw)return[];try{const value=JSON.parse(raw);return Array.isArray(value)?value.filter((x):x is string=>typeof x==='string').slice(0,8):[]}catch{return[]}};
+const parseStringArray=(raw:string|null)=>{if(!raw)return[];try{const value=JSON.parse(raw);if(!Array.isArray(value))return[];const seen=new Set<string>(),next:string[]=[];for(const item of value){if(typeof item!=='string')continue;const clean=item.trim(),key=normalize(clean);if(clean.length<2||seen.has(key))continue;seen.add(key);next.push(clean);if(next.length===8)break}return next}catch{return[]}};
 const parseSaved=(raw:string|null)=>{if(!raw)return[];try{const value=JSON.parse(raw);return Array.isArray(value)?value.filter((x):x is Saved=>!!x&&typeof x.q==='string'&&typeof x.category==='string').slice(0,12):[]}catch{return[]}};
 
 export function SearchScreen({listings,favorites,onFavorite,onOpen,initialCategory='all'}:{listings:Listing[];favorites:string[];onFavorite:(id:string)=>void;onOpen:(item:Listing)=>void;initialCategory?:string}){
