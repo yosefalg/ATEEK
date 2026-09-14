@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ui } from '../theme/tokens';
 
 const pages = [
@@ -11,6 +12,7 @@ const pages = [
 
 export function OnboardingScreen({ onDone }: { onDone: () => void }) {
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const pageWidth = Math.max(1, width);
   const ref = useRef<FlatList<(typeof pages)[number]>>(null);
   const previousPageWidth = useRef(pageWidth);
@@ -46,7 +48,7 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
   const primaryLabel = index === pages.length - 1 ? 'ابدأ استخدام عتيك' : 'التالي';
   const controlsDisabled = moving || completing;
   return (
-    <View style={s.root}>
+    <View style={[s.root, { paddingTop: Math.max(24, insets.top + 16), paddingBottom: Math.max(16, insets.bottom + 8) }]}>
       <View style={s.brandRow} accessible accessibilityRole="header"><Text style={s.brand}>ATEEK</Text><Text style={s.ar}>عتيك</Text></View>
       <FlatList
         ref={ref}
@@ -92,7 +94,7 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: ui.colors.background, paddingTop: 54, paddingBottom: 24 },
+  root: { flex: 1, backgroundColor: ui.colors.background },
   brandRow: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: ui.spacing.section, alignItems: 'baseline' },
   brand: { color: ui.colors.accent, fontWeight: '900', letterSpacing: 2, fontSize: 18 },
   ar: { color: ui.colors.text, fontWeight: '900', fontSize: 24 },
