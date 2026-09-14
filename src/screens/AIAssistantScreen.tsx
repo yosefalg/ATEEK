@@ -34,6 +34,7 @@ export function AIAssistantScreen() {
   const pendingDelta = useRef('');
   const assistantId = useRef<string | null>(null);
   const frame = useRef<number | null>(null);
+  const userInteractedRef = useRef(false);
 
   useEffect(() => {
     let alive = true;
@@ -44,7 +45,7 @@ export function AIAssistantScreen() {
       setUserId(id);
       try {
         const raw = await AsyncStorage.getItem(CACHE_PREFIX + id);
-        if (raw) {
+        if (raw && !userInteractedRef.current) {
           const cached = JSON.parse(raw) as { threadId?: string | null; messages?: ChatMessage[] };
           if (Array.isArray(cached.messages)) setMessages(cached.messages.slice(-50));
           if (cached.threadId) setThreadId(String(cached.threadId));
@@ -52,9 +53,9 @@ export function AIAssistantScreen() {
       } catch {}
       const { data: threads } = await supabase.from('ateek_ai_threads').select('id').eq('user_id', id).order('updated_at', { ascending: false }).limit(1);
       const latest = threads?.[0]?.id ? String(threads[0].id) : null;
-      if (!alive || !latest) return;
+      if (!alive || !latest || userInteractedRef.current) return;
       const { data: rows } = await supabase.from('ateek_ai_messages').select('id,role,body,created_at').eq('thread_id', latest).eq('user_id', id).order('created_at', { ascending: true }).limit(80);
-      if (!alive) return;
+      if (!alive || userInteractedRef.current) return;
       setThreadId(latest);
       if (Array.isArray(rows)) setMessages(rows.map((row: any) => ({ id: String(row.id), role: row.role === 'assistant' ? 'assistant' : 'user', body: String(row.body ?? ''), created_at: row.created_at ? String(row.created_at) : undefined })));
     })().catch(() => {});
@@ -116,6 +117,7 @@ export function AIAssistantScreen() {
   const send = async () => {
     const text = input.trim();
     if (!text || busy) return;
+    userInteractedRef.current = true;
     const generation = ++streamGeneration.current;
     setError('');
     setInput('');
@@ -146,6 +148,7 @@ export function AIAssistantScreen() {
   };
 
   const newChat = () => {
+    userInteractedRef.current = true;
     streamGeneration.current += 1;
     cancelRef.current?.();
     cancelRef.current = null;
