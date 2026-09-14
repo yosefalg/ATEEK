@@ -166,7 +166,7 @@ export function AIAssistantScreen() {
 
   const modeLabel = useMemo(() => modes.find(item => item.id === mode)?.label ?? 'عام', [mode]);
 
-  return <KeyboardAvoidingView style={s.root} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={0}>
+  return <KeyboardAvoidingView style={s.root} enabled={Platform.OS === 'ios'} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={0}>
     <View style={[s.header, { borderBottomColor: colors.line, backgroundColor: colors.glassStrong }]}> 
       <View style={s.headerText}>
         <Text style={[s.title, { color: colors.ink }]}>ATEEK AI</Text>
