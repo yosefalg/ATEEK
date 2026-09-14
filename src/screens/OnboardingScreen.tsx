@@ -64,8 +64,10 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
         removeClippedSubviews
         getItemLayout={(_, itemIndex) => ({ length: pageWidth, offset: pageWidth * itemIndex, index: itemIndex })}
         onScrollToIndexFailed={({ index: failedIndex }) => {
+          const boundedIndex = Math.max(0, Math.min(pages.length - 1, failedIndex));
+          ref.current?.scrollToOffset({ offset: pageWidth * boundedIndex, animated: false });
+          setIndex(boundedIndex);
           setMoving(false);
-          ref.current?.scrollToOffset({ offset: pageWidth * failedIndex, animated: true });
         }}
         onMomentumScrollEnd={(e) => {
           const nextIndex = Math.round(e.nativeEvent.contentOffset.x / pageWidth);
