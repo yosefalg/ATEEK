@@ -10,11 +10,16 @@ replace(
   'notification badge semantics',
 );
 
-replace(
-  `sectionAction:{minHeight:32,borderRadius:12,borderWidth:1,paddingHorizontal:9,flexDirection:'row-reverse',alignItems:'center',gap:4}`,
-  `sectionAction:{minHeight:44,borderRadius:14,borderWidth:1,paddingHorizontal:12,flexDirection:'row-reverse',alignItems:'center',gap:6,justifyContent:'center'}`,
-  'section action target',
-);
+const sectionActionFinal=`sectionAction:{minHeight:44,borderRadius:14,borderWidth:1,paddingHorizontal:12,flexDirection:'row-reverse',alignItems:'center',gap:6,justifyContent:'center'}`;
+if(!s.includes(sectionActionFinal)){
+  const sectionActionAnchors=[
+    `sectionAction:{minHeight:32,borderRadius:12,borderWidth:1,paddingHorizontal:9,flexDirection:'row-reverse',alignItems:'center',gap:4}`,
+    `sectionAction:{minHeight:44,borderRadius:12,borderWidth:1,paddingHorizontal:12,flexDirection:'row-reverse',alignItems:'center',gap:4}`,
+  ];
+  const anchor=sectionActionAnchors.find(value=>s.includes(value));
+  if(!anchor)throw new Error('Run182 home anchor missing: section action target');
+  s=s.replace(anchor,sectionActionFinal);
+}
 
 replace(
   `favorite:{position:'absolute',left:9,top:9,width:30,height:30,borderRadius:12,alignItems:'center',justifyContent:'center'}`,
