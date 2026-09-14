@@ -29,12 +29,14 @@ test('ATEEK AI cancellation suppresses late fallback events and aborts the activ
   assert.match(source, /cancelled = true;\s*finished = true;\s*try \{ xhr\.abort\(\); \} catch \{\}/s);
 });
 
-test('contextual AI tasks have a bounded network wait, fall back on network failure, and preserve explicit server errors', () => {
+test('contextual AI tasks have a bounded network wait, fall back on network failure, and preserve only safe explicit server errors', () => {
   assert.match(source, /const controller = new AbortController\(\);/);
   assert.match(source, /setTimeout\(\(\) => controller\.abort\(\), 30_000\)/);
   assert.match(source, /signal: controller\.signal/);
   assert.match(source, /\.catch\(\(\) => null\)\.finally\(\(\) => clearTimeout\(timeout\)\)/);
   assert.match(source, /if \(!response\) return await invokeProtectedTask<T>\(mode, clean\);/);
   assert.match(source, /json\?\.error === 'DAILY_LIMIT_REACHED'/);
-  assert.match(source, /typeof json\?\.message === 'string'/);
+  assert.match(source, /json\?\.error === 'CONTENT_BLOCKED'/);
+  assert.doesNotMatch(source, /typeof json\?\.message === 'string'/);
+  assert.doesNotMatch(source, /throw new Error\(json\.message\)/);
 });
