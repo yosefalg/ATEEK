@@ -22,6 +22,11 @@ test('seller profile actions use existing real spatial profile route',()=>{
   assert.doesNotMatch(transform,/mock|placeholder/i);
 });
 
+test('disabled seller profile actions expose accessibility state',()=>{
+  assert.match(transform,/accessibilityState=\{\{ disabled: !counterpartId \}\}/);
+  assert.match(transform,/accessibilityState=\{\{ disabled: !item\.sellerId \}\}/);
+});
+
 test('theme uses warm low-contrast walnut neutrals without changing theme persistence',()=>{
   for (const value of ['#B99872','#F4F0E8','#FAF8F3','#A17E63','#8D9D94']) assert.ok(theme.includes(value));
   assert.match(theme,/AsyncStorage\.multiGet/);

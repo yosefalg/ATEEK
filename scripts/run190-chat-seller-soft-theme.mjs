@@ -37,7 +37,7 @@ dm = replace(
 dm = replace(
   dm,
   `<View style={styles.dmIdentity}>`,
-  `<Pressable accessibilityRole="button" accessibilityLabel={\`فتح بروفايل \${counterpart?.name ?? 'المستخدم'}\`} disabled={!counterpartId} onPress={() => counterpartId && openSpatialProfile(counterpartId)} style={styles.dmIdentity}>`,
+  `<Pressable accessibilityRole="button" accessibilityLabel={\`فتح بروفايل \${counterpart?.name ?? 'المستخدم'}\`} accessibilityState={{ disabled: !counterpartId }} disabled={!counterpartId} onPress={() => counterpartId && openSpatialProfile(counterpartId)} style={styles.dmIdentity}>`,
   'counterpart profile action',
 );
 dm = replace(dm, `</View>\n      </View>\n\n      {listing ? (`, `</Pressable>\n      </View>\n\n      {listing ? (`, 'counterpart profile close');
@@ -54,7 +54,7 @@ listing = replace(
   'listing seller profile import',
 );
 const legacySellerOpen = '<View style={styles.seller} accessible accessibilityLabel={`${item.seller}، ${item.verified ? \'بائع موثق\' : \'لم يُتحقق من هوية البائع\'}`}>',
-  sellerProfileOpen = '<Pressable style={styles.seller} accessibilityRole="button" accessibilityLabel={`${item.seller}، فتح بروفايل البائع`} accessibilityHint="يعرض بروفايل البائع وتقييماته وإعلاناته" disabled={!item.sellerId} onPress={() => item.sellerId && openSpatialProfile(item.sellerId)}>';
+  sellerProfileOpen = '<Pressable style={styles.seller} accessibilityRole="button" accessibilityLabel={`${item.seller}، فتح بروفايل البائع`} accessibilityHint="يعرض بروفايل البائع وتقييماته وإعلاناته" accessibilityState={{ disabled: !item.sellerId }} disabled={!item.sellerId} onPress={() => item.sellerId && openSpatialProfile(item.sellerId)}>';
 listing = replace(listing, legacySellerOpen, sellerProfileOpen, 'legacy seller card action');
 listing = replaceFirstOf(
   listing,
@@ -71,9 +71,11 @@ for (const [file, needles] of [
   [dmFile, [
     `behavior={Platform.OS === 'ios' ? 'padding' : undefined}`,
     `keyboardDismissMode="on-drag"`,
+    `accessibilityState={{ disabled: !counterpartId }}`,
     `openSpatialProfile(counterpartId)`,
   ]],
   [listingFile, [
+    `accessibilityState={{ disabled: !item.sellerId }}`,
     `openSpatialProfile(item.sellerId)`,
     `accessibilityHint="يعرض بروفايل البائع وتقييماته وإعلاناته"`,
   ]],
