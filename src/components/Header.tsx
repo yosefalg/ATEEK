@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
+import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, shadows } from '../theme/colors';
 import { useLocale } from '../i18n/LocaleProvider';
 
-export function Header({ onNotifications }: { onNotifications?: () => void }) {
+export const Header = memo(function Header({ onNotifications }: { onNotifications?: () => void }) {
   const { t } = useLocale();
   const notificationsEnabled=typeof onNotifications==='function';
   return (
@@ -33,7 +34,7 @@ export function Header({ onNotifications }: { onNotifications?: () => void }) {
       </View>
     </LinearGradient>
   );
-}
+});
 
 const styles = StyleSheet.create({
   header: { height: 82, paddingHorizontal: 18, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', ...shadows.card },
