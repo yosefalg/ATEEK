@@ -42,7 +42,7 @@ export function AuthPortal(props: AuthPortalProps) {
     : 'سجّل الدخول للعودة إلى إعلاناتك ومحادثاتك ومفضلاتك.';
 
   return (
-    <KeyboardAvoidingView style={[styles.root, { backgroundColor: colors.surface }]} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={0}>
+    <KeyboardAvoidingView style={[styles.root, { backgroundColor: colors.surface }]} enabled={Platform.OS === 'ios'} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={0}>
       <ScrollView
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
