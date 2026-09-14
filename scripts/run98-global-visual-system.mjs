@@ -56,7 +56,8 @@ const required=[
   [online,'return <AuthPortal register={register}','AuthPortal render'],
   [online,'function notificationTime','notifications helper preserved'],
   [authPortal,'accessibilityLiveRegion="polite"','auth accessibility live region'],
-  [authPortal,"behavior={Platform.OS === 'ios' ? 'padding' : 'height'}",'Android auth keyboard avoidance'],
+  [authPortal,"enabled={Platform.OS === 'ios'}",'iOS-only JS keyboard avoidance'],
+  [authPortal,"behavior={Platform.OS === 'ios' ? 'padding' : undefined}",'native Android adjustResize keyboard handling'],
   [account,"['premium','عتيك بلس','diamond-outline']",'Arabic premium tab'],
   [palette,"gold:'#D6B36C'",'global accent palette'],
   [tokens,"background: '#0A0E17'",'ATEEK 2.2 global background token'],
@@ -65,5 +66,6 @@ const required=[
   [reels,'viewabilityConfig={viewabilityConfig}','stable Reels viewability config']
 ];
 for(const [source,needle,label] of required){if(!source.includes(needle))throw new Error(`Run98 contract missing: ${label}`)}
+if(authPortal.includes("behavior={Platform.OS === 'ios' ? 'padding' : 'height'}"))throw new Error('Run98 contract forbids duplicate Android JS keyboard resize');
 
-console.log('Run #98 compatibility transform applied: premium auth portal, Arabic account labels, ATEEK 2.2 palette, stable Reels viewability, preserved Supabase Auth flow and notification helper.');
+console.log('Run #98 compatibility transform applied: premium auth portal, Arabic account labels, ATEEK 2.2 palette, stable Reels viewability, native Android adjustResize keyboard handling, preserved Supabase Auth flow and notification helper.');
