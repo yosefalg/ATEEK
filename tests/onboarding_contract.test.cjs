@@ -49,7 +49,8 @@ test('onboarding completion is synchronously single-flight for finish and skip a
   assert.match(source, /const completionRef = useRef\(false\)/);
   assert.match(source, /const finish = \(\) => \{[\s\S]*?if \(completionRef\.current\) return;[\s\S]*?completionRef\.current = true;[\s\S]*?setCompleting\(true\);[\s\S]*?onDone\(\);/);
   assert.match(source, /if \(index >= pages\.length - 1\) return finish\(\)/);
-  assert.match(source, /disabled=\{completing\} onPress=\{finish\}/);
+  assert.match(source, /const controlsDisabled = moving \|\| completing/);
+  assert.match(source, /accessibilityLabel="تخطي المقدمة"[\s\S]*?disabled=\{controlsDisabled\} onPress=\{finish\}/);
 });
 
 test('onboarding blocks gesture paging while programmatic page navigation is active', () => {
@@ -58,9 +59,10 @@ test('onboarding blocks gesture paging while programmatic page navigation is act
 
 test('onboarding controls expose completion busy state to touch and assistive technology', () => {
   assert.match(source, /const controlsDisabled = moving \|\| completing/);
-  assert.match(source, /accessibilityState=\{\{ disabled: controlsDisabled, busy: completing \}\}/);
-  assert.match(source, /disabled=\{controlsDisabled\}/);
-  assert.match(source, /accessibilityState=\{\{ disabled: completing, busy: completing \}\}/);
+  const sharedStateMatches = source.match(/accessibilityState=\{\{ disabled: controlsDisabled, busy: completing \}\}/g) || [];
+  const sharedDisabledMatches = source.match(/disabled=\{controlsDisabled\}/g) || [];
+  assert.equal(sharedStateMatches.length, 2);
+  assert.equal(sharedDisabledMatches.length, 2);
 });
 
 test('onboarding completion persistence cannot leak an unhandled storage rejection', () => {
