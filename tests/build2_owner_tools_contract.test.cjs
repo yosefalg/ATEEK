@@ -48,8 +48,16 @@ test('share card recovers from remote image failures before capture and resets f
   assert.match(source,/:<View accessible=\{false\} style=\{\[s\.shareImage,s\.shareImageFallback\]\}\/>/);
 });
 
+test('owner and share async completions do not update UI after unmount',()=>{
+  assert.match(source,/function useMountedRef\(\)\{const mounted=useRef\(false\);useEffect\(\(\)=>\{mounted\.current=true;return\(\)=>\{mounted\.current=false\}\},\[\]\);return mounted;\}/);
+  assert.match(source,/if\(mountedRef\.current\)await refresh\(\)/);
+  assert.match(source,/catch\(e:any\)\{if\(mountedRef\.current\)Alert\.alert\('تعذّر التنفيذ'/);
+  assert.match(source,/catch\(e:any\)\{if\(mountedRef\.current\)Alert\.alert\('تعذّرت المشاركة'/);
+  assert.match(source,/busyRef\.current=false;if\(mountedRef\.current\)setBusy\(false\)/);
+});
+
 test('share card deletes its temporary capture after native sharing succeeds or fails',()=>{
   assert.match(source,/import \* as FileSystem from 'expo-file-system\/legacy';/);
   assert.match(source,/let captureUri:string\|null=null;try\{captureUri=await captureRef\(/);
-  assert.match(source,/finally\{if\(captureUri\)await FileSystem\.deleteAsync\(captureUri,\{idempotent:true\}\)\.catch\(\(\)=>\{\}\);busyRef\.current=false;setBusy\(false\)\}/);
+  assert.match(source,/finally\{if\(captureUri\)await FileSystem\.deleteAsync\(captureUri,\{idempotent:true\}\)\.catch\(\(\)=>\{\}\);busyRef\.current=false;if\(mountedRef\.current\)setBusy\(false\)\}/);
 });
