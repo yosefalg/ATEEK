@@ -207,7 +207,7 @@ export function AddListingScreen({ onAdd, onDone }: { onAdd: (item: Listing) => 
   const statusText = analyzing ? 'مساعد عتيك يحلل الصورة…' : publishing ? 'يتم ضغط الصورة ورفع الإعلان بأمان…' : '';
 
   return (
-    <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={0}>
+    <KeyboardAvoidingView style={styles.root} enabled={Platform.OS === 'ios'} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={0}>
       <ScrollView
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"

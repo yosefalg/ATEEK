@@ -11,6 +11,13 @@ test('Android root shell relies on native adjustResize instead of applying a sec
   assert.doesNotMatch(shell, /behavior=\{isIOS\?'padding':'height'\}/);
 });
 
+test('add listing relies on native adjustResize on Android instead of applying a second JS keyboard resize', () => {
+  const screen = fs.readFileSync('src/screens/AddListingScreen.tsx', 'utf8');
+
+  assert.match(screen, /<KeyboardAvoidingView[^>]*enabled=\{Platform\.OS === 'ios'\}[^>]*behavior=\{Platform\.OS === 'ios' \? 'padding' : undefined\}/);
+  assert.doesNotMatch(screen, /behavior=\{Platform\.OS === 'ios' \? 'padding' : 'height'\}/);
+});
+
 test('iOS keeps bounded keyboard offset and padding avoidance', () => {
   const shell = fs.readFileSync('src/AppShell.tsx', 'utf8');
 
