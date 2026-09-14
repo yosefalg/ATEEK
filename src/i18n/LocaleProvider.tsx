@@ -46,15 +46,19 @@ export function LocaleProvider({ children }: PropsWithChildren) {
 
   const apply = useCallback(async (next: LocaleCode, persist = true) => {
     const start = globalThis.performance?.now?.() ?? Date.now();
+    let elapsed = 0;
     setSwitching(true);
     I18nManager.allowRTL(true);
     i18n.locale = next;
     setLocaleState(next);
-    if (persist) await AsyncStorage.setItem(LOCALE_KEY, next);
-    const elapsed = (globalThis.performance?.now?.() ?? Date.now()) - start;
-    setLastSwitchMs(elapsed);
-    setSwitching(false);
-    if (__DEV__) console.info(`[ATEEK i18n] switch=${next} elapsed=${elapsed.toFixed(2)}ms rtl=${RTL.has(next)}`);
+    try {
+      if (persist) await AsyncStorage.setItem(LOCALE_KEY, next);
+    } finally {
+      elapsed = (globalThis.performance?.now?.() ?? Date.now()) - start;
+      setLastSwitchMs(elapsed);
+      setSwitching(false);
+      if (__DEV__) console.info(`[ATEEK i18n] switch=${next} elapsed=${elapsed.toFixed(2)}ms rtl=${RTL.has(next)}`);
+    }
     return elapsed;
   }, []);
 
@@ -68,7 +72,7 @@ export function LocaleProvider({ children }: PropsWithChildren) {
       I18nManager.allowRTL(true);
       setLocaleState(detected);
       setReady(true);
-    })().catch(() => setReady(true));
+    })().catch(() => { if (active) setReady(true); });
     return () => { active = false; };
   }, []);
 
