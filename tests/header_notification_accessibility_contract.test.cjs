@@ -14,6 +14,11 @@ test('header notification action truthfully exposes availability to assistive te
   assert.match(source,/accessibilityHint=\{t\(notificationsEnabled\?'header\.notifications\.openHint':'header\.notifications\.unavailableHint'\)\}/);
 });
 
+test('header brand is announced as one semantic heading',()=>{
+  assert.match(source,/<View style=\{styles\.brand\} accessible accessibilityRole="header" accessibilityLabel=\{`عتيك، \$\{t\('header\.tagline'\)\}`\}>/);
+  assert.match(source,/style=\{styles\.logo\} accessible=\{false\} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"/);
+});
+
 test('header user-facing copy is localized across every supported locale',()=>{
   assert.match(source,/const \{ t \} = useLocale\(\)/);
   assert.match(source,/\{t\('header\.tagline'\)\}/);

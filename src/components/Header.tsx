@@ -22,7 +22,7 @@ export const Header = memo(function Header({ onNotifications }: { onNotification
       >
         <Ionicons accessible={false} name="notifications-outline" size={22} color={colors.cream} />
       </Pressable>
-      <View style={styles.brand}>
+      <View style={styles.brand} accessible accessibilityRole="header" accessibilityLabel={`عتيك، ${t('header.tagline')}`}>
         <View style={styles.logo} accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
           <Ionicons name="leaf" size={17} color="#69B66B" style={styles.leaf} />
           <Ionicons name="sync" size={29} color={colors.forest} />
