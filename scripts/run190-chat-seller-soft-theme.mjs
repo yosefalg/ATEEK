@@ -5,6 +5,12 @@ const replace = (source, from, to, label) => {
   return source.replace(from, to);
 };
 
+const replaceFirstOf = (source, candidates, toFor, label) => {
+  const match = candidates.find((candidate) => source.includes(candidate));
+  if (!match) throw new Error(`Run190 anchor missing: ${label}`);
+  return source.replace(match, toFor(match));
+};
+
 // Android already uses adjustResize in the native production hardening. Using
 // KeyboardAvoidingView height on top of adjustResize double-resizes the DM and
 // can push the composer away from the keyboard. Keep KAV padding on iOS only.
@@ -50,10 +56,13 @@ listing = replace(
 const legacySellerOpen = '<View style={styles.seller} accessible accessibilityLabel={`${item.seller}، ${item.verified ? \'بائع موثق\' : \'لم يُتحقق من هوية البائع\'}`}>',
   sellerProfileOpen = '<Pressable style={styles.seller} accessibilityRole="button" accessibilityLabel={`${item.seller}، فتح بروفايل البائع`} accessibilityHint="يعرض بروفايل البائع وتقييماته وإعلاناته" disabled={!item.sellerId} onPress={() => item.sellerId && openSpatialProfile(item.sellerId)}>';
 listing = replace(listing, legacySellerOpen, sellerProfileOpen, 'legacy seller card action');
-listing = replace(
+listing = replaceFirstOf(
   listing,
-  `</View>\n      <Text style={styles.heading}>قدّم عرضك</Text>`,
-  `</Pressable>\n      <Text style={styles.heading}>قدّم عرضك</Text>`,
+  [
+    `</View>\n      <Text style={styles.heading} accessibilityRole="header">قدّم عرضك</Text>`,
+    `</View>\n      <Text style={styles.heading}>قدّم عرضك</Text>`,
+  ],
+  (match) => match.replace('</View>', '</Pressable>'),
   'legacy seller card close',
 );
 fs.writeFileSync(listingFile, listing);
