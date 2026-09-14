@@ -15,6 +15,12 @@ replace(
 );
 
 replace(
+  "    } catch (error) { Alert.alert('تعذّر تحسين الوصف', error instanceof Error ? error.message : 'حاول مرة أخرى لاحقاً.'); }\n    finally { setImproving(false); }",
+  "    } catch { Alert.alert('تعذّر تحسين الوصف', 'تعذّر تحسين الوصف الآن. تحقق من اتصال الإنترنت ثم أعد المحاولة.'); }\n    finally { setImproving(false); }",
+  'listing description AI user-facing error privacy',
+);
+
+replace(
   "    } catch (error: unknown) {\n      const message = error instanceof Error ? error.message : 'تحقق من اتصال الإنترنت ثم أعد المحاولة.';\n      Alert.alert('تعذّر نشر الإعلان', message);\n    } finally {",
   "    } catch {\n      Alert.alert('تعذّر نشر الإعلان', 'لم يكتمل النشر. تحقق من اتصال الإنترنت ثم أعد المحاولة.');\n    } finally {",
   'listing publish user-facing error privacy',
@@ -22,6 +28,7 @@ replace(
 
 for (const needle of [
   "Alert.alert('تعذّر تحليل الصورة', 'تعذّر إكمال التحليل الآن. تحقق من اتصال الإنترنت أو جرّب صورة أخرى.')",
+  "Alert.alert('تعذّر تحسين الوصف', 'تعذّر تحسين الوصف الآن. تحقق من اتصال الإنترنت ثم أعد المحاولة.')",
   "Alert.alert('تعذّر نشر الإعلان', 'لم يكتمل النشر. تحقق من اتصال الإنترنت ثم أعد المحاولة.')",
 ]) {
   if (!source.includes(needle)) throw new Error(`Run192 transform postcondition missing: ${needle}`);
