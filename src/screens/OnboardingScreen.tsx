@@ -17,16 +17,30 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
   const ref = useRef<FlatList<(typeof pages)[number]>>(null);
   const previousPageWidth = useRef(pageWidth);
   const completionRef = useRef(false);
+  const movementRecoveryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [index, setIndex] = useState(0);
   const [moving, setMoving] = useState(false);
   const [completing, setCompleting] = useState(false);
+
+  const clearMovementRecovery = () => {
+    if (movementRecoveryRef.current === null) return;
+    clearTimeout(movementRecoveryRef.current);
+    movementRecoveryRef.current = null;
+  };
+
+  const releaseMovement = () => {
+    clearMovementRecovery();
+    setMoving(false);
+  };
+
+  useEffect(() => () => clearMovementRecovery(), []);
 
   useEffect(() => {
     if (previousPageWidth.current === pageWidth) return;
     previousPageWidth.current = pageWidth;
     const frame = requestAnimationFrame(() => {
       ref.current?.scrollToOffset({ offset: pageWidth * index, animated: false });
-      setMoving(false);
+      releaseMovement();
     });
     return () => cancelAnimationFrame(frame);
   }, [index, pageWidth]);
@@ -34,6 +48,7 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
   const finish = () => {
     if (completionRef.current) return;
     completionRef.current = true;
+    clearMovementRecovery();
     setCompleting(true);
     onDone();
   };
@@ -43,6 +58,11 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
     if (index >= pages.length - 1) return finish();
     if (!ref.current) return;
     setMoving(true);
+    clearMovementRecovery();
+    movementRecoveryRef.current = setTimeout(() => {
+      movementRecoveryRef.current = null;
+      setMoving(false);
+    }, 1500);
     ref.current.scrollToIndex({ index: index + 1, animated: true });
   };
   const primaryLabel = index === pages.length - 1 ? 'ابدأ استخدام عتيك' : 'التالي';
@@ -67,12 +87,12 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
           const boundedIndex = Math.max(0, Math.min(pages.length - 1, failedIndex));
           ref.current?.scrollToOffset({ offset: pageWidth * boundedIndex, animated: false });
           setIndex(boundedIndex);
-          setMoving(false);
+          releaseMovement();
         }}
         onMomentumScrollEnd={(e) => {
           const nextIndex = Math.round(e.nativeEvent.contentOffset.x / pageWidth);
           setIndex(Math.max(0, Math.min(pages.length - 1, nextIndex)));
-          setMoving(false);
+          releaseMovement();
         }}
         renderItem={({ item, index: pageIndex }) => (
           <View

@@ -20,7 +20,7 @@ test('onboarding recenters the active page after a viewport resize', () => {
 });
 
 test('onboarding releases a page-transition lock after viewport recentering', () => {
-  assert.match(source, /requestAnimationFrame\(\(\) => \{[\s\S]*?scrollToOffset\(\{ offset: pageWidth \* index, animated: false \}\);[\s\S]*?setMoving\(false\);[\s\S]*?\}\)/);
+  assert.match(source, /requestAnimationFrame\(\(\) => \{[\s\S]*?scrollToOffset\(\{ offset: pageWidth \* index, animated: false \}\);[\s\S]*?releaseMovement\(\);[\s\S]*?\}\)/);
 });
 
 test('onboarding keeps lightweight list rendering', () => {
@@ -41,8 +41,15 @@ test('onboarding next navigation is single-flight while paging animation is acti
   assert.match(source, /const \[moving, setMoving\] = useState\(false\)/);
   assert.match(source, /if \(moving \|\| completing\) return/);
   assert.match(source, /setMoving\(true\)[\s\S]*?scrollToIndex\(\{ index: index \+ 1, animated: true \}\)/);
-  assert.match(source, /onMomentumScrollEnd=[\s\S]*?setMoving\(false\)/);
-  assert.match(source, /onScrollToIndexFailed=[\s\S]*?setMoving\(false\)/);
+  assert.match(source, /onMomentumScrollEnd=[\s\S]*?releaseMovement\(\)/);
+  assert.match(source, /onScrollToIndexFailed=[\s\S]*?releaseMovement\(\)/);
+});
+
+test('onboarding page-transition lock has a bounded recovery path', () => {
+  assert.match(source, /const movementRecoveryRef = useRef<ReturnType<typeof setTimeout> \| null>\(null\)/);
+  assert.match(source, /movementRecoveryRef\.current = setTimeout\(\(\) => \{[\s\S]*?setMoving\(false\);[\s\S]*?\}, 1500\)/);
+  assert.match(source, /useEffect\(\(\) => \(\) => clearMovementRecovery\(\), \[\]\)/);
+  assert.match(source, /const releaseMovement = \(\) => \{[\s\S]*?clearMovementRecovery\(\);[\s\S]*?setMoving\(false\);/);
 });
 
 test('onboarding completion is synchronously single-flight for finish and skip actions', () => {
