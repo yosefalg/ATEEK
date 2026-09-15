@@ -51,8 +51,9 @@ test('share card recovers from remote image failures before capture and resets f
 test('owner and share async completions do not update UI after unmount',()=>{
   assert.match(source,/function useMountedRef\(\)\{const mounted=useRef\(false\);useEffect\(\(\)=>\{mounted\.current=true;return\(\)=>\{mounted\.current=false\}\},\[\]\);return mounted;\}/);
   assert.match(source,/if\(mountedRef\.current\)await refresh\(\)/);
-  assert.match(source,/catch\(e:any\)\{if\(mountedRef\.current\)Alert\.alert\('تعذّر التنفيذ'/);
-  assert.match(source,/catch\(e:any\)\{if\(mountedRef\.current\)Alert\.alert\('تعذّرت المشاركة'/);
+  assert.match(source,/catch\{if\(mountedRef\.current\)Alert\.alert\('تعذّر التنفيذ','تعذّر إكمال العملية الآن\. حاول مجددًا\.'\);\}/);
+  assert.match(source,/catch\{if\(mountedRef\.current\)Alert\.alert\('تعذّرت المشاركة','تعذّر تجهيز المشاركة الآن\. حاول مجددًا\.'\);\}/);
+  assert.doesNotMatch(source,/e\.message/);
   assert.match(source,/busyRef\.current=false;if\(mountedRef\.current\)setBusy\(false\)/);
 });
 
