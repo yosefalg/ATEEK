@@ -7,7 +7,9 @@ const replaceField=(value,to,label,contractNeedle)=>{
   // Production transforms are intentionally replayable. If this field already
   // carries the Run198 contract, leave it alone instead of replacing it again.
   if(s.includes(contractNeedle)) return;
-  const pattern=new RegExp(`<Field\\s+[\\s\\S]*?value=\\{props\\.${value}\\}[\\s\\S]*?\\/>`,'g');
+  // Never let a match cross a self-closing Field boundary. Otherwise a match
+  // for email/password can start at an earlier sibling and delete that field.
+  const pattern=new RegExp(`<Field(?:(?!\\/>)[\\s\\S])*?value=\\{props\\.${value}\\}(?:(?!\\/>)[\\s\\S])*?\\/>`,'g');
   const matches=[...s.matchAll(pattern)];
   if(matches.length!==1)throw new Error(`Run198 transform expected exactly one ${label} field, found ${matches.length}`);
   s=s.replace(pattern,to);
