@@ -7,7 +7,8 @@ const src = fs.readFileSync('src/components/OnboardingGate.tsx', 'utf8');
 test('onboarding completion persistence is single-flight and rejection-safe', () => {
   assert.match(src, /const completionWriteRef = useRef<Promise<void> \| null>\(null\)/);
   assert.match(src, /if \(completionWriteRef\.current\) return;/);
-  assert.match(src, /AsyncStorage\.setItem\(KEY, '1'\)[\s\S]*?\.catch\(\(\) => \{\}\)[\s\S]*?\.finally\(/);
+  assert.match(src, /const persistCompletion = async \(\) => \{[\s\S]*?try \{[\s\S]*?await AsyncStorage\.setItem\(KEY, '1'\);[\s\S]*?\} catch \{[\s\S]*?try \{[\s\S]*?await AsyncStorage\.setItem\(KEY, '1'\);[\s\S]*?\} catch \{[\s\S]*?\}[\s\S]*?\}[\s\S]*?\};/);
+  assert.match(src, /const write = persistCompletion\(\)[\s\S]*?\.finally\(/);
   assert.match(src, /if \(completionWriteRef\.current === write\) completionWriteRef\.current = null/);
 });
 
