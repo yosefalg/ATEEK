@@ -17,8 +17,18 @@ export function OnboardingGate({ children }: PropsWithChildren) {
   const complete = () => {
     setDone(true);
     if (completionWriteRef.current) return;
-    const write = AsyncStorage.setItem(KEY, '1')
-      .catch(() => {})
+    const persistCompletion = async () => {
+      try {
+        await AsyncStorage.setItem(KEY, '1');
+      } catch {
+        try {
+          await AsyncStorage.setItem(KEY, '1');
+        } catch {
+          // Keep onboarding completion non-blocking for the current session.
+        }
+      }
+    };
+    const write = persistCompletion()
       .finally(() => { if (completionWriteRef.current === write) completionWriteRef.current = null; });
     completionWriteRef.current = write;
   };
