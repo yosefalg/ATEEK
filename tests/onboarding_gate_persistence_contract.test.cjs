@@ -16,3 +16,13 @@ test('onboarding remains optimistic for the current session while storage persis
   const complete = src.slice(src.indexOf('const complete = () => {'), src.indexOf('if (done === null)'));
   assert.ok(complete.indexOf('setDone(true)') < complete.indexOf('AsyncStorage.setItem'));
 });
+
+test('onboarding initial storage read has a bounded fallback and ignores late results', () => {
+  assert.match(src, /const INITIAL_READ_TIMEOUT_MS = 2500/);
+  assert.match(src, /let settled = false/);
+  assert.match(src, /if \(!alive \|\| settled\) return/);
+  assert.match(src, /settled = true;[\s\S]*?clearTimeout\(fallback\);[\s\S]*?setDone\(value\)/);
+  assert.match(src, /const fallback = setTimeout\(\(\) => settleInitialRead\(false\), INITIAL_READ_TIMEOUT_MS\)/);
+  assert.match(src, /AsyncStorage\.getItem\(KEY\)[\s\S]*?\.then\(\(v\) => settleInitialRead\(v === '1'\)\)[\s\S]*?\.catch\(\(\) => settleInitialRead\(false\)\)/);
+  assert.match(src, /alive = false;[\s\S]*?clearTimeout\(fallback\)/);
+});

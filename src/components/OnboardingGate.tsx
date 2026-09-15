@@ -5,14 +5,28 @@ import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { ui } from '../theme/tokens';
 
 const KEY = 'ateek.onboarding.production.v21';
+const INITIAL_READ_TIMEOUT_MS = 2500;
 
 export function OnboardingGate({ children }: PropsWithChildren) {
   const [done, setDone] = useState<boolean | null>(null);
   const completionWriteRef = useRef<Promise<void> | null>(null);
   useEffect(() => {
     let alive = true;
-    AsyncStorage.getItem(KEY).then((v) => { if (alive) setDone(v === '1'); }).catch(() => { if (alive) setDone(false); });
-    return () => { alive = false; };
+    let settled = false;
+    const settleInitialRead = (value: boolean) => {
+      if (!alive || settled) return;
+      settled = true;
+      clearTimeout(fallback);
+      setDone(value);
+    };
+    const fallback = setTimeout(() => settleInitialRead(false), INITIAL_READ_TIMEOUT_MS);
+    AsyncStorage.getItem(KEY)
+      .then((v) => settleInitialRead(v === '1'))
+      .catch(() => settleInitialRead(false));
+    return () => {
+      alive = false;
+      clearTimeout(fallback);
+    };
   }, []);
   const complete = () => {
     setDone(true);
