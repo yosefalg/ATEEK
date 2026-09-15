@@ -3,7 +3,10 @@ import fs from 'node:fs';
 const file='src/components/AuthPortal.tsx';
 let s=fs.readFileSync(file,'utf8');
 
-const replaceField=(value,to,label)=>{
+const replaceField=(value,to,label,contractNeedle)=>{
+  // Production transforms are intentionally replayable. If this field already
+  // carries the Run198 contract, leave it alone instead of replacing it again.
+  if(s.includes(contractNeedle)) return;
   const pattern=new RegExp(`<Field\\s+[\\s\\S]*?value=\\{props\\.${value}\\}[\\s\\S]*?\\/>`,'g');
   const matches=[...s.matchAll(pattern)];
   if(matches.length!==1)throw new Error(`Run198 transform expected exactly one ${label} field, found ${matches.length}`);
@@ -21,7 +24,7 @@ replaceField('name',`<Field
               returnKeyType="next"
               maxLength={60}
               colors={colors}
-            />`,'registration name autofill');
+            />`,'registration name autofill','autoComplete="name"');
 
 replaceField('email',`<Field
             icon="mail-outline"
@@ -37,7 +40,7 @@ replaceField('email',`<Field
             returnKeyType="next"
             maxLength={254}
             colors={colors}
-          />`,'email autofill');
+          />`,'email autofill','autoComplete="email"');
 
 replaceField('password',`<Field
             icon="lock-closed-outline"
@@ -54,7 +57,7 @@ replaceField('password',`<Field
             onSubmitEditing={props.onSubmit}
             maxLength={128}
             colors={colors}
-          />`,'password manager and keyboard submit');
+          />`,'password manager and keyboard submit',"autoComplete={props.register?'new-password':'current-password'}");
 
 const required=[
   'autoComplete="name"',
