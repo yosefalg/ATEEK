@@ -108,6 +108,7 @@ export function AuthPortal(props: AuthPortalProps) {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={props.register ? 'إنشاء حساب عتيك' : 'تسجيل الدخول إلى عتيك'}
+            accessibilityHint={props.register ? 'ينشئ الحساب باستخدام البيانات المدخلة' : 'يسجل الدخول باستخدام البريد وكلمة المرور المدخلين'}
             accessibilityState={{ disabled: props.busy, busy: props.busy }}
             disabled={props.busy}
             onPress={props.onSubmit}
@@ -120,15 +121,17 @@ export function AuthPortal(props: AuthPortalProps) {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={props.register ? 'لدي حساب بالفعل' : 'إنشاء حساب جديد'}
+            accessibilityHint={props.register ? 'ينتقل إلى شاشة تسجيل الدخول' : 'ينتقل إلى شاشة إنشاء حساب جديد'}
+            accessibilityState={{ disabled: props.busy }}
             disabled={props.busy}
             onPress={props.onToggleMode}
-            style={({ pressed }) => [styles.secondary, { borderColor: colors.line }, pressed && !props.busy && styles.pressed]}
+            style={({ pressed }) => [styles.secondary, { borderColor: colors.line }, pressed && !props.busy && styles.pressed, props.busy && styles.disabled]}
           >
             <Text style={[styles.secondaryText, { color: colors.ink }]}>{props.register ? 'لدي حساب بالفعل' : 'إنشاء حساب جديد'}</Text>
           </Pressable>
 
-          <View style={[styles.trust, { borderTopColor: colors.line }]}>
-            <Ionicons name="shield-checkmark-outline" size={17} color={colors.success} />
+          <View style={[styles.trust, { borderTopColor: colors.line }]} accessible accessibilityRole="text" accessibilityLabel="تسجيل الدخول محمي عبر Supabase Auth ولا تُحفظ كلمة المرور داخل التطبيق">
+            <Ionicons name="shield-checkmark-outline" size={17} color={colors.success} accessibilityElementsHidden importantForAccessibility="no" />
             <Text style={[styles.trustText, { color: colors.muted }]}>تسجيل الدخول محمي عبر Supabase Auth ولا تُحفظ كلمة المرور داخل التطبيق.</Text>
           </View>
         </Animated.View>
@@ -142,7 +145,7 @@ function Field({ icon, label, colors, ...props }: ComponentProps<typeof TextInpu
     <View style={styles.field}>
       <Text style={[styles.label, { color: colors.muted }]}>{label}</Text>
       <View style={[styles.inputShell, { backgroundColor: colors.glass, borderColor: colors.line }]}>
-        <Ionicons name={icon} size={19} color={colors.gold} />
+        <Ionicons name={icon} size={19} color={colors.gold} accessibilityElementsHidden importantForAccessibility="no" />
         <TextInput
           {...props}
           accessibilityLabel={label}
