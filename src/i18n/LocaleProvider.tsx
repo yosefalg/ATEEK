@@ -10,6 +10,7 @@ import fa from './locale/fa.json';
 
 export type LocaleCode = 'ar' | 'en' | 'tr' | 'fa';
 const LOCALE_KEY = 'ateek.locale.v2';
+const LOCALE_BOOTSTRAP_TIMEOUT_MS = 2500;
 const RTL = new Set<LocaleCode>(['ar', 'fa']);
 const catalogs = { ar, en, tr, fa } as const;
 const i18n = new I18n(catalogs);
@@ -64,16 +65,24 @@ export function LocaleProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     let active = true;
-    void (async () => {
-      const storedRaw = await AsyncStorage.getItem(LOCALE_KEY);
-      const detected = storedRaw ? normalize(storedRaw) : normalize(getLocales()[0]?.languageCode);
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    const storageRead = AsyncStorage.getItem(LOCALE_KEY).catch(() => null);
+    const timeout = new Promise<null>(resolve => {
+      timeoutId = setTimeout(() => resolve(null), LOCALE_BOOTSTRAP_TIMEOUT_MS);
+    });
+    void Promise.race([storageRead, timeout]).then(storedRaw => {
+      if (timeoutId) clearTimeout(timeoutId);
       if (!active) return;
+      const detected = storedRaw ? normalize(storedRaw) : normalize(getLocales()[0]?.languageCode);
       i18n.locale = detected;
       I18nManager.allowRTL(true);
       setLocaleState(detected);
       setReady(true);
-    })().catch(() => { if (active) setReady(true); });
-    return () => { active = false; };
+    }).catch(() => { if (active) setReady(true); });
+    return () => {
+      active = false;
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, []);
 
   useEffect(() => {
