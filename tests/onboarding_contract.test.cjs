@@ -72,7 +72,11 @@ test('onboarding controls expose completion busy state to touch and assistive te
   assert.equal(sharedDisabledMatches.length, 2);
 });
 
-test('onboarding completion persistence cannot leak an unhandled storage rejection', () => {
-  assert.match(gateSource, /AsyncStorage\.setItem\(KEY, '1'\)[\s\S]*?\.catch\(\(\) => \{\}\)/);
+test('onboarding completion persistence retries once without blocking the current session', () => {
+  assert.match(gateSource, /const persistCompletion = async \(\) => \{/);
+  const persistenceAttempts = gateSource.match(/await AsyncStorage\.setItem\(KEY, '1'\)/g) || [];
+  assert.equal(persistenceAttempts.length, 2);
+  assert.match(gateSource, /catch \{[\s\S]*?try \{[\s\S]*?await AsyncStorage\.setItem\(KEY, '1'\);[\s\S]*?\} catch \{/);
+  assert.match(gateSource, /const write = persistCompletion\(\)[\s\S]*?\.finally\(/);
   assert.match(gateSource, /setDone\(true\)/);
 });
