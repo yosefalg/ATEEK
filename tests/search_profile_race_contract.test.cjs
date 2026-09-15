@@ -17,7 +17,8 @@ test('changing the query invalidates stale profile search responses', () => {
 });
 
 test('stale requests cannot surface errors or clear the busy state of a newer request', () => {
-  assert.match(source, /catch\(e:any\)\{if\(requestId===usernameRequestRef\.current\)Alert\.alert/);
+  assert.match(source, /catch\{if\(requestId===usernameRequestRef\.current\)Alert\.alert\('تعذر البحث','تعذر فتح البروفايل الآن\. حاول مرة أخرى\.'\);return true\}/);
+  assert.doesNotMatch(source, /catch\(e:any\).*تعذر البحث/);
   assert.match(source, /finally\{if\(requestId===usernameRequestRef\.current\)\{usernameBusyRef\.current=false;setUserBusy\(false\)\}\}/);
   assert.match(source, /usernameRequestRef\.current\+=1;usernameBusyRef\.current=false/);
 });
@@ -30,7 +31,8 @@ test('nearest sorting synchronously gates duplicate location requests', () => {
 
 test('changing sort invalidates stale location responses and cleanup', () => {
   assert.match(source, /locationRequestRef\.current\+=1;locationBusyRef\.current=false;setLocationBusy\(false\);await persistSort\(next\)/);
-  assert.match(source, /catch\(e:any\)\{if\(requestId===locationRequestRef\.current\)Alert\.alert/);
+  assert.match(source, /catch\{if\(requestId===locationRequestRef\.current\)Alert\.alert\('تعذر تحديد الموقع','تحقق من خدمة الموقع وحاول مرة أخرى\.'\)\}/);
+  assert.doesNotMatch(source, /catch\(e:any\).*تعذر تحديد الموقع/);
   assert.match(source, /finally\{if\(requestId===locationRequestRef\.current\)\{locationBusyRef\.current=false;setLocationBusy\(false\)\}\}/);
   assert.match(source, /locationRequestRef\.current\+=1;locationBusyRef\.current=false/);
 });
