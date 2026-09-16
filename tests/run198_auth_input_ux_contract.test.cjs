@@ -11,8 +11,13 @@ test('auth inputs expose platform autofill semantics', () => {
   assert.match(transform, /textContentType=\{props\.register\?'newPassword':'password'\}/);
 });
 
+test('auth inputs lock while an existing Supabase Auth request is busy', () => {
+  assert.equal((transform.match(/editable=\{!props\.busy\}/g) || []).length, 3);
+  assert.match(transform, /onSubmitEditing=\{props\.busy \? undefined : props\.onSubmit\}/);
+});
+
 test('password keyboard submits through the existing AuthPortal submit callback', () => {
   assert.match(transform, /returnKeyType="done"/);
-  assert.match(transform, /onSubmitEditing=\{props\.onSubmit\}/);
+  assert.match(transform, /onSubmitEditing=\{props\.busy \? undefined : props\.onSubmit\}/);
   assert.match(transform, /label="كلمة المرور"/);
 });

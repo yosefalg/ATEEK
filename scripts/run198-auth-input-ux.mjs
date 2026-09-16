@@ -21,6 +21,7 @@ replaceField('name',`<Field
               placeholder="اسمك"
               value={props.name}
               onChangeText={props.onName}
+              editable={!props.busy}
               autoComplete="name"
               textContentType="name"
               returnKeyType="next"
@@ -34,6 +35,7 @@ replaceField('email',`<Field
             placeholder="name@example.com"
             value={props.email}
             onChangeText={props.onEmail}
+            editable={!props.busy}
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
@@ -50,25 +52,27 @@ replaceField('password',`<Field
             placeholder="10 أحرف على الأقل"
             value={props.password}
             onChangeText={props.onPassword}
+            editable={!props.busy}
             secureTextEntry
             autoCapitalize="none"
             autoCorrect={false}
             autoComplete={props.register?'new-password':'current-password'}
             textContentType={props.register?'newPassword':'password'}
             returnKeyType="done"
-            onSubmitEditing={props.onSubmit}
+            onSubmitEditing={props.busy ? undefined : props.onSubmit}
             maxLength={128}
             colors={colors}
           />`,'password manager and keyboard submit',"autoComplete={props.register?'new-password':'current-password'}");
 
 const required=[
+  'editable={!props.busy}',
   'autoComplete="name"',
   'autoComplete="email"',
   "autoComplete={props.register?'new-password':'current-password'}",
   "textContentType={props.register?'newPassword':'password'}",
-  'onSubmitEditing={props.onSubmit}'
+  'onSubmitEditing={props.busy ? undefined : props.onSubmit}'
 ];
 for(const needle of required){if(!s.includes(needle))throw new Error(`Run198 contract missing: ${needle}`)}
 
 fs.writeFileSync(file,s);
-console.log('Run #198 transform applied: AuthPortal fields expose safe autofill semantics and keyboard submission.');
+console.log('Run #198 transform applied: AuthPortal fields expose safe autofill semantics, busy-state locking, and guarded keyboard submission.');
