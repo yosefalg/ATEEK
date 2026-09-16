@@ -1,84 +1,183 @@
-import { useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../theme/colors';
-import { Listing } from '../types';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, Pressable, Share, StyleSheet, Text, TextInput, View } from 'react-native';
+import { streamAiReply, type AiMode, type AiStreamEvent } from '../ai/aiClient';
 import { supabase } from '../cloud/client';
+import { useAteekTheme } from '../theme/ThemeProvider';
 
-type Msg={id:string;role:'user'|'assistant';body:string};
-type Props={listings:Listing[];favorites:string[];messagesCount:number;offersCount:number};
-type FunctionErrorLike={message?:string;context?:Response};
+type ChatMessage = { id: string; role: 'user' | 'assistant'; body: string; created_at?: string };
+const CACHE_PREFIX = 'ateek.ai.chat.snapshot.v1.';
+const modes: Array<{ id: AiMode; label: string; icon: keyof typeof Ionicons.glyphMap }> = [
+  { id: 'chat', label: 'عام', icon: 'sparkles-outline' },
+  { id: 'antique_expert', label: 'خبير تحف', icon: 'diamond-outline' },
+  { id: 'marketplace', label: 'سوق وتفاوض', icon: 'storefront-outline' },
+  { id: 'iraq_guide', label: 'دليل العراق', icon: 'map-outline' },
+];
 
-const MAX_QUESTION_LENGTH=800;
+function uid(prefix = 'm') { return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`; }
 
-async function readableFunctionError(error:unknown){
-  const e=error as FunctionErrorLike;
-  const fallback=e?.message||'تعذر الاتصال بخدمة الذكاء الاصطناعي';
-  const response=e?.context;
-  if(!response) return fallback;
-  try{
-    const body=await response.clone().json() as {message?:string;providerStatus?:number;providerCode?:string;providerType?:string;providerRequestId?:string|null;code?:string};
-    const details=[body.providerStatus?`HTTP ${body.providerStatus}`:'',body.providerCode&&body.providerCode!=='unknown'?body.providerCode:'',body.providerType&&body.providerType!=='unknown'?body.providerType:'',body.code||''].filter(Boolean).join(' • ');
-    return `${body.message||fallback}${details?` (${details})`:''}`;
-  }catch{
-    try{const text=await response.clone().text();return text||fallback}catch{return fallback}
-  }
-}
+export function AIAssistantScreen() {
+  const { colors } = useAteekTheme();
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState('');
+  const [threadId, setThreadId] = useState<string | null>(null);
+  const [mode, setMode] = useState<AiMode>('chat');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [remaining, setRemaining] = useState<number | null>(null);
+  const [model, setModel] = useState('OpenAI');
+  const [userId, setUserId] = useState<string | null>(null);
+  const listRef = useRef<FlatList<ChatMessage>>(null);
+  const cancelRef = useRef<null | (() => void)>(null);
+  const pendingDelta = useRef('');
+  const assistantId = useRef<string | null>(null);
+  const frame = useRef<number | null>(null);
 
-function median(values:number[]){
-  if(!values.length)return 0;
-  const sorted=[...values].sort((a,b)=>a-b),mid=Math.floor(sorted.length/2);
-  return sorted.length%2?sorted[mid]!:Math.round((sorted[mid-1]!+sorted[mid]!)/2);
-}
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      const { data } = await supabase.auth.getUser();
+      const id = data.user?.id ?? null;
+      if (!alive || !id) return;
+      setUserId(id);
+      try {
+        const raw = await AsyncStorage.getItem(CACHE_PREFIX + id);
+        if (raw) {
+          const cached = JSON.parse(raw) as { threadId?: string | null; messages?: ChatMessage[] };
+          if (Array.isArray(cached.messages)) setMessages(cached.messages.slice(-50));
+          if (cached.threadId) setThreadId(String(cached.threadId));
+        }
+      } catch {}
+      const { data: threads } = await supabase.from('ateek_ai_threads').select('id').eq('user_id', id).order('updated_at', { ascending: false }).limit(1);
+      const latest = threads?.[0]?.id ? String(threads[0].id) : null;
+      if (!alive || !latest) return;
+      const { data: rows } = await supabase.from('ateek_ai_messages').select('id,role,body,created_at').eq('thread_id', latest).eq('user_id', id).order('created_at', { ascending: true }).limit(80);
+      if (!alive) return;
+      setThreadId(latest);
+      if (Array.isArray(rows)) setMessages(rows.map((row: any) => ({ id: String(row.id), role: row.role === 'assistant' ? 'assistant' : 'user', body: String(row.body ?? ''), created_at: row.created_at ? String(row.created_at) : undefined })));
+    })().catch(() => {});
+    return () => { alive = false; cancelRef.current?.(); if (frame.current != null) cancelAnimationFrame(frame.current); };
+  }, []);
 
-function formatIQD(value:number){
-  return new Intl.NumberFormat('ar-IQ').format(Math.round(value))+' د.ع';
-}
+  useEffect(() => {
+    if (!userId) return;
+    const timer = setTimeout(() => {
+      void AsyncStorage.setItem(CACHE_PREFIX + userId, JSON.stringify({ threadId, messages: messages.slice(-50) })).catch(() => {});
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [messages, threadId, userId]);
 
-export function AIAssistantScreen({listings,favorites,messagesCount,offersCount}:Props){
-  const [text,setText]=useState('');
-  const [busy,setBusy]=useState(false);
-  const [chat,setChat]=useState<Msg[]>([{id:'hello',role:'assistant',body:'مرحبًا، أنا مساعد عتيك الذكي. أستطيع تحليل السوق والأسعار ونشاط حسابك المتاح للتطبيق. لا ترسل كلمات مرور أو رموز تحقق أو معلومات مصرفية حساسة.'}]);
-  const stats=useMemo(()=>{
-    const active=listings.filter(x=>x.status==='active');
-    const prices=active.map(x=>Number(x.price)).filter(x=>Number.isFinite(x)&&x>0);
-    return {active:active.length,verified:active.filter(x=>x.verified).length,median:median(prices),favorites:favorites.length,messages:messagesCount,offers:offersCount};
-  },[favorites.length,listings,messagesCount,offersCount]);
-
-  const ask=async(raw:string)=>{
-    const q=raw.trim().slice(0,MAX_QUESTION_LENGTH);
-    if(!q||busy)return;
-    const uid=Date.now()+'u';
-    setChat(c=>[...c,{id:uid,role:'user',body:q}]);
-    setText(''); setBusy(true);
-    try{
-      const market=listings.filter(x=>x.status!=='removed').slice(0,80).map(x=>({title:x.title,price:x.price,category:x.category,location:x.location,condition:x.condition,status:x.status,description:x.description,verified:x.verified,owner:x.owner}));
-      const {data,error}=await supabase.functions.invoke('ateek-assistant',{body:{question:q,listings:market,favoritesCount:favorites.length,messagesCount,offersCount,marketSummary:{activeListings:stats.active,verifiedListings:stats.verified,medianPrice:stats.median}}});
-      if(error)throw error;
-      if(!data?.answer)throw new Error(data?.message||'لم يصل رد من خدمة الذكاء الاصطناعي');
-      setChat(c=>[...c,{id:Date.now()+'a',role:'assistant',body:String(data.answer)}]);
-    }catch(e){
-      const message=await readableFunctionError(e);
-      setChat(c=>[...c,{id:Date.now()+'e',role:'assistant',body:`تعذر إكمال الطلب الآن: ${message}`}]);
-    }finally{setBusy(false);}
+  const flushDelta = () => {
+    frame.current = null;
+    const id = assistantId.current;
+    const delta = pendingDelta.current;
+    pendingDelta.current = '';
+    if (!id || !delta) return;
+    setMessages(prev => prev.map(item => item.id === id ? { ...item, body: item.body + delta } : item));
   };
-  const send=()=>void ask(text);
-  const chips=['لخص السوق الآن','قارن الأسعار الحالية','حلل أفضل فرص الشراء','حلل نشاط حسابي','ساعدني أسعّر إعلانًا','نصائح بيع وشراء آمنة'];
-  return <View style={s.root}>
-    <View style={s.hero}><View style={s.bot}><Ionicons name="sparkles" size={28} color={colors.gold}/></View><View style={{flex:1}}><Text style={s.title}>مساعد عتيك AI</Text><Text style={s.sub}>Gemini • تحليل السوق • قراءة نشاطك داخل عتيك</Text></View></View>
-    <View style={s.metrics}>
-      <Metric value={String(stats.active)} label="إعلان نشط" />
-      <Metric value={String(stats.favorites)} label="مفضلة" />
-      <Metric value={String(stats.offers)} label="عرض" />
-      <Metric value={stats.median?formatIQD(stats.median):'—'} label="وسيط السوق" wide />
+  const queueDelta = (delta: string) => {
+    pendingDelta.current += delta;
+    if (frame.current == null) frame.current = requestAnimationFrame(flushDelta);
+  };
+
+  const handleEvent = (event: AiStreamEvent) => {
+    if (event.type === 'meta') {
+      if (event.threadId) setThreadId(event.threadId);
+      if (typeof event.remaining === 'number') setRemaining(event.remaining);
+      if (event.model) setModel(event.model);
+      return;
+    }
+    if (event.type === 'delta') { queueDelta(event.delta); return; }
+    if (event.type === 'done') {
+      flushDelta();
+      setBusy(false);
+      cancelRef.current = null;
+      return;
+    }
+    if (event.type === 'error') {
+      flushDelta();
+      const message = event.message || 'تعذّر إكمال الرد الآن.';
+      setError(message);
+      const id = assistantId.current;
+      if (id) setMessages(prev => prev.map(item => item.id === id && !item.body ? { ...item, body: message } : item));
+      setBusy(false);
+      cancelRef.current?.();
+      cancelRef.current = null;
+    }
+  };
+
+  const send = async () => {
+    const text = input.trim();
+    if (!text || busy) return;
+    setError('');
+    setInput('');
+    const userMessage: ChatMessage = { id: uid('u'), role: 'user', body: text };
+    const aiMessage: ChatMessage = { id: uid('a'), role: 'assistant', body: '' };
+    assistantId.current = aiMessage.id;
+    setMessages(prev => [...prev, userMessage, aiMessage]);
+    setBusy(true);
+    try {
+      cancelRef.current = await streamAiReply({ message: text, threadId, mode, onEvent: handleEvent });
+    } catch (e) {
+      handleEvent({ type: 'error', message: e instanceof Error ? e.message : 'تعذّر بدء المحادثة.' });
+    }
+  };
+
+  const newChat = () => {
+    cancelRef.current?.();
+    cancelRef.current = null;
+    pendingDelta.current = '';
+    assistantId.current = null;
+    setBusy(false);
+    setError('');
+    setThreadId(null);
+    setMessages([]);
+  };
+
+  const modeLabel = useMemo(() => modes.find(item => item.id === mode)?.label ?? 'عام', [mode]);
+
+  return <KeyboardAvoidingView style={s.root} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={0}>
+    <View style={[s.header, { borderBottomColor: colors.line, backgroundColor: colors.glassStrong }]}> 
+      <View style={s.headerText}>
+        <Text style={[s.title, { color: colors.ink }]}>ATEEK AI</Text>
+        <Text style={[s.subtitle, { color: colors.muted }]}>{model} • {modeLabel}{remaining != null ? ` • متبقي ${remaining}` : ''}</Text>
+      </View>
+      <Pressable accessibilityRole="button" accessibilityLabel="محادثة جديدة" onPress={newChat} style={[s.newButton, { borderColor: colors.line, backgroundColor: colors.glass }]}>
+        <Ionicons name="create-outline" size={21} color={colors.gold}/>
+      </Pressable>
     </View>
-    <FlatList data={chat} keyExtractor={x=>x.id} contentContainerStyle={s.chat} renderItem={({item})=><View style={[s.bubble,item.role==='user'?s.user:s.ai]}><Text style={[s.body,item.role==='user'&&{color:'#fff'}]}>{item.body}</Text></View>} ListFooterComponent={<><View style={s.chips}>{chips.map(x=><Pressable disabled={busy} key={x} onPress={()=>void ask(x)} style={[s.chip,busy&&{opacity:.55}]}><Text style={s.chipText}>{x}</Text></Pressable>)}</View>{busy?<View style={s.loading}><ActivityIndicator/><Text style={s.loadingText}>مساعد عتيك يحلل البيانات…</Text></View>:null}</>}/>
-    <View style={s.composer}><Pressable accessibilityRole="button" accessibilityLabel="إرسال السؤال" disabled={busy||!text.trim()} onPress={send} style={[s.send,(busy||!text.trim())&&{opacity:.45}]}>{busy?<ActivityIndicator color="#fff"/>:<Ionicons name="arrow-up" size={22} color="#fff"/>}</Pressable><View style={{flex:1}}><TextInput editable={!busy} value={text} onChangeText={value=>setText(value.slice(0,MAX_QUESTION_LENGTH))} onSubmitEditing={send} placeholder="اسأل مساعد عتيك…" placeholderTextColor={colors.muted} style={s.input} textAlign="right" multiline maxLength={MAX_QUESTION_LENGTH}/><Text style={s.counter}>{text.length}/{MAX_QUESTION_LENGTH}</Text></View></View>
-  </View>;
+
+    <FlatList horizontal inverted data={modes} keyExtractor={item => item.id} showsHorizontalScrollIndicator={false} contentContainerStyle={s.modes} style={s.modeList} renderItem={({ item }) => {
+      const active = item.id === mode;
+      return <Pressable accessibilityRole="button" accessibilityState={{ selected: active }} accessibilityLabel={`وضع ${item.label}`} disabled={busy} onPress={() => setMode(item.id)} style={[s.modeChip, { borderColor: active ? colors.gold : colors.line, backgroundColor: active ? colors.forestSoft : colors.glass }]}>
+        <Ionicons name={item.icon} size={16} color={active ? colors.gold : colors.muted}/><Text style={[s.modeText, { color: active ? colors.ink : colors.muted }]}>{item.label}</Text>
+      </Pressable>;
+    }}/>
+
+    <FlatList ref={listRef} data={messages} keyExtractor={item => item.id} contentContainerStyle={messages.length ? s.messages : s.emptyMessages} keyboardShouldPersistTaps="handled" onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })} renderItem={({ item }) => {
+      const mine = item.role === 'user';
+      return <View style={[s.bubble, mine ? s.userBubble : s.aiBubble, { backgroundColor: mine ? colors.gold : colors.glassStrong, borderColor: mine ? colors.gold : colors.line }]}>
+        {!mine && <View style={s.aiLabel}><Ionicons name="sparkles" size={14} color={colors.gold}/><Text style={[s.aiLabelText, { color: colors.gold }]}>ATEEK AI</Text></View>}
+        {item.body ? <Text selectable style={[s.body, { color: mine ? colors.forest : colors.ink }]}>{item.body}</Text> : <View style={s.typing}><ActivityIndicator size="small" color={colors.gold}/><Text style={[s.typingText, { color: colors.muted }]}>يفكر…</Text></View>}
+        {!mine && !!item.body && <Pressable accessibilityRole="button" accessibilityLabel="مشاركة الرد" onPress={() => void Share.share({ message: item.body })} style={s.share}><Ionicons name="share-social-outline" size={17} color={colors.muted}/><Text style={[s.shareText, { color: colors.muted }]}>مشاركة</Text></Pressable>}
+      </View>;
+    }} ListEmptyComponent={<View style={s.welcome}><View style={[s.logo, { backgroundColor: colors.forestSoft, borderColor: colors.line }]}><Ionicons name="sparkles" size={34} color={colors.gold}/></View><Text style={[s.welcomeTitle, { color: colors.ink }]}>مساعد عتيك الذكي</Text><Text style={[s.welcomeBody, { color: colors.muted }]}>اسأل عن التحف، البيع والشراء، تحسين إعلانك، أو أي سؤال عام. لا ترسل كلمات مرور أو بيانات دفع.</Text></View>}/>
+
+    {!!error && <Text accessibilityRole="alert" style={[s.error, { color: colors.danger }]}>{error}</Text>}
+    <View style={[s.composer, { borderTopColor: colors.line, backgroundColor: colors.glassStrong }]}>
+      <Pressable accessibilityRole="button" accessibilityLabel={busy ? 'المساعد يجيب الآن' : 'إرسال'} accessibilityState={{ disabled: busy || !input.trim() }} disabled={busy || !input.trim()} onPress={() => void send()} style={[s.send, { backgroundColor: colors.gold }, (busy || !input.trim()) && s.disabled]}>
+        {busy ? <ActivityIndicator size="small" color={colors.forest}/> : <Ionicons name="arrow-up" size={21} color={colors.forest}/>} 
+      </Pressable>
+      <TextInput value={input} onChangeText={setInput} editable={!busy} multiline maxLength={8000} placeholder="اكتب رسالتك إلى ATEEK AI…" placeholderTextColor={colors.muted} onSubmitEditing={() => { if (!input.includes('\n')) void send(); }} accessibilityLabel="رسالة إلى ATEEK AI" style={[s.input, { color: colors.ink, backgroundColor: colors.glass, borderColor: colors.line }]}/>
+    </View>
+  </KeyboardAvoidingView>;
 }
 
-function Metric({value,label,wide=false}:{value:string;label:string;wide?:boolean}){
-  return <View style={[s.metric,wide&&s.metricWide]}><Text numberOfLines={1} style={s.metricValue}>{value}</Text><Text style={s.metricLabel}>{label}</Text></View>;
-}
-
-const s=StyleSheet.create({root:{flex:1,backgroundColor:colors.cream},hero:{margin:16,marginBottom:8,padding:16,borderRadius:22,backgroundColor:colors.forest,flexDirection:'row-reverse',alignItems:'center',gap:12},bot:{width:52,height:52,borderRadius:18,alignItems:'center',justifyContent:'center',backgroundColor:'rgba(216,169,78,.12)',borderWidth:1,borderColor:'rgba(216,169,78,.35)'},title:{fontSize:24,fontWeight:'900',color:'#fff',textAlign:'right'},sub:{fontSize:11,color:colors.goldSoft,textAlign:'right',marginTop:3},metrics:{marginHorizontal:16,marginBottom:8,flexDirection:'row-reverse',flexWrap:'wrap',gap:8},metric:{minWidth:72,flexGrow:1,backgroundColor:colors.paper,borderWidth:1,borderColor:colors.line,borderRadius:16,paddingHorizontal:10,paddingVertical:9,alignItems:'center'},metricWide:{minWidth:130},metricValue:{fontSize:14,fontWeight:'900',color:colors.forest},metricLabel:{fontSize:9,color:colors.muted,marginTop:2},chat:{paddingHorizontal:16,paddingBottom:20,gap:10},bubble:{maxWidth:'88%',padding:13,borderRadius:18},user:{alignSelf:'flex-end',backgroundColor:colors.forest,borderBottomRightRadius:5},ai:{alignSelf:'flex-start',backgroundColor:colors.paper,borderWidth:1,borderColor:colors.line,borderBottomLeftRadius:5},body:{fontSize:14,lineHeight:22,color:colors.ink,textAlign:'right'},chips:{flexDirection:'row-reverse',flexWrap:'wrap',gap:8,marginTop:8},chip:{paddingHorizontal:12,paddingVertical:8,borderRadius:999,backgroundColor:colors.paper,borderWidth:1,borderColor:colors.line},chipText:{fontSize:11,fontWeight:'700',color:colors.forest},loading:{marginTop:12,flexDirection:'row-reverse',alignItems:'center',gap:8},loadingText:{fontSize:12,color:colors.muted},composer:{flexDirection:'row',alignItems:'flex-end',padding:12,borderTopWidth:1,borderTopColor:colors.line,backgroundColor:colors.paper,gap:8},input:{minHeight:46,maxHeight:112,borderRadius:16,backgroundColor:colors.cream,paddingHorizontal:14,paddingTop:13,paddingBottom:13,color:colors.ink},counter:{fontSize:9,color:colors.muted,textAlign:'right',marginTop:3,marginRight:4},send:{width:46,height:46,borderRadius:16,backgroundColor:colors.forest,alignItems:'center',justifyContent:'center'}});
+const s = StyleSheet.create({
+  root:{flex:1,backgroundColor:'transparent'},header:{minHeight:68,borderBottomWidth:1,paddingHorizontal:16,paddingVertical:10,flexDirection:'row-reverse',alignItems:'center',gap:12},headerText:{flex:1,alignItems:'flex-end'},title:{fontSize:21,fontWeight:'900',textAlign:'right'},subtitle:{fontSize:10,fontWeight:'700',marginTop:3,textAlign:'right'},newButton:{width:44,height:44,borderRadius:16,borderWidth:1,alignItems:'center',justifyContent:'center'},
+  modeList:{flexGrow:0,maxHeight:58},modes:{paddingHorizontal:12,paddingVertical:9,gap:8},modeChip:{minHeight:40,borderRadius:14,borderWidth:1,paddingHorizontal:12,flexDirection:'row-reverse',alignItems:'center',gap:6},modeText:{fontSize:11,fontWeight:'800'},
+  messages:{padding:14,paddingBottom:20,gap:10},emptyMessages:{flexGrow:1,justifyContent:'center',padding:24},bubble:{maxWidth:'89%',borderRadius:20,borderWidth:1,padding:13,gap:7},userBubble:{alignSelf:'flex-end',borderBottomRightRadius:7},aiBubble:{alignSelf:'flex-start',borderBottomLeftRadius:7},aiLabel:{flexDirection:'row-reverse',alignItems:'center',alignSelf:'flex-end',gap:5},aiLabelText:{fontSize:10,fontWeight:'900'},body:{fontSize:14,lineHeight:22,textAlign:'right',writingDirection:'rtl'},typing:{minHeight:28,flexDirection:'row-reverse',alignItems:'center',gap:8},typingText:{fontSize:11,fontWeight:'700'},share:{minHeight:32,alignSelf:'flex-start',flexDirection:'row-reverse',alignItems:'center',gap:5,paddingHorizontal:4},shareText:{fontSize:10,fontWeight:'700'},
+  welcome:{alignItems:'center',paddingHorizontal:18,gap:10},logo:{width:70,height:70,borderRadius:25,borderWidth:1,alignItems:'center',justifyContent:'center'},welcomeTitle:{fontSize:23,fontWeight:'900',textAlign:'center'},welcomeBody:{fontSize:12,lineHeight:21,textAlign:'center',maxWidth:330},
+  error:{paddingHorizontal:16,paddingVertical:6,fontSize:11,fontWeight:'700',textAlign:'right'},composer:{borderTopWidth:1,padding:10,paddingBottom:12,flexDirection:'row',alignItems:'flex-end',gap:8},input:{flex:1,minHeight:48,maxHeight:132,borderRadius:17,borderWidth:1,paddingHorizontal:13,paddingVertical:11,fontSize:14,textAlign:'right',writingDirection:'rtl'},send:{width:46,height:46,borderRadius:16,alignItems:'center',justifyContent:'center'},disabled:{opacity:.42}
+});
