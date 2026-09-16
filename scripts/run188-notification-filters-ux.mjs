@@ -12,13 +12,13 @@ replace(
 
 replace(
   "</View>{m.notifications.length===0?<View style={s.notificationEmpty}",
-  "</View><View accessibilityRole=\"tablist\" accessibilityLabel=\"تصفية الإشعارات\" style={s.notificationFilters}><Pressable accessibilityRole=\"tab\" accessibilityState={{selected:filter==='all'}} onPress={()=>setFilter('all')} style={[s.notificationFilter,filter==='all'&&s.notificationFilterActive]}><Text style={[s.notificationFilterText,filter==='all'&&s.notificationFilterTextActive]}>الكل {m.notifications.length}</Text></Pressable><Pressable accessibilityRole=\"tab\" accessibilityState={{selected:filter==='unread'}} onPress={()=>setFilter('unread')} style={[s.notificationFilter,filter==='unread'&&s.notificationFilterActive]}><Text style={[s.notificationFilterText,filter==='unread'&&s.notificationFilterTextActive]}>غير المقروء {unread}</Text></Pressable></View>{m.notifications.length===0?<View style={s.notificationEmpty}",
+  "</View><View accessibilityRole=\"tablist\" accessibilityLabel=\"تصفية الإشعارات\" style={s.notificationFilters}><Pressable accessibilityRole=\"tab\" accessibilityLabel={`كل الإشعارات، ${m.notifications.length}`} accessibilityHint=\"يعرض جميع الإشعارات\" accessibilityState={{selected:filter==='all'}} onPress={()=>setFilter('all')} style={[s.notificationFilter,filter==='all'&&s.notificationFilterActive]}><Text accessibilityElementsHidden importantForAccessibility=\"no\" style={[s.notificationFilterText,filter==='all'&&s.notificationFilterTextActive]}>الكل {m.notifications.length}</Text></Pressable><Pressable accessibilityRole=\"tab\" accessibilityLabel={`الإشعارات غير المقروءة، ${unread}`} accessibilityHint=\"يعرض الإشعارات غير المقروءة فقط\" accessibilityState={{selected:filter==='unread'}} onPress={()=>setFilter('unread')} style={[s.notificationFilter,filter==='unread'&&s.notificationFilterActive]}><Text accessibilityElementsHidden importantForAccessibility=\"no\" style={[s.notificationFilterText,filter==='unread'&&s.notificationFilterTextActive]}>غير المقروء {unread}</Text></Pressable></View>{m.notifications.length===0?<View style={s.notificationEmpty}",
   'notification filter controls',
 );
 
 replace(
   "<Text style={s.note}>ستظهر هنا الرسائل والعروض وتحديثات حسابك.</Text></View>:m.notifications.map(n=>",
-  "<Text style={s.note}>ستظهر هنا الرسائل والعروض وتحديثات حسابك.</Text></View>:visibleNotifications.length===0?<View style={s.notificationEmpty}><Text style={s.notificationEmptyTitle}>لا توجد إشعارات غير مقروءة</Text><Text style={s.note}>أنت مطّلع على كل جديد حاليًا.</Text></View>:visibleNotifications.map(n=>",
+  "<Text style={s.note}>ستظهر هنا الرسائل والعروض وتحديثات حسابك.</Text></View>:visibleNotifications.length===0?<View accessibilityRole=\"summary\" accessibilityLiveRegion=\"polite\" style={s.notificationEmpty}><Text style={s.notificationEmptyTitle}>لا توجد إشعارات غير مقروءة</Text><Text style={s.note}>أنت مطّلع على كل جديد حاليًا.</Text></View>:visibleNotifications.map(n=>",
   'filtered notification list',
 );
 
@@ -34,10 +34,15 @@ for(const needle of [
   "const[filter,setFilter]=useState<'all'|'unread'>('all')",
   "const visibleNotifications=filter==='unread'?m.notifications.filter(n=>!n.is_read):m.notifications",
   'accessibilityRole="tablist" accessibilityLabel="تصفية الإشعارات"',
+  'accessibilityLabel={`كل الإشعارات، ${m.notifications.length}`}',
+  'accessibilityLabel={`الإشعارات غير المقروءة، ${unread}`}',
+  'accessibilityHint="يعرض الإشعارات غير المقروءة فقط"',
+  'accessibilityElementsHidden importantForAccessibility="no"',
+  'accessibilityRole="summary" accessibilityLiveRegion="polite"',
   'غير المقروء {unread}',
   'لا توجد إشعارات غير مقروءة',
   ':visibleNotifications.map(n=>',
   'notificationFilter:{minHeight:44,',
 ]) if(!s.includes(needle)) throw new Error(`Run188 notification contract missing: ${needle}`);
 
-console.log('Run #188 notifications UX applied: accessible all/unread filtering with truthful counts and empty state.');
+console.log('Run #188 notifications UX applied: accessible all/unread filtering with truthful counts, explicit tab announcements, and empty-state feedback.');
