@@ -99,9 +99,9 @@ export function AuthPortal(props: AuthPortalProps) {
           />
 
           {!!props.error && (
-            <View style={styles.errorRow} accessibilityRole="alert" accessibilityLiveRegion="assertive" accessibilityLabel={props.error}>
+            <View style={styles.errorRow} accessible accessibilityRole="alert" accessibilityLiveRegion="assertive" accessibilityLabel={props.error}>
               <Ionicons name="alert-circle-outline" size={18} color={colors.danger} accessibilityElementsHidden importantForAccessibility="no" />
-              <Text style={[styles.error, { color: colors.danger }]}>{props.error}</Text>
+              <Text style={[styles.error, { color: colors.danger }]} accessibilityElementsHidden importantForAccessibility="no">{props.error}</Text>
             </View>
           )}
 
