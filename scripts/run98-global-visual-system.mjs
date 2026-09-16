@@ -55,7 +55,7 @@ const required=[
   [online,"import { AuthPortal } from '../components/AuthPortal';",'AuthPortal import'],
   [online,'return <AuthPortal register={register}','AuthPortal render'],
   [online,'function notificationTime','notifications helper preserved'],
-  [authPortal,'accessibilityLiveRegion="polite"','auth accessibility live region'],
+  [authPortal,'accessibilityLiveRegion="assertive"','auth accessibility live region'],
   [authPortal,"enabled={Platform.OS === 'ios'}",'iOS-only JS keyboard avoidance'],
   [authPortal,"behavior={Platform.OS === 'ios' ? 'padding' : undefined}",'native Android adjustResize keyboard handling'],
   [account,"['premium','عتيك بلس','diamond-outline']",'Arabic premium tab'],
