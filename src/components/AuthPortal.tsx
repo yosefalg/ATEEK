@@ -149,6 +149,7 @@ function Field({ icon, label, colors, ...props }: ComponentProps<typeof TextInpu
         <TextInput
           {...props}
           accessibilityLabel={label}
+          accessibilityHint={`أدخل ${label}`}
           accessibilityState={{ disabled: props.editable === false }}
           editable={props.editable}
           placeholderTextColor={colors.muted}
