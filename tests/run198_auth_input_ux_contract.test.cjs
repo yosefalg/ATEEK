@@ -12,7 +12,14 @@ test('auth inputs expose platform autofill semantics', () => {
 });
 
 test('auth inputs lock while an existing Supabase Auth request is busy', () => {
-  assert.equal((transform.match(/editable=\{!props\.busy\}/g) || []).length, 3);
+  for (const field of ['name', 'email', 'password']) {
+    const start = transform.indexOf(`replaceField('${field}',`);
+    assert.notEqual(start, -1, `${field} replacement must exist`);
+    const end = transform.indexOf(`,'`, start);
+    assert.notEqual(end, -1, `${field} replacement must have a contract label`);
+    const replacement = transform.slice(start, end);
+    assert.match(replacement, /editable=\{!props\.busy\}/, `${field} must lock while auth is busy`);
+  }
   assert.match(transform, /onSubmitEditing=\{props\.busy \? undefined : props\.onSubmit\}/);
 });
 
