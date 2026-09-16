@@ -100,7 +100,7 @@ export function AuthPortal(props: AuthPortalProps) {
 
           {!!props.error && (
             <View style={styles.errorRow} accessibilityRole="alert" accessibilityLiveRegion="polite">
-              <Ionicons name="alert-circle-outline" size={18} color={colors.danger} />
+              <Ionicons name="alert-circle-outline" size={18} color={colors.danger} accessibilityElementsHidden importantForAccessibility="no" />
               <Text style={[styles.error, { color: colors.danger }]}>{props.error}</Text>
             </View>
           )}
@@ -114,7 +114,7 @@ export function AuthPortal(props: AuthPortalProps) {
             onPress={props.onSubmit}
             style={({ pressed }) => [styles.primary, { backgroundColor: colors.gold }, pressed && !props.busy && styles.pressed, props.busy && styles.disabled]}
           >
-            {props.busy ? <ActivityIndicator color={colors.forest} /> : <Ionicons name={props.register ? 'person-add-outline' : 'arrow-forward-outline'} size={20} color={colors.forest} />}
+            {props.busy ? <ActivityIndicator color={colors.forest} accessibilityElementsHidden importantForAccessibility="no" /> : <Ionicons name={props.register ? 'person-add-outline' : 'arrow-forward-outline'} size={20} color={colors.forest} accessibilityElementsHidden importantForAccessibility="no" />}
             <Text style={[styles.primaryText, { color: colors.forest }]}>{props.busy ? 'جارٍ الاتصال…' : props.register ? 'إنشاء الحساب' : 'دخول'}</Text>
           </Pressable>
 
