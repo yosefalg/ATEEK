@@ -132,7 +132,7 @@ export function AuthPortal(props: AuthPortalProps) {
 
           <View style={[styles.trust, { borderTopColor: colors.line }]} accessible accessibilityRole="text" accessibilityLabel="تسجيل الدخول محمي عبر Supabase Auth ولا تُحفظ كلمة المرور داخل التطبيق">
             <Ionicons name="shield-checkmark-outline" size={17} color={colors.success} accessibilityElementsHidden importantForAccessibility="no" />
-            <Text style={[styles.trustText, { color: colors.muted }]}>تسجيل الدخول محمي عبر Supabase Auth ولا تُحفظ كلمة المرور داخل التطبيق.</Text>
+            <Text style={[styles.trustText, { color: colors.muted }]} accessibilityElementsHidden importantForAccessibility="no">تسجيل الدخول محمي عبر Supabase Auth ولا تُحفظ كلمة المرور داخل التطبيق.</Text>
           </View>
         </Animated.View>
       </ScrollView>
