@@ -16,8 +16,8 @@ export const EmptyState = memo(function EmptyState({ icon, title, body }: { icon
       <View style={[styles.icon, { backgroundColor: colors.forest }]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
         <Ionicons name={icon} size={34} color={colors.gold} />
       </View>
-      <Text style={[styles.title, { color: colors.ink }]}>{title}</Text>
-      <Text style={[styles.body, { color: colors.muted }]}>{body}</Text>
+      <Text style={[styles.title, { color: colors.ink }]} accessibilityElementsHidden importantForAccessibility="no">{title}</Text>
+      <Text style={[styles.body, { color: colors.muted }]} accessibilityElementsHidden importantForAccessibility="no">{body}</Text>
     </View>
   );
 });
