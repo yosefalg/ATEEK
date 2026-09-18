@@ -57,6 +57,12 @@ function isCursor(value: unknown): value is Cursor {
   return typeof cursor.createdAt === 'string' && cursor.createdAt.length > 0 && typeof cursor.id === 'string' && cursor.id.length > 0;
 }
 
+function hasValidReelCursorFields(value: unknown): boolean {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const reel = value as Record<string, unknown>;
+  return typeof reel.id === 'string' && reel.id.length > 0 && typeof reel.created_at === 'string' && reel.created_at.length > 0;
+}
+
 async function discardInvalidSnapshot() {
   try {
     await AsyncStorage.removeItem(CACHE_KEY);
@@ -80,6 +86,7 @@ export async function readReelsSnapshot<R, L>(): Promise<ReelsSnapshot<R, L> | n
         parsed?.version === 1 &&
         Array.isArray(parsed.reels) &&
         parsed.reels.length <= MAX_CACHED_REELS &&
+        parsed.reels.every(hasValidReelCursorFields) &&
         !!parsed.listings &&
         typeof parsed.listings === 'object' &&
         !Array.isArray(parsed.listings) &&
