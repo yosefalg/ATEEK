@@ -4,6 +4,7 @@ const CACHE_KEY = 'ateek.reels.swr.v1';
 const MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const MAX_FUTURE_SKEW_MS = 5 * 60 * 1000;
 const MAX_CACHED_REELS = 100;
+const MAX_CACHE_BYTES = 1024 * 1024;
 
 let cacheOperationChain: Promise<void> = Promise.resolve();
 
@@ -45,6 +46,10 @@ export async function readReelsSnapshot<R, L>(): Promise<ReelsSnapshot<R, L> | n
     try {
       const raw = await AsyncStorage.getItem(CACHE_KEY);
       if (!raw) return null;
+      if (raw.length > MAX_CACHE_BYTES) {
+        await discardInvalidSnapshot();
+        return null;
+      }
       const parsed = JSON.parse(raw) as ReelsSnapshot<R, L>;
       const now = Date.now();
       const valid =
@@ -87,7 +92,12 @@ export async function writeReelsSnapshot<R extends { id: string; created_at: str
       nextCursor: last ? { createdAt: last.created_at, id: last.id } : null,
     };
     try {
-      await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(snapshot));
+      const serialized = JSON.stringify(snapshot);
+      if (serialized.length > MAX_CACHE_BYTES) {
+        await discardInvalidSnapshot();
+        return;
+      }
+      await AsyncStorage.setItem(CACHE_KEY, serialized);
     } catch {
       // Cache failure must never block the live Supabase feed.
     }
