@@ -118,7 +118,7 @@ export async function writeReelsSnapshot<R extends { id: string; created_at: str
     try {
       const serialized = JSON.stringify(snapshot);
       if (exceedsUtf8ByteBudget(serialized, MAX_CACHE_BYTES)) {
-        await discardInvalidSnapshot();
+        // Keep the last known-good snapshot: a too-large refresh must not destroy offline fallback data.
         return;
       }
       await AsyncStorage.setItem(CACHE_KEY, serialized);
