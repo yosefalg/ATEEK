@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const CACHE_KEY = 'ateek.reels.swr.v1';
 const MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const MAX_FUTURE_SKEW_MS = 5 * 60 * 1000;
+const MAX_CACHED_REELS = 100;
 
 let cacheOperationChain: Promise<void> = Promise.resolve();
 
@@ -49,6 +50,7 @@ export async function readReelsSnapshot<R, L>(): Promise<ReelsSnapshot<R, L> | n
       const valid =
         parsed?.version === 1 &&
         Array.isArray(parsed.reels) &&
+        parsed.reels.length <= MAX_CACHED_REELS &&
         !!parsed.listings &&
         typeof parsed.listings === 'object' &&
         !Array.isArray(parsed.listings) &&
@@ -69,12 +71,17 @@ export async function readReelsSnapshot<R, L>(): Promise<ReelsSnapshot<R, L> | n
 
 export async function writeReelsSnapshot<R extends { id: string; created_at: string }, L>(reels: R[], listings: Record<string, L>) {
   return serializeCacheOperation(async () => {
-    const last = reels[reels.length - 1];
+    const boundedReels = reels.slice(0, MAX_CACHED_REELS);
+    const boundedListingIds = new Set(boundedReels.map((reel) => reel.id));
+    const boundedListings = Object.fromEntries(
+      Object.entries(listings).filter(([listingId]) => boundedListingIds.has(listingId)),
+    ) as Record<string, L>;
+    const last = boundedReels[boundedReels.length - 1];
     const snapshot: ReelsSnapshot<R, L> = {
       version: 1,
       cachedAt: Date.now(),
-      reels,
-      listings,
+      reels: boundedReels,
+      listings: boundedListings,
       nextCursor: last ? { createdAt: last.created_at, id: last.id } : null,
     };
     try {
