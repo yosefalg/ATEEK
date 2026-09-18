@@ -17,7 +17,7 @@ export type ReelsSnapshot<R, L> = {
   nextCursor: Cursor;
 };
 
-function utf8ByteLength(value: string): number {
+function exceedsUtf8ByteBudget(value: string, maxBytes: number): boolean {
   let bytes = 0;
   for (let index = 0; index < value.length; index += 1) {
     const codeUnit = value.charCodeAt(index);
@@ -36,8 +36,9 @@ function utf8ByteLength(value: string): number {
     } else {
       bytes += 3;
     }
+    if (bytes > maxBytes) return true;
   }
-  return bytes;
+  return false;
 }
 
 function serializeCacheOperation<T>(operation: () => Promise<T>): Promise<T> {
@@ -69,7 +70,7 @@ export async function readReelsSnapshot<R, L>(): Promise<ReelsSnapshot<R, L> | n
     try {
       const raw = await AsyncStorage.getItem(CACHE_KEY);
       if (!raw) return null;
-      if (utf8ByteLength(raw) > MAX_CACHE_BYTES) {
+      if (exceedsUtf8ByteBudget(raw, MAX_CACHE_BYTES)) {
         await discardInvalidSnapshot();
         return null;
       }
@@ -116,7 +117,7 @@ export async function writeReelsSnapshot<R extends { id: string; created_at: str
     };
     try {
       const serialized = JSON.stringify(snapshot);
-      if (utf8ByteLength(serialized) > MAX_CACHE_BYTES) {
+      if (exceedsUtf8ByteBudget(serialized, MAX_CACHE_BYTES)) {
         await discardInvalidSnapshot();
         return;
       }
