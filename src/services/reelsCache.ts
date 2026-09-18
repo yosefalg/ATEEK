@@ -69,10 +69,12 @@ export async function readReelsSnapshot<R, L>(): Promise<ReelsSnapshot<R, L> | n
   });
 }
 
-export async function writeReelsSnapshot<R extends { id: string; created_at: string }, L>(reels: R[], listings: Record<string, L>) {
+export async function writeReelsSnapshot<R extends { id: string; created_at: string; listing_id?: string | null }, L>(reels: R[], listings: Record<string, L>) {
   return serializeCacheOperation(async () => {
     const boundedReels = reels.slice(0, MAX_CACHED_REELS);
-    const boundedListingIds = new Set(boundedReels.map((reel) => reel.id));
+    const boundedListingIds = new Set(
+      boundedReels.map((reel) => reel.listing_id).filter((id): id is string => typeof id === 'string' && id.length > 0),
+    );
     const boundedListings = Object.fromEntries(
       Object.entries(listings).filter(([listingId]) => boundedListingIds.has(listingId)),
     ) as Record<string, L>;
