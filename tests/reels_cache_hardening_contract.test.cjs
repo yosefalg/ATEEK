@@ -51,5 +51,12 @@ test('reels cache bounds persisted feed and retains only listings referenced by 
   assert.match(cache, /reels: boundedReels/);
   assert.match(cache, /listings: boundedListings/);
   assert.match(cache, /const last = boundedReels\[boundedReels\.length - 1\]/);
-  assert.match(cache, /exceedsUtf8ByteBudget\(serialized, MAX_CACHE_BYTES\)[\s\S]*?await discardInvalidSnapshot\(\)[\s\S]*?return/);
+});
+
+test('oversized refresh preserves the last known-good reels snapshot', () => {
+  const cache = fs.readFileSync('src/services/reelsCache.ts', 'utf8');
+  assert.match(cache, /if \(exceedsUtf8ByteBudget\(serialized, MAX_CACHE_BYTES\)\) \{[\s\S]*?last known-good snapshot[\s\S]*?return;[\s\S]*?\}/);
+  const writeSection = cache.slice(cache.indexOf('export async function writeReelsSnapshot'));
+  const oversizedBranch = writeSection.match(/if \(exceedsUtf8ByteBudget\(serialized, MAX_CACHE_BYTES\)\) \{([\s\S]*?)\n\s*\}/)?.[1] ?? '';
+  assert.doesNotMatch(oversizedBranch, /removeItem|discardInvalidSnapshot/);
 });
