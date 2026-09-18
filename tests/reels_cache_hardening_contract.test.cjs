@@ -10,7 +10,11 @@ test('reels cache rejects malformed, future, expired, and oversized snapshots an
   assert.match(cache, /function exceedsUtf8ByteBudget\(value: string, maxBytes: number\): boolean/);
   assert.match(cache, /exceedsUtf8ByteBudget\(raw, MAX_CACHE_BYTES\)/);
   assert.match(cache, /function isCursor\(value: unknown\): value is Cursor/);
+  assert.match(cache, /function hasValidReelCursorFields\(value: unknown\): boolean/);
+  assert.match(cache, /typeof reel\.id === 'string' && reel\.id\.length > 0/);
+  assert.match(cache, /typeof reel\.created_at === 'string' && reel\.created_at\.length > 0/);
   assert.match(cache, /parsed\.reels\.length <= MAX_CACHED_REELS/);
+  assert.match(cache, /parsed\.reels\.every\(hasValidReelCursorFields\)/);
   assert.match(cache, /typeof parsed\.listings === 'object'/);
   assert.match(cache, /!Array\.isArray\(parsed\.listings\)/);
   assert.match(cache, /Number\.isFinite\(parsed\.cachedAt\)/);
