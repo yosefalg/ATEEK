@@ -78,3 +78,16 @@ test('reels cache persists listing payloads only for the bounded reels snapshot'
   assert.match(writeSection, /listings: boundedListings/);
   assert.doesNotMatch(writeSection.slice(snapshotIndex), /listings:\s*listings[,}]/);
 });
+
+test('empty reels snapshots cannot retain stale listing payloads and keep a null cursor', () => {
+  const cache = fs.readFileSync('src/services/reelsCache.ts', 'utf8');
+  const writeSection = cache.slice(cache.indexOf('export async function writeReelsSnapshot'));
+  assert.match(writeSection, /const boundedListingIds = new Set\(boundedReels\.map/);
+  assert.match(writeSection, /Object\.entries\(listings\)\.filter\(\(\[listingId\]\) => boundedListingIds\.has\(listingId\)\)/);
+  assert.match(writeSection, /nextCursor: last \? \{ createdAt: last\.created_at, id: last\.id \} : null/);
+  const readStart = cache.indexOf('export async function readReelsSnapshot');
+  const writeStart = cache.indexOf('export async function writeReelsSnapshot');
+  const readSection = cache.slice(readStart, writeStart);
+  assert.match(readSection, /hasOnlyReferencedListings\(parsed\.reels, parsed\.listings as Record<string, unknown>\)/);
+  assert.match(cache, /if \(reels\.length === 0\) return nextCursor === null;/);
+});
