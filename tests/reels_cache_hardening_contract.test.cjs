@@ -19,11 +19,21 @@ test('reels cache rejects malformed, future, expired, and oversized snapshots an
   assert.match(cache, /!Array\.isArray\(parsed\.listings\)/);
   assert.match(cache, /Number\.isFinite\(parsed\.cachedAt\)/);
   assert.match(cache, /parsed\.cachedAt <= now \+ MAX_FUTURE_SKEW_MS/);
-  assert.match(cache, /isCursor\(parsed\.nextCursor\)/);
+  assert.match(cache, /isCursor\(parsed\?\.nextCursor\)/);
   assert.match(cache, /now - parsed\.cachedAt > MAX_AGE_MS/);
   assert.match(cache, /async function discardInvalidSnapshot\(\)[\s\S]*?try \{[\s\S]*?await AsyncStorage\.removeItem\(CACHE_KEY\)[\s\S]*?\} catch \{/);
   assert.match(cache, /await discardInvalidSnapshot\(\)/);
   assert.match(cache, /Cache cleanup must never block the live Supabase feed/);
+});
+
+test('reels cache cursor must match the final cached reel', () => {
+  const cache = fs.readFileSync('src/services/reelsCache.ts', 'utf8');
+  assert.match(cache, /function hasCoherentNextCursor\(reels: unknown\[\], nextCursor: Cursor\): boolean/);
+  assert.match(cache, /if \(reels\.length === 0\) return nextCursor === null/);
+  assert.match(cache, /if \(!nextCursor\) return false/);
+  assert.match(cache, /const last = reels\[reels\.length - 1\] as Record<string, unknown>/);
+  assert.match(cache, /last\.id === nextCursor\.id && last\.created_at === nextCursor\.createdAt/);
+  assert.match(cache, /cursorValid &&[\s\S]*?hasCoherentNextCursor\(parsed\.reels, parsed\.nextCursor\)/);
 });
 
 test('reels cache byte budget counts UTF-8 including surrogate pairs and exits once over budget', () => {
