@@ -26,6 +26,19 @@ test('reels cache rejects malformed or duplicate refresh rows before replacing l
   assert.doesNotMatch(validationBranch, /setItem|removeItem|discardInvalidSnapshot/);
 });
 
+test('reels cache rejects malformed listings input without destroying last-known-good data', () => {
+  const cache = fs.readFileSync('src/services/reelsCache.ts', 'utf8');
+  const writeSection = cache.slice(cache.indexOf('export async function writeReelsSnapshot'));
+  const listingsGuardIndex = writeSection.indexOf("if (!listings || typeof listings !== 'object' || Array.isArray(listings))");
+  const listingFilterIndex = writeSection.indexOf('const boundedListingIds = new Set');
+  assert.ok(listingsGuardIndex >= 0, 'runtime listings object guard must exist');
+  assert.ok(listingFilterIndex > listingsGuardIndex, 'listings runtime guard must execute before enumerating/filtering listing payloads');
+  const guardBranch = writeSection.match(/if \(!listings \|\| typeof listings !== 'object' \|\| Array\.isArray\(listings\)\) \{([\s\S]*?)\n\s*\}/)?.[1] ?? '';
+  assert.match(guardBranch, /cache failures must not break the live feed/);
+  assert.match(guardBranch, /return;/);
+  assert.doesNotMatch(guardBranch, /setItem|removeItem|discardInvalidSnapshot/);
+});
+
 test('reels cache read validation rejects duplicate ids and cleans the persisted snapshot', () => {
   const cache = fs.readFileSync('src/services/reelsCache.ts', 'utf8');
   const readStart = cache.indexOf('export async function readReelsSnapshot');
