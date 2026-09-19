@@ -45,6 +45,10 @@ function isNonBlankString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
+function isCanonicalId(value: unknown): value is string {
+  return isNonBlankString(value) && value === value.trim();
+}
+
 function isValidTimestamp(value: unknown): value is string {
   return isNonBlankString(value) && Number.isFinite(Date.parse(value));
 }
@@ -53,14 +57,14 @@ function isCursor(value: unknown): value is Cursor {
   if (value === null) return true;
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   const cursor = value as Record<string, unknown>;
-  return isValidTimestamp(cursor.createdAt) && isNonBlankString(cursor.id);
+  return isValidTimestamp(cursor.createdAt) && isCanonicalId(cursor.id);
 }
 
 function hasValidReelCursorFields(value: unknown): boolean {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   const reel = value as Record<string, unknown>;
-  if (!isNonBlankString(reel.id) || !isValidTimestamp(reel.created_at)) return false;
-  return reel.listing_id == null || isNonBlankString(reel.listing_id);
+  if (!isCanonicalId(reel.id) || !isValidTimestamp(reel.created_at)) return false;
+  return reel.listing_id == null || isCanonicalId(reel.listing_id);
 }
 
 function hasUniqueReelIds(reels: unknown[]): boolean {
@@ -68,7 +72,7 @@ function hasUniqueReelIds(reels: unknown[]): boolean {
   for (const value of reels) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
     const id = (value as Record<string, unknown>).id;
-    if (!isNonBlankString(id) || ids.has(id)) return false;
+    if (!isCanonicalId(id) || ids.has(id)) return false;
     ids.add(id);
   }
   return true;
@@ -79,9 +83,9 @@ function hasOnlyReferencedListings(reels: unknown[], listings: Record<string, un
   for (const value of reels) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
     const listingId = (value as Record<string, unknown>).listing_id;
-    if (isNonBlankString(listingId)) referencedIds.add(listingId);
+    if (isCanonicalId(listingId)) referencedIds.add(listingId);
   }
-  return Object.keys(listings).every((listingId) => isNonBlankString(listingId) && referencedIds.has(listingId));
+  return Object.keys(listings).every((listingId) => isCanonicalId(listingId) && referencedIds.has(listingId));
 }
 
 function hasCoherentNextCursor(reels: unknown[], nextCursor: Cursor): boolean {
@@ -140,8 +144,8 @@ export async function writeReelsSnapshot<R extends { id: string; created_at: str
       // Runtime callers can still violate TypeScript contracts; cache failures must not break the live feed.
       return;
     }
-    const boundedListingIds = new Set(boundedReels.map((reel) => reel.listing_id).filter((id): id is string => isNonBlankString(id)));
-    const boundedListings = Object.fromEntries(Object.entries(listings).filter(([listingId]) => isNonBlankString(listingId) && boundedListingIds.has(listingId))) as Record<string, L>;
+    const boundedListingIds = new Set(boundedReels.map((reel) => reel.listing_id).filter((id): id is string => isCanonicalId(id)));
+    const boundedListings = Object.fromEntries(Object.entries(listings).filter(([listingId]) => isCanonicalId(listingId) && boundedListingIds.has(listingId))) as Record<string, L>;
     const last = boundedReels[boundedReels.length - 1];
     const snapshot: ReelsSnapshot<R, L> = { version: 1, cachedAt: Date.now(), reels: boundedReels, listings: boundedListings, nextCursor: last ? { createdAt: last.created_at, id: last.id } : null };
     try {
