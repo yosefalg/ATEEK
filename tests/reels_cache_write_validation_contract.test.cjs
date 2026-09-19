@@ -49,7 +49,7 @@ test('reels cache read validation rejects duplicate ids and cleans the persisted
   assert.match(readSection, /if \(!valid \|\| now - parsed\.cachedAt > MAX_AGE_MS\) \{[\s\S]*?await discardInvalidSnapshot\(\);[\s\S]*?return null;/);
 });
 
-test('reels cache read validation rejects unreferenced listing payloads and cleans the persisted snapshot', () => {
+test('reels cache read validation rejects unreferenced or blank listing keys and cleans the persisted snapshot', () => {
   const cache = fs.readFileSync('src/services/reelsCache.ts', 'utf8');
   const helperStart = cache.indexOf('function hasOnlyReferencedListings');
   const cursorHelperStart = cache.indexOf('function hasCoherentNextCursor');
@@ -57,7 +57,7 @@ test('reels cache read validation rejects unreferenced listing payloads and clea
   const helperSection = cache.slice(helperStart, cursorHelperStart);
   assert.match(helperSection, /const referencedIds = new Set<string>\(\)/);
   assert.match(helperSection, /listing_id/);
-  assert.match(helperSection, /Object\.keys\(listings\)\.every\(\(listingId\) => referencedIds\.has\(listingId\)\)/);
+  assert.match(helperSection, /Object\.keys\(listings\)\.every\(\(listingId\) => isNonBlankString\(listingId\) && referencedIds\.has\(listingId\)\)/);
 
   const readStart = cache.indexOf('export async function readReelsSnapshot');
   const writeStart = cache.indexOf('export async function writeReelsSnapshot');
@@ -66,14 +66,14 @@ test('reels cache read validation rejects unreferenced listing payloads and clea
   assert.match(readSection, /if \(!valid \|\| now - parsed\.cachedAt > MAX_AGE_MS\) \{[\s\S]*?await discardInvalidSnapshot\(\);[\s\S]*?return null;/);
 });
 
-test('reels cache persists listing payloads only for the bounded reels snapshot', () => {
+test('reels cache persists listing payloads only for valid keys referenced by the bounded reels snapshot', () => {
   const cache = fs.readFileSync('src/services/reelsCache.ts', 'utf8');
   const writeSection = cache.slice(cache.indexOf('export async function writeReelsSnapshot'));
   const referencedIdsIndex = writeSection.indexOf('const boundedListingIds = new Set(boundedReels.map');
-  const filterIndex = writeSection.indexOf('Object.entries(listings).filter(([listingId]) => boundedListingIds.has(listingId))');
+  const filterIndex = writeSection.indexOf('Object.entries(listings).filter(([listingId]) => isNonBlankString(listingId) && boundedListingIds.has(listingId))');
   const snapshotIndex = writeSection.indexOf('const snapshot: ReelsSnapshot');
   assert.ok(referencedIdsIndex >= 0, 'bounded reel listing-id set must exist');
-  assert.ok(filterIndex > referencedIdsIndex, 'listing payloads must be filtered by referenced bounded reel ids');
+  assert.ok(filterIndex > referencedIdsIndex, 'listing payloads must be filtered by valid referenced bounded reel ids');
   assert.ok(snapshotIndex > filterIndex, 'filtered listings must be computed before snapshot serialization');
   assert.match(writeSection, /listings: boundedListings/);
   assert.doesNotMatch(writeSection.slice(snapshotIndex), /listings:\s*listings[,}]/);
@@ -83,7 +83,7 @@ test('empty reels snapshots cannot retain stale listing payloads and keep a null
   const cache = fs.readFileSync('src/services/reelsCache.ts', 'utf8');
   const writeSection = cache.slice(cache.indexOf('export async function writeReelsSnapshot'));
   assert.match(writeSection, /const boundedListingIds = new Set\(boundedReels\.map/);
-  assert.match(writeSection, /Object\.entries\(listings\)\.filter\(\(\[listingId\]\) => boundedListingIds\.has\(listingId\)\)/);
+  assert.match(writeSection, /Object\.entries\(listings\)\.filter\(\(\[listingId\]\) => isNonBlankString\(listingId\) && boundedListingIds\.has\(listingId\)\)/);
   assert.match(writeSection, /nextCursor: last \? \{ createdAt: last\.created_at, id: last\.id \} : null/);
   const readStart = cache.indexOf('export async function readReelsSnapshot');
   const writeStart = cache.indexOf('export async function writeReelsSnapshot');
