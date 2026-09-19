@@ -50,17 +50,25 @@ function serializeCacheOperation<T>(operation: () => Promise<T>): Promise<T> {
   return run;
 }
 
+function isNonBlankString(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+function isValidTimestamp(value: unknown): value is string {
+  return isNonBlankString(value) && Number.isFinite(Date.parse(value));
+}
+
 function isCursor(value: unknown): value is Cursor {
   if (value === null) return true;
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   const cursor = value as Record<string, unknown>;
-  return typeof cursor.createdAt === 'string' && cursor.createdAt.length > 0 && typeof cursor.id === 'string' && cursor.id.length > 0;
+  return isValidTimestamp(cursor.createdAt) && isNonBlankString(cursor.id);
 }
 
 function hasValidReelCursorFields(value: unknown): boolean {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   const reel = value as Record<string, unknown>;
-  return typeof reel.id === 'string' && reel.id.length > 0 && typeof reel.created_at === 'string' && reel.created_at.length > 0;
+  return isNonBlankString(reel.id) && isValidTimestamp(reel.created_at);
 }
 
 function hasCoherentNextCursor(reels: unknown[], nextCursor: Cursor): boolean {
