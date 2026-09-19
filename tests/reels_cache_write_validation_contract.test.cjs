@@ -2,6 +2,19 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 
+test('reels cache rejects non-array refresh input before slicing', () => {
+  const cache = fs.readFileSync('src/services/reelsCache.ts', 'utf8');
+  const writeSection = cache.slice(cache.indexOf('export async function writeReelsSnapshot'));
+  const arrayGuardIndex = writeSection.indexOf('if (!Array.isArray(reels))');
+  const sliceIndex = writeSection.indexOf('const boundedReels = reels.slice(0, MAX_CACHED_REELS)');
+  assert.ok(arrayGuardIndex >= 0, 'runtime reels array guard must exist');
+  assert.ok(sliceIndex > arrayGuardIndex, 'runtime reels array guard must execute before reels.slice');
+  const guardBranch = writeSection.match(/if \(!Array\.isArray\(reels\)\) \{([\s\S]*?)\n\s*\}/)?.[1] ?? '';
+  assert.match(guardBranch, /last known-good snapshot/);
+  assert.match(guardBranch, /return;/);
+  assert.doesNotMatch(guardBranch, /setItem|removeItem|discardInvalidSnapshot/);
+});
+
 test('reels cache rejects malformed refresh rows before replacing last-known-good data', () => {
   const cache = fs.readFileSync('src/services/reelsCache.ts', 'utf8');
   const writeSection = cache.slice(cache.indexOf('export async function writeReelsSnapshot'));
