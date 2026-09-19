@@ -59,7 +59,8 @@ function isCursor(value: unknown): value is Cursor {
 function hasValidReelCursorFields(value: unknown): boolean {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   const reel = value as Record<string, unknown>;
-  return isNonBlankString(reel.id) && isValidTimestamp(reel.created_at);
+  if (!isNonBlankString(reel.id) || !isValidTimestamp(reel.created_at)) return false;
+  return reel.listing_id == null || isNonBlankString(reel.listing_id);
 }
 
 function hasUniqueReelIds(reels: unknown[]): boolean {
@@ -78,9 +79,9 @@ function hasOnlyReferencedListings(reels: unknown[], listings: Record<string, un
   for (const value of reels) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
     const listingId = (value as Record<string, unknown>).listing_id;
-    if (typeof listingId === 'string' && listingId.length > 0) referencedIds.add(listingId);
+    if (isNonBlankString(listingId)) referencedIds.add(listingId);
   }
-  return Object.keys(listings).every((listingId) => referencedIds.has(listingId));
+  return Object.keys(listings).every((listingId) => isNonBlankString(listingId) && referencedIds.has(listingId));
 }
 
 function hasCoherentNextCursor(reels: unknown[], nextCursor: Cursor): boolean {
@@ -139,8 +140,8 @@ export async function writeReelsSnapshot<R extends { id: string; created_at: str
       // Runtime callers can still violate TypeScript contracts; cache failures must not break the live feed.
       return;
     }
-    const boundedListingIds = new Set(boundedReels.map((reel) => reel.listing_id).filter((id): id is string => typeof id === 'string' && id.length > 0));
-    const boundedListings = Object.fromEntries(Object.entries(listings).filter(([listingId]) => boundedListingIds.has(listingId))) as Record<string, L>;
+    const boundedListingIds = new Set(boundedReels.map((reel) => reel.listing_id).filter((id): id is string => isNonBlankString(id)));
+    const boundedListings = Object.fromEntries(Object.entries(listings).filter(([listingId]) => isNonBlankString(listingId) && boundedListingIds.has(listingId))) as Record<string, L>;
     const last = boundedReels[boundedReels.length - 1];
     const snapshot: ReelsSnapshot<R, L> = { version: 1, cachedAt: Date.now(), reels: boundedReels, listings: boundedListings, nextCursor: last ? { createdAt: last.created_at, id: last.id } : null };
     try {
