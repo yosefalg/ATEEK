@@ -73,6 +73,16 @@ function hasUniqueReelIds(reels: unknown[]): boolean {
   return true;
 }
 
+function hasOnlyReferencedListings(reels: unknown[], listings: Record<string, unknown>): boolean {
+  const referencedIds = new Set<string>();
+  for (const value of reels) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+    const listingId = (value as Record<string, unknown>).listing_id;
+    if (typeof listingId === 'string' && listingId.length > 0) referencedIds.add(listingId);
+  }
+  return Object.keys(listings).every((listingId) => referencedIds.has(listingId));
+}
+
 function hasCoherentNextCursor(reels: unknown[], nextCursor: Cursor): boolean {
   if (reels.length === 0) return nextCursor === null;
   if (!nextCursor) return false;
@@ -100,7 +110,8 @@ export async function readReelsSnapshot<R, L>(): Promise<ReelsSnapshot<R, L> | n
       const parsed = JSON.parse(raw) as ReelsSnapshot<R, L>;
       const now = Date.now();
       const cursorValid = isCursor(parsed?.nextCursor);
-      const valid = parsed?.version === 1 && Array.isArray(parsed.reels) && parsed.reels.length <= MAX_CACHED_REELS && parsed.reels.every(hasValidReelCursorFields) && hasUniqueReelIds(parsed.reels) && !!parsed.listings && typeof parsed.listings === 'object' && !Array.isArray(parsed.listings) && Number.isFinite(parsed.cachedAt) && parsed.cachedAt <= now + MAX_FUTURE_SKEW_MS && cursorValid && hasCoherentNextCursor(parsed.reels, parsed.nextCursor);
+      const listingsValid = !!parsed?.listings && typeof parsed.listings === 'object' && !Array.isArray(parsed.listings);
+      const valid = parsed?.version === 1 && Array.isArray(parsed.reels) && parsed.reels.length <= MAX_CACHED_REELS && parsed.reels.every(hasValidReelCursorFields) && hasUniqueReelIds(parsed.reels) && listingsValid && hasOnlyReferencedListings(parsed.reels, parsed.listings as Record<string, unknown>) && Number.isFinite(parsed.cachedAt) && parsed.cachedAt <= now + MAX_FUTURE_SKEW_MS && cursorValid && hasCoherentNextCursor(parsed.reels, parsed.nextCursor);
       if (!valid || now - parsed.cachedAt > MAX_AGE_MS) {
         await discardInvalidSnapshot();
         return null;
