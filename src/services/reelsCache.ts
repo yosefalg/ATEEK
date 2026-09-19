@@ -109,6 +109,10 @@ export async function writeReelsSnapshot<R extends { id: string; created_at: str
       // Reject malformed refresh data without replacing the last known-good snapshot.
       return;
     }
+    if (!listings || typeof listings !== 'object' || Array.isArray(listings)) {
+      // Runtime callers can still violate TypeScript contracts; cache failures must not break the live feed.
+      return;
+    }
     const boundedListingIds = new Set(boundedReels.map((reel) => reel.listing_id).filter((id): id is string => typeof id === 'string' && id.length > 0));
     const boundedListings = Object.fromEntries(Object.entries(listings).filter(([listingId]) => boundedListingIds.has(listingId))) as Record<string, L>;
     const last = boundedReels[boundedReels.length - 1];
