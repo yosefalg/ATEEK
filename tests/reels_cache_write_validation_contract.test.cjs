@@ -25,3 +25,13 @@ test('reels cache rejects malformed or duplicate refresh rows before replacing l
   assert.match(validationBranch, /return;/);
   assert.doesNotMatch(validationBranch, /setItem|removeItem|discardInvalidSnapshot/);
 });
+
+test('reels cache read validation rejects duplicate ids and cleans the persisted snapshot', () => {
+  const cache = fs.readFileSync('src/services/reelsCache.ts', 'utf8');
+  const readStart = cache.indexOf('export async function readReelsSnapshot');
+  const writeStart = cache.indexOf('export async function writeReelsSnapshot');
+  assert.ok(readStart >= 0 && writeStart > readStart, 'read and write cache sections must exist');
+  const readSection = cache.slice(readStart, writeStart);
+  assert.match(readSection, /hasUniqueReelIds\(parsed\.reels\)/);
+  assert.match(readSection, /if \(!valid \|\| now - parsed\.cachedAt > MAX_AGE_MS\) \{[\s\S]*?await discardInvalidSnapshot\(\);[\s\S]*?return null;/);
+});
