@@ -36,6 +36,23 @@ test('reels cache read validation rejects duplicate ids and cleans the persisted
   assert.match(readSection, /if \(!valid \|\| now - parsed\.cachedAt > MAX_AGE_MS\) \{[\s\S]*?await discardInvalidSnapshot\(\);[\s\S]*?return null;/);
 });
 
+test('reels cache read validation rejects unreferenced listing payloads and cleans the persisted snapshot', () => {
+  const cache = fs.readFileSync('src/services/reelsCache.ts', 'utf8');
+  const helperStart = cache.indexOf('function hasOnlyReferencedListings');
+  const cursorHelperStart = cache.indexOf('function hasCoherentNextCursor');
+  assert.ok(helperStart >= 0 && cursorHelperStart > helperStart, 'referenced-listing validation helper must exist');
+  const helperSection = cache.slice(helperStart, cursorHelperStart);
+  assert.match(helperSection, /const referencedIds = new Set<string>\(\)/);
+  assert.match(helperSection, /listing_id/);
+  assert.match(helperSection, /Object\.keys\(listings\)\.every\(\(listingId\) => referencedIds\.has\(listingId\)\)/);
+
+  const readStart = cache.indexOf('export async function readReelsSnapshot');
+  const writeStart = cache.indexOf('export async function writeReelsSnapshot');
+  const readSection = cache.slice(readStart, writeStart);
+  assert.match(readSection, /hasOnlyReferencedListings\(parsed\.reels, parsed\.listings as Record<string, unknown>\)/);
+  assert.match(readSection, /if \(!valid \|\| now - parsed\.cachedAt > MAX_AGE_MS\) \{[\s\S]*?await discardInvalidSnapshot\(\);[\s\S]*?return null;/);
+});
+
 test('reels cache persists listing payloads only for the bounded reels snapshot', () => {
   const cache = fs.readFileSync('src/services/reelsCache.ts', 'utf8');
   const writeSection = cache.slice(cache.indexOf('export async function writeReelsSnapshot'));
