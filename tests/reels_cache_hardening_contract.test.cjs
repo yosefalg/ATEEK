@@ -16,7 +16,8 @@ test('reels cache rejects malformed, future, expired, and oversized snapshots an
   assert.match(cache, /function isCursor\(value: unknown\): value is Cursor/);
   assert.match(cache, /isValidTimestamp\(cursor\.createdAt\) && isNonBlankString\(cursor\.id\)/);
   assert.match(cache, /function hasValidReelCursorFields\(value: unknown\): boolean/);
-  assert.match(cache, /isNonBlankString\(reel\.id\) && isValidTimestamp\(reel\.created_at\)/);
+  assert.match(cache, /!isNonBlankString\(reel\.id\) \|\| !isValidTimestamp\(reel\.created_at\)/);
+  assert.match(cache, /reel\.listing_id == null \|\| isNonBlankString\(reel\.listing_id\)/);
   assert.match(cache, /parsed\.reels\.length <= MAX_CACHED_REELS/);
   assert.match(cache, /parsed\.reels\.every\(hasValidReelCursorFields\)/);
   assert.match(cache, /typeof parsed\.listings === 'object'/);
@@ -65,7 +66,7 @@ test('reels cache bounds persisted feed and retains only listings referenced by 
   const cache = fs.readFileSync('src/services/reelsCache.ts', 'utf8');
   assert.match(cache, /const boundedReels = reels\.slice\(0, MAX_CACHED_REELS\)/);
   assert.match(cache, /boundedReels\.map\(\(reel\) => reel\.listing_id\)/);
-  assert.match(cache, /Object\.entries\(listings\)\.filter\(\(\[listingId\]\) => boundedListingIds\.has\(listingId\)\)/);
+  assert.match(cache, /Object\.entries\(listings\)\.filter\(\(\[listingId\]\) => isNonBlankString\(listingId\) && boundedListingIds\.has\(listingId\)\)/);
   assert.match(cache, /reels: boundedReels/);
   assert.match(cache, /listings: boundedListings/);
   assert.match(cache, /const last = boundedReels\[boundedReels\.length - 1\]/);
