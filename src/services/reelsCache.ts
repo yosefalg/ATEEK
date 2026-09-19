@@ -63,6 +63,13 @@ function hasValidReelCursorFields(value: unknown): boolean {
   return typeof reel.id === 'string' && reel.id.length > 0 && typeof reel.created_at === 'string' && reel.created_at.length > 0;
 }
 
+function hasCoherentNextCursor(reels: unknown[], nextCursor: Cursor): boolean {
+  if (reels.length === 0) return nextCursor === null;
+  if (!nextCursor) return false;
+  const last = reels[reels.length - 1] as Record<string, unknown>;
+  return last.id === nextCursor.id && last.created_at === nextCursor.createdAt;
+}
+
 async function discardInvalidSnapshot() {
   try {
     await AsyncStorage.removeItem(CACHE_KEY);
@@ -82,6 +89,7 @@ export async function readReelsSnapshot<R, L>(): Promise<ReelsSnapshot<R, L> | n
       }
       const parsed = JSON.parse(raw) as ReelsSnapshot<R, L>;
       const now = Date.now();
+      const cursorValid = isCursor(parsed?.nextCursor);
       const valid =
         parsed?.version === 1 &&
         Array.isArray(parsed.reels) &&
@@ -92,7 +100,8 @@ export async function readReelsSnapshot<R, L>(): Promise<ReelsSnapshot<R, L> | n
         !Array.isArray(parsed.listings) &&
         Number.isFinite(parsed.cachedAt) &&
         parsed.cachedAt <= now + MAX_FUTURE_SKEW_MS &&
-        isCursor(parsed.nextCursor);
+        cursorValid &&
+        hasCoherentNextCursor(parsed.reels, parsed.nextCursor);
       if (!valid || now - parsed.cachedAt > MAX_AGE_MS) {
         await discardInvalidSnapshot();
         return null;
