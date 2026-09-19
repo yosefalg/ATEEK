@@ -15,11 +15,13 @@ test('reels cache rejects non-array refresh input before slicing', () => {
   assert.doesNotMatch(guardBranch, /setItem|removeItem|discardInvalidSnapshot/);
 });
 
-test('reels cache rejects malformed refresh rows before replacing last-known-good data', () => {
+test('reels cache rejects malformed or duplicate refresh rows before replacing last-known-good data', () => {
   const cache = fs.readFileSync('src/services/reelsCache.ts', 'utf8');
   const writeSection = cache.slice(cache.indexOf('export async function writeReelsSnapshot'));
   assert.match(writeSection, /const boundedReels = reels\.slice\(0, MAX_CACHED_REELS\)/);
-  assert.match(writeSection, /if \(!boundedReels\.every\(hasValidReelCursorFields\)\) \{[\s\S]*?last known-good snapshot[\s\S]*?return;[\s\S]*?\}/);
-  const validationBranch = writeSection.match(/if \(!boundedReels\.every\(hasValidReelCursorFields\)\) \{([\s\S]*?)\n\s*\}/)?.[1] ?? '';
+  const validationBranch = writeSection.match(/if \(!boundedReels\.every\(hasValidReelCursorFields\) \|\| !hasUniqueReelIds\(boundedReels\)\) \{([\s\S]*?)\n\s*\}/)?.[1] ?? '';
+  assert.ok(validationBranch, 'malformed/duplicate runtime validation branch must exist');
+  assert.match(validationBranch, /last known-good snapshot/);
+  assert.match(validationBranch, /return;/);
   assert.doesNotMatch(validationBranch, /setItem|removeItem|discardInvalidSnapshot/);
 });
