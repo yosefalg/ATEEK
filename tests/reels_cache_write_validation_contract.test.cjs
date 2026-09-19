@@ -35,3 +35,16 @@ test('reels cache read validation rejects duplicate ids and cleans the persisted
   assert.match(readSection, /hasUniqueReelIds\(parsed\.reels\)/);
   assert.match(readSection, /if \(!valid \|\| now - parsed\.cachedAt > MAX_AGE_MS\) \{[\s\S]*?await discardInvalidSnapshot\(\);[\s\S]*?return null;/);
 });
+
+test('reels cache persists listing payloads only for the bounded reels snapshot', () => {
+  const cache = fs.readFileSync('src/services/reelsCache.ts', 'utf8');
+  const writeSection = cache.slice(cache.indexOf('export async function writeReelsSnapshot'));
+  const referencedIdsIndex = writeSection.indexOf('const boundedListingIds = new Set(boundedReels.map');
+  const filterIndex = writeSection.indexOf('Object.entries(listings).filter(([listingId]) => boundedListingIds.has(listingId))');
+  const snapshotIndex = writeSection.indexOf('const snapshot: ReelsSnapshot');
+  assert.ok(referencedIdsIndex >= 0, 'bounded reel listing-id set must exist');
+  assert.ok(filterIndex > referencedIdsIndex, 'listing payloads must be filtered by referenced bounded reel ids');
+  assert.ok(snapshotIndex > filterIndex, 'filtered listings must be computed before snapshot serialization');
+  assert.match(writeSection, /listings: boundedListings/);
+  assert.doesNotMatch(writeSection.slice(snapshotIndex), /listings:\s*listings[,}]/);
+});
