@@ -104,6 +104,10 @@ export async function readReelsSnapshot<R, L>(): Promise<ReelsSnapshot<R, L> | n
 
 export async function writeReelsSnapshot<R extends { id: string; created_at: string; listing_id?: string | null }, L>(reels: R[], listings: Record<string, L>) {
   return serializeCacheOperation(async () => {
+    if (!Array.isArray(reels)) {
+      // Runtime callers can still violate TypeScript contracts; preserve the last known-good snapshot.
+      return;
+    }
     const boundedReels = reels.slice(0, MAX_CACHED_REELS);
     if (!boundedReels.every(hasValidReelCursorFields)) {
       // Reject malformed refresh data without replacing the last known-good snapshot.
