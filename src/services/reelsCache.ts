@@ -62,6 +62,17 @@ function hasValidReelCursorFields(value: unknown): boolean {
   return isNonBlankString(reel.id) && isValidTimestamp(reel.created_at);
 }
 
+function hasUniqueReelIds(reels: unknown[]): boolean {
+  const ids = new Set<string>();
+  for (const value of reels) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+    const id = (value as Record<string, unknown>).id;
+    if (!isNonBlankString(id) || ids.has(id)) return false;
+    ids.add(id);
+  }
+  return true;
+}
+
 function hasCoherentNextCursor(reels: unknown[], nextCursor: Cursor): boolean {
   if (reels.length === 0) return nextCursor === null;
   if (!nextCursor) return false;
@@ -89,7 +100,7 @@ export async function readReelsSnapshot<R, L>(): Promise<ReelsSnapshot<R, L> | n
       const parsed = JSON.parse(raw) as ReelsSnapshot<R, L>;
       const now = Date.now();
       const cursorValid = isCursor(parsed?.nextCursor);
-      const valid = parsed?.version === 1 && Array.isArray(parsed.reels) && parsed.reels.length <= MAX_CACHED_REELS && parsed.reels.every(hasValidReelCursorFields) && !!parsed.listings && typeof parsed.listings === 'object' && !Array.isArray(parsed.listings) && Number.isFinite(parsed.cachedAt) && parsed.cachedAt <= now + MAX_FUTURE_SKEW_MS && cursorValid && hasCoherentNextCursor(parsed.reels, parsed.nextCursor);
+      const valid = parsed?.version === 1 && Array.isArray(parsed.reels) && parsed.reels.length <= MAX_CACHED_REELS && parsed.reels.every(hasValidReelCursorFields) && hasUniqueReelIds(parsed.reels) && !!parsed.listings && typeof parsed.listings === 'object' && !Array.isArray(parsed.listings) && Number.isFinite(parsed.cachedAt) && parsed.cachedAt <= now + MAX_FUTURE_SKEW_MS && cursorValid && hasCoherentNextCursor(parsed.reels, parsed.nextCursor);
       if (!valid || now - parsed.cachedAt > MAX_AGE_MS) {
         await discardInvalidSnapshot();
         return null;
@@ -109,8 +120,8 @@ export async function writeReelsSnapshot<R extends { id: string; created_at: str
       return;
     }
     const boundedReels = reels.slice(0, MAX_CACHED_REELS);
-    if (!boundedReels.every(hasValidReelCursorFields)) {
-      // Reject malformed refresh data without replacing the last known-good snapshot.
+    if (!boundedReels.every(hasValidReelCursorFields) || !hasUniqueReelIds(boundedReels)) {
+      // Reject malformed or duplicate refresh data without replacing the last known-good snapshot.
       return;
     }
     if (!listings || typeof listings !== 'object' || Array.isArray(listings)) {
