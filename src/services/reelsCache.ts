@@ -9,6 +9,7 @@ const MAX_ID_LENGTH = 128;
 const MAX_TIMESTAMP_LENGTH = 64;
 const CONTROL_CHARACTER_PATTERN = /[\u0000-\u001f\u007f]/;
 const SNAPSHOT_KEYS = new Set(['version', 'cachedAt', 'reels', 'listings', 'nextCursor']);
+const CURSOR_KEYS = new Set(['createdAt', 'id']);
 
 let cacheOperationChain: Promise<void> = Promise.resolve();
 
@@ -66,6 +67,7 @@ function isCursor(value: unknown): value is Cursor {
   if (value === null) return true;
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   const cursor = value as Record<string, unknown>;
+  if (!Object.keys(cursor).every((key) => CURSOR_KEYS.has(key))) return false;
   return isValidTimestamp(cursor.createdAt) && isCanonicalId(cursor.id);
 }
 
