@@ -38,8 +38,12 @@ export function DynamicBackground(){
       Animated.timing(p.drift,{toValue:1,duration:p.duration,useNativeDriver:true}),
       Animated.timing(p.drift,{toValue:0,duration:p.duration,useNativeDriver:true}),
     ])))];
-    animations.forEach(a=>a.start());
-    return()=>animations.forEach(a=>a.stop());
+    let running=false;
+    const start=()=>{if(running)return;running=true;animations.forEach(a=>a.start())};
+    const stop=()=>{if(!running)return;running=false;animations.forEach(a=>a.stop())};
+    const appStateSub=AppState.addEventListener('change',state=>{if(state==='active')start();else stop()});
+    if(AppState.currentState==='active')start();
+    return()=>{appStateSub.remove();stop()};
   },[animationsEnabled,lowData,particles,pulse1,pulse2,r1,r2]);
 
   useEffect(()=>{
