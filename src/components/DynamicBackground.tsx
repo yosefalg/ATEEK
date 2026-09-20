@@ -1,5 +1,5 @@
-import { useEffect,useMemo,useRef } from 'react';
-import { Animated,AppState,StyleSheet,View } from 'react-native';
+import { useEffect,useMemo,useRef,useState } from 'react';
+import { AccessibilityInfo,Animated,AppState,StyleSheet,View } from 'react-native';
 import { Gyroscope } from 'expo-sensors';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAteekTheme } from '../theme/ThemeProvider';
@@ -16,6 +16,8 @@ const GYROSCOPE_MOTION_EPSILON=0.35;
 
 export function DynamicBackground(){
   const{lowData,animationsEnabled}=useAteekTheme();
+  const[reduceMotion,setReduceMotion]=useState(false);
+  const motionEnabled=animationsEnabled&&!reduceMotion;
   const gx=useRef(new Animated.Value(0)).current,gy=useRef(new Animated.Value(0)).current;
   const lastGyroTarget=useRef({x:0,y:0});
   const r1=useRef(new Animated.Value(0)).current,r2=useRef(new Animated.Value(0)).current;
@@ -23,7 +25,14 @@ export function DynamicBackground(){
   const particles=useRef<ParticleState[]>(particleSeed.map(([x,y,size,opacity,duration])=>({x,y,size,opacity,duration,drift:new Animated.Value(0)}))).current;
 
   useEffect(()=>{
-    if(!animationsEnabled||lowData){
+    let active=true;
+    void AccessibilityInfo.isReduceMotionEnabled().then(enabled=>{if(active)setReduceMotion(enabled)}).catch(()=>{});
+    const sub=AccessibilityInfo.addEventListener('reduceMotionChanged',setReduceMotion);
+    return()=>{active=false;sub.remove()};
+  },[]);
+
+  useEffect(()=>{
+    if(!motionEnabled||lowData){
       r1.stopAnimation();r2.stopAnimation();pulse1.stopAnimation();pulse2.stopAnimation();
       r1.setValue(0);r2.setValue(0);pulse1.setValue(.28);pulse2.setValue(.18);
       particles.forEach(p=>{p.drift.stopAnimation();p.drift.setValue(0)});
@@ -44,10 +53,10 @@ export function DynamicBackground(){
     const appStateSub=AppState.addEventListener('change',state=>{if(state==='active')start();else stop()});
     if(AppState.currentState==='active')start();
     return()=>{appStateSub.remove();stop()};
-  },[animationsEnabled,lowData,particles,pulse1,pulse2,r1,r2]);
+  },[lowData,motionEnabled,particles,pulse1,pulse2,r1,r2]);
 
   useEffect(()=>{
-    if(!animationsEnabled||lowData){gx.stopAnimation();gy.stopAnimation();gx.setValue(0);gy.setValue(0);lastGyroTarget.current={x:0,y:0};return}
+    if(!motionEnabled||lowData){gx.stopAnimation();gy.stopAnimation();gx.setValue(0);gy.setValue(0);lastGyroTarget.current={x:0,y:0};return}
     let disposed=false;
     let sub:ReturnType<typeof Gyroscope.addListener>|null=null;
     const reset=()=>{
@@ -78,7 +87,7 @@ export function DynamicBackground(){
     const appStateSub=AppState.addEventListener('change',state=>{if(state==='active')start();else stop()});
     if(AppState.currentState==='active')start();
     return()=>{disposed=true;appStateSub.remove();stop()};
-  },[animationsEnabled,gx,gy,lowData]);
+  },[gx,gy,lowData,motionEnabled]);
 
   const nearX=useMemo(()=>gx,[gx]),nearY=useMemo(()=>gy,[gy]);
   const farX=useMemo(()=>Animated.multiply(gx,.42),[gx]),farY=useMemo(()=>Animated.multiply(gy,.42),[gy]);
@@ -89,7 +98,7 @@ export function DynamicBackground(){
     <LinearGradient colors={['#0A0E17','#111827','#1A1F30']} start={{x:.08,y:0}} end={{x:.92,y:1}} style={StyleSheet.absoluteFill}/>
     <Animated.View style={[s.ellipse,s.blue,{opacity:pulse1,transform:[{translateX:farX},{translateY:farY},{rotate:spin1}]}]}/>
     <Animated.View style={[s.ellipse,s.violet,{opacity:pulse2,transform:[{translateX:nearX},{translateY:nearY},{rotate:spin2}]}]}/>
-    {!lowData&&animationsEnabled&&particles.map((p,index)=>{
+    {!lowData&&motionEnabled&&particles.map((p,index)=>{
       const translateY=p.drift.interpolate({inputRange:[0,1],outputRange:[0,index%2===0?-16:14]});
       const translateX=p.drift.interpolate({inputRange:[0,1],outputRange:[0,index%3===0?10:-7]});
       const opacity=p.drift.interpolate({inputRange:[0,.5,1],outputRange:[p.opacity*.55,p.opacity,p.opacity*.55]});
