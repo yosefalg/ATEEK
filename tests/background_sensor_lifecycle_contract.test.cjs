@@ -22,3 +22,12 @@ test('dynamic background suspends gyroscope while app is not active', () => {
   assert.match(source, /if\(disposed\|\|AppState\.currentState!==['"]active['"]\)return/);
   assert.match(source, /return\(\)=>\{disposed=true;appStateSub\.remove\(\);stop\(\)\}/);
 });
+
+test('dynamic background suspends all decorative animation loops while app is not active', () => {
+  assert.match(source, /const animations=\[spin\(r1,18000,1\),spin\(r2,24000,1\),breathe\(pulse1/);
+  assert.match(source, /\.\.\.particles\.map\(p=>Animated\.loop/);
+  assert.match(source, /const start=\(\)=>\{if\(running\)return;running=true;animations\.forEach\(a=>a\.start\(\)\)\}/);
+  assert.match(source, /const stop=\(\)=>\{if\(!running\)return;running=false;animations\.forEach\(a=>a\.stop\(\)\)\}/);
+  assert.match(source, /const appStateSub=AppState\.addEventListener\(['"]change['"],state=>\{if\(state===['"]active['"]\)start\(\);else stop\(\)\}\)/);
+  assert.match(source, /return\(\)=>\{appStateSub\.remove\(\);stop\(\)\}/);
+});
