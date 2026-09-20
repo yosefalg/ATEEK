@@ -6,6 +6,7 @@ const MAX_FUTURE_SKEW_MS = 5 * 60 * 1000;
 const MAX_CACHED_REELS = 100;
 const MAX_CACHE_BYTES = 1024 * 1024;
 const MAX_ID_LENGTH = 128;
+const CONTROL_CHARACTER_PATTERN = /[\u0000-\u001f\u007f]/;
 
 let cacheOperationChain: Promise<void> = Promise.resolve();
 
@@ -47,7 +48,7 @@ function isNonBlankString(value: unknown): value is string {
 }
 
 function isCanonicalId(value: unknown): value is string {
-  return isNonBlankString(value) && value === value.trim() && value.length <= MAX_ID_LENGTH;
+  return isNonBlankString(value) && value === value.trim() && value.length <= MAX_ID_LENGTH && !CONTROL_CHARACTER_PATTERN.test(value);
 }
 
 function isValidTimestamp(value: unknown): value is string {
