@@ -1,5 +1,5 @@
 import { useEffect,useMemo,useRef } from 'react';
-import { Animated,StyleSheet,View } from 'react-native';
+import { Animated,AppState,StyleSheet,View } from 'react-native';
 import { Gyroscope } from 'expo-sensors';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAteekTheme } from '../theme/ThemeProvider';
@@ -46,31 +46,34 @@ export function DynamicBackground(){
     if(!animationsEnabled||lowData){gx.stopAnimation();gy.stopAnimation();gx.setValue(0);gy.setValue(0);lastGyroTarget.current={x:0,y:0};return}
     let disposed=false;
     let sub:ReturnType<typeof Gyroscope.addListener>|null=null;
-    void Gyroscope.isAvailableAsync().then(available=>{
-      if(disposed||!available)return;
-      Gyroscope.setUpdateInterval(GYROSCOPE_UPDATE_INTERVAL_MS);
-      sub=Gyroscope.addListener(({x,y})=>{
-        if(disposed)return;
-        const nx=Math.max(-1,Math.min(1,y))*14;
-        const ny=Math.max(-1,Math.min(1,x))*14;
-        const previous=lastGyroTarget.current;
-        if(Math.abs(nx-previous.x)<GYROSCOPE_MOTION_EPSILON&&Math.abs(ny-previous.y)<GYROSCOPE_MOTION_EPSILON)return;
-        lastGyroTarget.current={x:nx,y:ny};
-        gx.stopAnimation();gy.stopAnimation();
-        Animated.parallel([
-          Animated.timing(gx,{toValue:nx,duration:GYROSCOPE_MOTION_DURATION_MS,useNativeDriver:true}),
-          Animated.timing(gy,{toValue:ny,duration:GYROSCOPE_MOTION_DURATION_MS,useNativeDriver:true}),
-        ]).start();
-      });
-    }).catch(()=>{
-      if(!disposed){gx.stopAnimation();gy.stopAnimation();gx.setValue(0);gy.setValue(0);lastGyroTarget.current={x:0,y:0}}
-    });
-    return()=>{
-      disposed=true;
-      sub?.remove();
-      gx.stopAnimation();gy.stopAnimation();
+    const reset=()=>{
+      gx.stopAnimation();gy.stopAnimation();gx.setValue(0);gy.setValue(0);
       lastGyroTarget.current={x:0,y:0};
     };
+    const stop=()=>{sub?.remove();sub=null;reset()};
+    const start=()=>{
+      if(disposed||sub)return;
+      void Gyroscope.isAvailableAsync().then(available=>{
+        if(disposed||sub||!available||AppState.currentState!=='active')return;
+        Gyroscope.setUpdateInterval(GYROSCOPE_UPDATE_INTERVAL_MS);
+        sub=Gyroscope.addListener(({x,y})=>{
+          if(disposed||AppState.currentState!=='active')return;
+          const nx=Math.max(-1,Math.min(1,y))*14;
+          const ny=Math.max(-1,Math.min(1,x))*14;
+          const previous=lastGyroTarget.current;
+          if(Math.abs(nx-previous.x)<GYROSCOPE_MOTION_EPSILON&&Math.abs(ny-previous.y)<GYROSCOPE_MOTION_EPSILON)return;
+          lastGyroTarget.current={x:nx,y:ny};
+          gx.stopAnimation();gy.stopAnimation();
+          Animated.parallel([
+            Animated.timing(gx,{toValue:nx,duration:GYROSCOPE_MOTION_DURATION_MS,useNativeDriver:true}),
+            Animated.timing(gy,{toValue:ny,duration:GYROSCOPE_MOTION_DURATION_MS,useNativeDriver:true}),
+          ]).start();
+        });
+      }).catch(()=>{if(!disposed)reset()});
+    };
+    const appStateSub=AppState.addEventListener('change',state=>{if(state==='active')start();else stop()});
+    if(AppState.currentState==='active')start();
+    return()=>{disposed=true;appStateSub.remove();stop()};
   },[animationsEnabled,gx,gy,lowData]);
 
   const nearX=useMemo(()=>gx,[gx]),nearY=useMemo(()=>gy,[gy]);
