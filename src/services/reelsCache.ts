@@ -8,6 +8,7 @@ const MAX_CACHE_BYTES = 1024 * 1024;
 const MAX_ID_LENGTH = 128;
 const MAX_TIMESTAMP_LENGTH = 64;
 const CONTROL_CHARACTER_PATTERN = /[\u0000-\u001f\u007f]/;
+const SNAPSHOT_KEYS = new Set(['version', 'cachedAt', 'reels', 'listings', 'nextCursor']);
 
 let cacheOperationChain: Promise<void> = Promise.resolve();
 
@@ -54,6 +55,11 @@ function isCanonicalId(value: unknown): value is string {
 
 function isValidTimestamp(value: unknown): value is string {
   return isNonBlankString(value) && value === value.trim() && value.length <= MAX_TIMESTAMP_LENGTH && !CONTROL_CHARACTER_PATTERN.test(value) && Number.isFinite(Date.parse(value));
+}
+
+function hasOnlySnapshotKeys(value: unknown): boolean {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  return Object.keys(value).every((key) => SNAPSHOT_KEYS.has(key));
 }
 
 function isCursor(value: unknown): value is Cursor {
@@ -119,7 +125,7 @@ export async function readReelsSnapshot<R, L>(): Promise<ReelsSnapshot<R, L> | n
       const now = Date.now();
       const cursorValid = isCursor(parsed?.nextCursor);
       const listingsValid = !!parsed?.listings && typeof parsed.listings === 'object' && !Array.isArray(parsed.listings);
-      const valid = parsed?.version === 1 && Array.isArray(parsed.reels) && parsed.reels.length <= MAX_CACHED_REELS && parsed.reels.every(hasValidReelCursorFields) && hasUniqueReelIds(parsed.reels) && listingsValid && hasOnlyReferencedListings(parsed.reels, parsed.listings as Record<string, unknown>) && Number.isFinite(parsed.cachedAt) && parsed.cachedAt <= now + MAX_FUTURE_SKEW_MS && cursorValid && hasCoherentNextCursor(parsed.reels, parsed.nextCursor);
+      const valid = hasOnlySnapshotKeys(parsed) && parsed?.version === 1 && Array.isArray(parsed.reels) && parsed.reels.length <= MAX_CACHED_REELS && parsed.reels.every(hasValidReelCursorFields) && hasUniqueReelIds(parsed.reels) && listingsValid && hasOnlyReferencedListings(parsed.reels, parsed.listings as Record<string, unknown>) && Number.isFinite(parsed.cachedAt) && parsed.cachedAt <= now + MAX_FUTURE_SKEW_MS && cursorValid && hasCoherentNextCursor(parsed.reels, parsed.nextCursor);
       if (!valid || now - parsed.cachedAt > MAX_AGE_MS) {
         await discardInvalidSnapshot();
         return null;
