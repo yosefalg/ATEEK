@@ -18,6 +18,8 @@ test('reels cache rejects malformed, future, expired, and oversized snapshots an
   assert.match(cache, /isNonBlankString\(value\) && value === value\.trim\(\) && value\.length <= MAX_ID_LENGTH && !CONTROL_CHARACTER_PATTERN\.test\(value\)/);
   assert.match(cache, /function isValidTimestamp\(value: unknown\): value is string/);
   assert.match(cache, /isNonBlankString\(value\) && value === value\.trim\(\) && value\.length <= MAX_TIMESTAMP_LENGTH && !CONTROL_CHARACTER_PATTERN\.test\(value\) && Number\.isFinite\(Date\.parse\(value\)\)/);
+  assert.match(cache, /function isValidCachedAt\(value: unknown, now: number\): value is number/);
+  assert.match(cache, /typeof value === 'number' && Number\.isSafeInteger\(value\) && value >= 0 && value <= now \+ MAX_FUTURE_SKEW_MS/);
   assert.match(cache, /function isCursor\(value: unknown\): value is Cursor/);
   assert.match(cache, /isValidTimestamp\(cursor\.createdAt\) && isCanonicalId\(cursor\.id\)/);
   assert.match(cache, /function hasValidReelCursorFields\(value: unknown\): boolean/);
@@ -27,8 +29,7 @@ test('reels cache rejects malformed, future, expired, and oversized snapshots an
   assert.match(cache, /parsed\.reels\.every\(hasValidReelCursorFields\)/);
   assert.match(cache, /typeof parsed\.listings === 'object'/);
   assert.match(cache, /!Array\.isArray\(parsed\.listings\)/);
-  assert.match(cache, /Number\.isFinite\(parsed\.cachedAt\)/);
-  assert.match(cache, /parsed\.cachedAt <= now \+ MAX_FUTURE_SKEW_MS/);
+  assert.match(cache, /isValidCachedAt\(parsed\.cachedAt, now\)/);
   assert.match(cache, /isCursor\(parsed\?\.nextCursor\)/);
   assert.match(cache, /now - parsed\.cachedAt > MAX_AGE_MS/);
   assert.match(cache, /async function discardInvalidSnapshot\(\)[\s\S]*?try \{[\s\S]*?await AsyncStorage\.removeItem\(CACHE_KEY\)[\s\S]*?\} catch \{/);
