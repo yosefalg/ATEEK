@@ -7,12 +7,13 @@ test('reels cache rejects malformed, future, expired, and oversized snapshots an
   assert.match(cache, /const MAX_FUTURE_SKEW_MS = 5 \* 60 \* 1000/);
   assert.match(cache, /const MAX_CACHED_REELS = 100/);
   assert.match(cache, /const MAX_CACHE_BYTES = 1024 \* 1024/);
+  assert.match(cache, /const MAX_ID_LENGTH = 128/);
   assert.match(cache, /function exceedsUtf8ByteBudget\(value: string, maxBytes: number\): boolean/);
   assert.match(cache, /exceedsUtf8ByteBudget\(raw, MAX_CACHE_BYTES\)/);
   assert.match(cache, /function isNonBlankString\(value: unknown\): value is string/);
   assert.match(cache, /typeof value === 'string' && value\.trim\(\)\.length > 0/);
   assert.match(cache, /function isCanonicalId\(value: unknown\): value is string/);
-  assert.match(cache, /isNonBlankString\(value\) && value === value\.trim\(\)/);
+  assert.match(cache, /isNonBlankString\(value\) && value === value\.trim\(\) && value\.length <= MAX_ID_LENGTH/);
   assert.match(cache, /function isValidTimestamp\(value: unknown\): value is string/);
   assert.match(cache, /isNonBlankString\(value\) && Number\.isFinite\(Date\.parse\(value\)\)/);
   assert.match(cache, /function isCursor\(value: unknown\): value is Cursor/);
