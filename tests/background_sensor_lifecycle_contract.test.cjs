@@ -15,3 +15,10 @@ test('dynamic background tears down sensor work and avoids animation backlog', (
   assert.match(source, /gx\.stopAnimation\(\);gy\.stopAnimation\(\);/);
   assert.match(source, /\.catch\(\(\)=>\{/);
 });
+
+test('dynamic background suspends gyroscope while app is not active', () => {
+  assert.match(source, /AppState\.addEventListener\(['"]change['"],state=>\{if\(state===['"]active['"]\)start\(\);else stop\(\)\}\)/);
+  assert.match(source, /if\(AppState\.currentState===['"]active['"]\)start\(\)/);
+  assert.match(source, /if\(disposed\|\|AppState\.currentState!==['"]active['"]\)return/);
+  assert.match(source, /return\(\)=>\{disposed=true;appStateSub\.remove\(\);stop\(\)\}/);
+});
