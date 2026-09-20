@@ -6,7 +6,7 @@ const source = fs.readFileSync('src/components/DynamicBackground.tsx','utf8');
 
 test('dynamic background verifies gyroscope availability before subscribing', () => {
   assert.match(source, /Gyroscope\.isAvailableAsync\(\)/);
-  assert.match(source, /if\(disposed\|\|!available\)return/);
+  assert.match(source, /if\(disposed\|\|sub\|\|!available\|\|AppState\.currentState!==['"]active['"]\)return/);
 });
 
 test('dynamic background tears down sensor work and avoids animation backlog', () => {
