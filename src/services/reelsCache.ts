@@ -5,6 +5,7 @@ const MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const MAX_FUTURE_SKEW_MS = 5 * 60 * 1000;
 const MAX_CACHED_REELS = 100;
 const MAX_CACHE_BYTES = 1024 * 1024;
+const MAX_ID_LENGTH = 128;
 
 let cacheOperationChain: Promise<void> = Promise.resolve();
 
@@ -46,7 +47,7 @@ function isNonBlankString(value: unknown): value is string {
 }
 
 function isCanonicalId(value: unknown): value is string {
-  return isNonBlankString(value) && value === value.trim();
+  return isNonBlankString(value) && value === value.trim() && value.length <= MAX_ID_LENGTH;
 }
 
 function isValidTimestamp(value: unknown): value is string {
