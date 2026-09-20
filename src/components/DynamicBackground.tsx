@@ -10,6 +10,8 @@ const particleSeed=[
   [86,26,3,.20,11200],[15,48,2,.18,10100],[36,59,3,.20,8800],[61,44,2,.16,11800],
   [79,61,3,.22,9700],[11,79,2,.15,10900],[49,84,3,.19,9400],[88,76,2,.17,11600],
 ] as const;
+const GYROSCOPE_UPDATE_INTERVAL_MS=200;
+const GYROSCOPE_MOTION_DURATION_MS=180;
 
 export function DynamicBackground(){
   const{lowData,animationsEnabled}=useAteekTheme();
@@ -44,15 +46,15 @@ export function DynamicBackground(){
     let sub:ReturnType<typeof Gyroscope.addListener>|null=null;
     void Gyroscope.isAvailableAsync().then(available=>{
       if(disposed||!available)return;
-      Gyroscope.setUpdateInterval(120);
+      Gyroscope.setUpdateInterval(GYROSCOPE_UPDATE_INTERVAL_MS);
       sub=Gyroscope.addListener(({x,y})=>{
         if(disposed)return;
         const nx=Math.max(-1,Math.min(1,y))*14;
         const ny=Math.max(-1,Math.min(1,x))*14;
         gx.stopAnimation();gy.stopAnimation();
         Animated.parallel([
-          Animated.timing(gx,{toValue:nx,duration:140,useNativeDriver:true}),
-          Animated.timing(gy,{toValue:ny,duration:140,useNativeDriver:true}),
+          Animated.timing(gx,{toValue:nx,duration:GYROSCOPE_MOTION_DURATION_MS,useNativeDriver:true}),
+          Animated.timing(gy,{toValue:ny,duration:GYROSCOPE_MOTION_DURATION_MS,useNativeDriver:true}),
         ]).start();
       });
     }).catch(()=>{
