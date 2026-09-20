@@ -58,6 +58,10 @@ function isValidTimestamp(value: unknown): value is string {
   return isNonBlankString(value) && value === value.trim() && value.length <= MAX_TIMESTAMP_LENGTH && !CONTROL_CHARACTER_PATTERN.test(value) && Number.isFinite(Date.parse(value));
 }
 
+function isValidCachedAt(value: unknown, now: number): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 && value <= now + MAX_FUTURE_SKEW_MS;
+}
+
 function hasOnlySnapshotKeys(value: unknown): boolean {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   return Object.keys(value).every((key) => SNAPSHOT_KEYS.has(key));
@@ -127,7 +131,7 @@ export async function readReelsSnapshot<R, L>(): Promise<ReelsSnapshot<R, L> | n
       const now = Date.now();
       const cursorValid = isCursor(parsed?.nextCursor);
       const listingsValid = !!parsed?.listings && typeof parsed.listings === 'object' && !Array.isArray(parsed.listings);
-      const valid = hasOnlySnapshotKeys(parsed) && parsed?.version === 1 && Array.isArray(parsed.reels) && parsed.reels.length <= MAX_CACHED_REELS && parsed.reels.every(hasValidReelCursorFields) && hasUniqueReelIds(parsed.reels) && listingsValid && hasOnlyReferencedListings(parsed.reels, parsed.listings as Record<string, unknown>) && Number.isFinite(parsed.cachedAt) && parsed.cachedAt <= now + MAX_FUTURE_SKEW_MS && cursorValid && hasCoherentNextCursor(parsed.reels, parsed.nextCursor);
+      const valid = hasOnlySnapshotKeys(parsed) && parsed?.version === 1 && Array.isArray(parsed.reels) && parsed.reels.length <= MAX_CACHED_REELS && parsed.reels.every(hasValidReelCursorFields) && hasUniqueReelIds(parsed.reels) && listingsValid && hasOnlyReferencedListings(parsed.reels, parsed.listings as Record<string, unknown>) && isValidCachedAt(parsed.cachedAt, now) && cursorValid && hasCoherentNextCursor(parsed.reels, parsed.nextCursor);
       if (!valid || now - parsed.cachedAt > MAX_AGE_MS) {
         await discardInvalidSnapshot();
         return null;
