@@ -19,6 +19,7 @@ const cache = new Map<string, Metrics>();
 const pending = new Map<string, Promise<Metrics | null>>();
 
 function cacheSellerMetrics(sellerId: string, metrics: Metrics) {
+  cache.delete(sellerId);
   cache.set(sellerId, metrics);
   while (cache.size > MAX_SELLER_METRICS_CACHE) {
     const oldestKey = cache.keys().next().value as string | undefined;
@@ -27,8 +28,16 @@ function cacheSellerMetrics(sellerId: string, metrics: Metrics) {
   }
 }
 
-async function getSellerMetrics(sellerId: string): Promise<Metrics | null> {
+function getCachedSellerMetrics(sellerId: string): Metrics | null {
   const cached = cache.get(sellerId);
+  if (!cached) return null;
+  cache.delete(sellerId);
+  cache.set(sellerId, cached);
+  return cached;
+}
+
+async function getSellerMetrics(sellerId: string): Promise<Metrics | null> {
+  const cached = getCachedSellerMetrics(sellerId);
   if (cached) return cached;
   const existing = pending.get(sellerId);
   if (existing) return existing;
@@ -58,7 +67,7 @@ export function ListingCard({ item, favorite, onFavorite, onPress }: Props) {
   const [loaded, setLoaded] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
-  const [metrics, setMetrics] = useState<Metrics | null>(item.sellerId ? cache.get(item.sellerId) ?? null : null);
+  const [metrics, setMetrics] = useState<Metrics | null>(item.sellerId ? getCachedSellerMetrics(item.sellerId) : null);
   const press = useSharedValue(1);
   const tilt = useSharedValue(0);
   const motionEnabled = animationsEnabled && !reduceMotion;
@@ -105,7 +114,7 @@ export function ListingCard({ item, favorite, onFavorite, onPress }: Props) {
       };
     }
 
-    const cached = cache.get(sellerId);
+    const cached = getCachedSellerMetrics(sellerId);
     if (cached) {
       setMetrics(cached);
       return () => {
