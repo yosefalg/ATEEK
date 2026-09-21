@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { supabase } from '../cloud/client';
 import { formatPrice } from '../data/seed';
@@ -57,9 +57,11 @@ export function ListingCard({ item, favorite, onFavorite, onPress }: Props) {
   const hasImage = imageUri.length > 0;
   const [loaded, setLoaded] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
+  const [reduceMotion, setReduceMotion] = useState(false);
   const [metrics, setMetrics] = useState<Metrics | null>(item.sellerId ? cache.get(item.sellerId) ?? null : null);
   const press = useSharedValue(1);
   const tilt = useSharedValue(0);
+  const motionEnabled = animationsEnabled && !reduceMotion;
   const motion = useAnimatedStyle(() => ({
     transform: [
       { perspective: 900 },
@@ -75,11 +77,23 @@ export function ListingCard({ item, favorite, onFavorite, onPress }: Props) {
   }, [imageUri]);
 
   useEffect(() => {
-    if (!animationsEnabled) {
+    let active = true;
+    void AccessibilityInfo.isReduceMotionEnabled().then(value => {
+      if (active) setReduceMotion(value);
+    }).catch(() => {});
+    const subscription = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotion);
+    return () => {
+      active = false;
+      subscription.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!motionEnabled) {
       press.value = 1;
       tilt.value = 0;
     }
-  }, [animationsEnabled, press, tilt]);
+  }, [motionEnabled, press, tilt]);
 
   useEffect(() => {
     let alive = true;
@@ -111,12 +125,12 @@ export function ListingCard({ item, favorite, onFavorite, onPress }: Props) {
 
   const down = () => {
     haptics.tap();
-    if (!animationsEnabled) return;
+    if (!motionEnabled) return;
     press.value = withSpring(0.965, { damping: 14, stiffness: 260 });
     tilt.value = withSpring(1.2, { damping: 14, stiffness: 220 });
   };
   const up = () => {
-    if (!animationsEnabled) {
+    if (!motionEnabled) {
       press.value = 1;
       tilt.value = 0;
       return;
