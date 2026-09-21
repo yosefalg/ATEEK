@@ -12,6 +12,12 @@ test('seller metrics cache remains bounded', () => {
   assert.match(source, /cache\.delete\(oldestKey\);/);
 });
 
+test('seller metrics cache refreshes recency on writes and reads', () => {
+  assert.match(source, /function cacheSellerMetrics\(sellerId: string, metrics: Metrics\) \{\s*cache\.delete\(sellerId\);\s*cache\.set\(sellerId, metrics\);/s);
+  assert.match(source, /function getCachedSellerMetrics\(sellerId: string\): Metrics \| null \{\s*const cached = cache\.get\(sellerId\);\s*if \(!cached\) return null;\s*cache\.delete\(sellerId\);\s*cache\.set\(sellerId, cached\);\s*return cached;/s);
+  assert.match(source, /const cached = getCachedSellerMetrics\(sellerId\);\s*if \(cached\) return cached;/s);
+});
+
 test('concurrent seller metrics requests are deduplicated', () => {
   assert.match(source, /const pending = new Map<string, Promise<Metrics \| null>>\(\);/);
   assert.match(source, /const existing = pending\.get\(sellerId\);\s*if \(existing\) return existing;/s);
