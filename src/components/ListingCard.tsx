@@ -209,6 +209,7 @@ export function ListingCard({ item, favorite, onFavorite, onPress }: Props) {
                 openSpatialProfile(item.sellerId!);
               }}
               style={[styles.profileButton, { borderColor: colors.line, backgroundColor: colors.glassStrong }]}
+              hitSlop={8}
             >
               <Ionicons name="person" size={14} color={colors.ink} />
             </Pressable>
