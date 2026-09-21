@@ -52,7 +52,7 @@ async function getSellerMetrics(sellerId: string): Promise<Metrics | null> {
 }
 
 export function ListingCard({ item, favorite, onFavorite, onPress }: Props) {
-  const { colors, lowData } = useAteekTheme();
+  const { colors, lowData, animationsEnabled } = useAteekTheme();
   const imageUri = safeRemoteMediaUrl(item.image) ?? '';
   const hasImage = imageUri.length > 0;
   const [loaded, setLoaded] = useState(false);
@@ -73,6 +73,13 @@ export function ListingCard({ item, favorite, onFavorite, onPress }: Props) {
     setLoaded(false);
     setImageFailed(false);
   }, [imageUri]);
+
+  useEffect(() => {
+    if (!animationsEnabled) {
+      press.value = 1;
+      tilt.value = 0;
+    }
+  }, [animationsEnabled, press, tilt]);
 
   useEffect(() => {
     let alive = true;
@@ -104,10 +111,16 @@ export function ListingCard({ item, favorite, onFavorite, onPress }: Props) {
 
   const down = () => {
     haptics.tap();
+    if (!animationsEnabled) return;
     press.value = withSpring(0.965, { damping: 14, stiffness: 260 });
     tilt.value = withSpring(1.2, { damping: 14, stiffness: 220 });
   };
   const up = () => {
+    if (!animationsEnabled) {
+      press.value = 1;
+      tilt.value = 0;
+      return;
+    }
     press.value = withSpring(1, { damping: 13, stiffness: 240 });
     tilt.value = withSpring(0, { damping: 13, stiffness: 220 });
   };
