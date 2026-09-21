@@ -85,7 +85,10 @@ test('home and dynamic root background contract is wired', () => {
   assert.match(bg, /particleSeed/);
   assert.match(bg, /18000/);
   assert.match(bg, /24000/);
-  assert.match(bg, /!lowData&&animationsEnabled&&particles\.map/);
+  assert.match(bg, /const motionEnabled=animationsEnabled&&!reduceMotion/);
+  assert.match(bg, /!lowData&&motionEnabled&&particles\.map/);
+  assert.match(bg, /AccessibilityInfo\.isReduceMotionEnabled\(\)/);
+  assert.match(bg, /'reduceMotionChanged'/);
 });
 
 test('home coalesces realtime reel refreshes and memoizes favorite lookup', () => {
