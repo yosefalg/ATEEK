@@ -194,7 +194,12 @@ export function ListingCard({ item, favorite, onFavorite, onPress }: Props) {
             <Ionicons name={favorite ? 'heart' : 'heart-outline'} size={20} color={favorite ? colors.danger : colors.ink} />
           </Pressable>
           {metrics?.verified && (
-            <View style={[styles.verified, { borderColor: colors.success, backgroundColor: colors.glassStrong }]}>
+            <View
+              accessible
+              accessibilityRole="image"
+              accessibilityLabel="بائع موثق"
+              style={[styles.verified, { borderColor: colors.success, backgroundColor: colors.glassStrong }]}
+            >
               <Ionicons name="shield-checkmark" size={13} color={colors.success} />
             </View>
           )}
