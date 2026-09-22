@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getCalendars, getLocales } from 'expo-localization';
 import { I18n } from 'i18n-js';
 import React, { createContext, PropsWithChildren, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { AppState, I18nManager } from 'react-native';
+import { I18nManager } from 'react-native';
 import ar from './locale/ar.json';
 import en from './locale/en.json';
 import tr from './locale/tr.json';
@@ -104,15 +104,6 @@ export function LocaleProvider({ children }: PropsWithChildren) {
       active = false;
       if (timeoutId) clearTimeout(timeoutId);
     };
-  }, []);
-
-  useEffect(() => {
-    const sub = AppState.addEventListener('change', state => {
-      if (state !== 'active') return;
-      const system = normalize(getLocales()[0]?.languageCode);
-      void Promise.resolve(system);
-    });
-    return () => sub.remove();
   }, []);
 
   const isRTL = RTL.has(locale);
