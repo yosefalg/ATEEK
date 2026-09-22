@@ -66,6 +66,9 @@ export function LocaleProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     let active = true;
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    // Resolve storage failures to the same safe fallback path as a timeout. A
+    // rejected AsyncStorage read must not strand bootstrap on the hard-coded
+    // Arabic initial state when the device locale is another supported locale.
     const storageRead = AsyncStorage.getItem(LOCALE_KEY).catch(() => null);
     const timeout = new Promise<null>(resolve => {
       timeoutId = setTimeout(() => resolve(null), LOCALE_BOOTSTRAP_TIMEOUT_MS);
@@ -78,7 +81,15 @@ export function LocaleProvider({ children }: PropsWithChildren) {
       I18nManager.allowRTL(true);
       setLocaleState(detected);
       setReady(true);
-    }).catch(() => { if (active) setReady(true); });
+    }).catch(() => {
+      if (timeoutId) clearTimeout(timeoutId);
+      if (!active) return;
+      const detected = normalize(getLocales()[0]?.languageCode);
+      i18n.locale = detected;
+      I18nManager.allowRTL(true);
+      setLocaleState(detected);
+      setReady(true);
+    });
     return () => {
       active = false;
       if (timeoutId) clearTimeout(timeoutId);
