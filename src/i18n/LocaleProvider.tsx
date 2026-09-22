@@ -135,7 +135,9 @@ export function LocaleProvider({ children }: PropsWithChildren) {
     lastSwitchMs,
     setLocale: next => apply(next),
     t: (key, options) => String(i18n.t(key, options)),
-    formatNumber: value => new Intl.NumberFormat(localeTag).format(value),
+    // Do not surface NaN/Infinity from malformed API or derived values into
+    // production UI. Finite values retain the exact locale-aware formatting.
+    formatNumber: value => Number.isFinite(value) ? new Intl.NumberFormat(localeTag).format(value) : '',
     formatDate: value => {
       const date = new Date(value);
       if (Number.isNaN(date.getTime())) return '';
