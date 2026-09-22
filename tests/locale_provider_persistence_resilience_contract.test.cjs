@@ -10,11 +10,12 @@ test('locale switching always clears busy state when persistence fails', () => {
 });
 
 test('locale bootstrap does not update readiness after unmount', () => {
-  assert.match(
-    source,
-    /void Promise\.race\(\[storageRead, timeout\]\)\.then\(storedRaw => \{[\s\S]*if \(!active\) return;[\s\S]*setReady\(true\);[\s\S]*\}\)\.catch\(\(\) => \{ if \(active\) setReady\(true\); \}\);/,
-    'bounded bootstrap success and failure paths must both respect the effect lifetime guard',
-  );
+  const bootstrap = source.match(/void Promise\.race\(\[storageRead, timeout\]\)\.then\(storedRaw => \{([\s\S]*?)\}\)\.catch\(\(\) => \{([\s\S]*?)\}\);/);
+  assert.ok(bootstrap, 'bounded bootstrap must retain explicit success and failure handlers');
+  for (const [name, body] of [['success', bootstrap[1]], ['failure', bootstrap[2]]]) {
+    assert.match(body, /if \(!active\) return;/, `${name} path must respect the effect lifetime guard`);
+    assert.match(body, /setReady\(true\);/, `${name} path must settle readiness while mounted`);
+  }
   assert.match(
     source,
     /return \(\) => \{\s*active = false;\s*if \(timeoutId\) clearTimeout\(timeoutId\);\s*\};/s,
