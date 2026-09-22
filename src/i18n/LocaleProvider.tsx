@@ -136,7 +136,11 @@ export function LocaleProvider({ children }: PropsWithChildren) {
     setLocale: next => apply(next),
     t: (key, options) => String(i18n.t(key, options)),
     formatNumber: value => new Intl.NumberFormat(localeTag).format(value),
-    formatDate: value => new Intl.DateTimeFormat(localeTag, { dateStyle: 'medium', calendar: calendar || undefined }).format(new Date(value)),
+    formatDate: value => {
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return '';
+      return new Intl.DateTimeFormat(localeTag, { dateStyle: 'medium', calendar: calendar || undefined }).format(date);
+    },
   }), [apply, calendar, isRTL, lastSwitchMs, locale, localeTag, ready, switching]);
   return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;
 }
