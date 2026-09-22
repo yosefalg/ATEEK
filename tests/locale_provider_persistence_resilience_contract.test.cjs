@@ -61,3 +61,24 @@ test('locale bootstrap treats AsyncStorage read failures as an ordinary fallback
     'storage read rejection must be converted to the same bounded fallback path as a timeout',
   );
 });
+
+test('localized number formatting rejects non-finite values before Intl', () => {
+  assert.match(
+    source,
+    /formatNumber: value => Number\.isFinite\(value\) \? new Intl\.NumberFormat\(localeTag\)\.format\(value\) : '',/,
+    'NaN and Infinity must never leak into production UI through locale formatting',
+  );
+});
+
+test('localized date formatting rejects invalid dates and survives unsupported native calendars', () => {
+  assert.match(
+    source,
+    /const date = new Date\(value\);\s*if \(Number\.isNaN\(date\.getTime\(\)\)\) return '';/s,
+    'invalid date values must be rejected before Intl formatting',
+  );
+  assert.match(
+    source,
+    /try \{\s*return new Intl\.DateTimeFormat\(localeTag, \{ dateStyle: 'medium', calendar: calendar \|\| undefined \}\)\.format\(date\);\s*\} catch \{[\s\S]*return new Intl\.DateTimeFormat\(localeTag, \{ dateStyle: 'medium' \}\)\.format\(date\);\s*\}/,
+    'unsupported platform calendar identifiers must fall back to the locale default calendar',
+  );
+});
