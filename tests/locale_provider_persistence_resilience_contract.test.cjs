@@ -38,8 +38,13 @@ test('locale bootstrap rejects corrupt persisted values and falls back to the de
   );
   assert.match(
     source,
-    /const stored = persistedLocale\(storedRaw\);\s*const detected = stored \?\? normalize\(getLocales\(\)\[0\]\?\.languageCode\);/,
-    'missing or corrupt persisted state must fall back to the supported device locale',
+    /function deviceLocale\(\): LocaleCode \{[\s\S]*return normalize\(getLocales\(\)\[0\]\?\.languageCode\);[\s\S]*catch \{\s*return 'ar';\s*\}[\s\S]*\}/,
+    'device locale lookup must normalize supported locale metadata and fail safely when native metadata is unavailable',
+  );
+  assert.match(
+    source,
+    /const stored = persistedLocale\(storedRaw\);\s*const detected = stored \?\? deviceLocale\(\);/,
+    'missing or corrupt persisted state must fall back through the guarded device locale helper',
   );
 });
 
