@@ -29,3 +29,24 @@ test('locale bootstrap does not update readiness after unmount', () => {
     'bootstrap cleanup must invalidate late completions and cancel its timeout',
   );
 });
+
+test('locale bootstrap rejects corrupt persisted values and falls back to the device locale', () => {
+  assert.match(
+    source,
+    /function persistedLocale\(code\?: string \| null\): LocaleCode \| null \{[\s\S]*v === 'ar' \|\| v === 'en' \|\| v === 'tr' \|\| v === 'fa' \? v : null;[\s\S]*\}/,
+    'persisted app state must accept only exact supported locale codes',
+  );
+  assert.match(
+    source,
+    /const stored = persistedLocale\(storedRaw\);\s*const detected = stored \?\? normalize\(getLocales\(\)\[0\]\?\.languageCode\);/,
+    'missing or corrupt persisted state must fall back to the supported device locale',
+  );
+});
+
+test('locale bootstrap treats AsyncStorage read failures as an ordinary fallback', () => {
+  assert.match(
+    source,
+    /const storageRead = AsyncStorage\.getItem\(LOCALE_KEY\)\.catch\(\(\) => null\);/,
+    'storage read rejection must be converted to the same bounded fallback path as a timeout',
+  );
+});
