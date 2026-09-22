@@ -50,6 +50,9 @@ export function LocaleProvider({ children }: PropsWithChildren) {
   const [ready, setReady] = useState(false);
   const [switching, setSwitching] = useState(false);
   const [lastSwitchMs, setLastSwitchMs] = useState<number | null>(null);
+  // Calendar preference is stable for the lifetime of this provider. Avoid
+  // repeating the native localization lookup on every state-driven render.
+  const calendar = useMemo(() => getCalendars()[0]?.calendar, []);
 
   const apply = useCallback(async (next: LocaleCode, persist = true) => {
     const start = globalThis.performance?.now?.() ?? Date.now();
@@ -108,7 +111,6 @@ export function LocaleProvider({ children }: PropsWithChildren) {
 
   const isRTL = RTL.has(locale);
   const localeTag = locale === 'ar' ? 'ar-IQ' : locale === 'fa' ? 'fa-IR' : locale === 'tr' ? 'tr-TR' : 'en-US';
-  const calendar = getCalendars()[0]?.calendar;
   const value = useMemo<Ctx>(() => ({
     locale,
     isRTL,
