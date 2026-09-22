@@ -25,6 +25,14 @@ function normalize(code?: string | null): LocaleCode {
   return 'ar';
 }
 
+function deviceLocale(): LocaleCode {
+  try {
+    return normalize(getLocales()[0]?.languageCode);
+  } catch {
+    return 'ar';
+  }
+}
+
 function persistedLocale(code?: string | null): LocaleCode | null {
   if (!code) return null;
   const v = code.trim().toLowerCase();
@@ -96,7 +104,7 @@ export function LocaleProvider({ children }: PropsWithChildren) {
       // values. Corrupt/stale values must fall back to the device locale rather
       // than silently forcing Arabic through normalize().
       const stored = persistedLocale(storedRaw);
-      const detected = stored ?? normalize(getLocales()[0]?.languageCode);
+      const detected = stored ?? deviceLocale();
       i18n.locale = detected;
       I18nManager.allowRTL(true);
       setLocaleState(detected);
@@ -104,7 +112,7 @@ export function LocaleProvider({ children }: PropsWithChildren) {
     }).catch(() => {
       if (timeoutId) clearTimeout(timeoutId);
       if (!active) return;
-      const detected = normalize(getLocales()[0]?.languageCode);
+      const detected = deviceLocale();
       i18n.locale = detected;
       I18nManager.allowRTL(true);
       setLocaleState(detected);
