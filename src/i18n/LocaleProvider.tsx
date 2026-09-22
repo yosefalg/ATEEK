@@ -50,9 +50,16 @@ export function LocaleProvider({ children }: PropsWithChildren) {
   const [ready, setReady] = useState(false);
   const [switching, setSwitching] = useState(false);
   const [lastSwitchMs, setLastSwitchMs] = useState<number | null>(null);
-  // Calendar preference is stable for the lifetime of this provider. Avoid
-  // repeating the native localization lookup on every state-driven render.
-  const calendar = useMemo(() => getCalendars()[0]?.calendar, []);
+  // Calendar preference is stable for the lifetime of this provider. Keep the
+  // native lookup off the render hot path and degrade safely if the platform
+  // localization module cannot provide calendar metadata.
+  const calendar = useMemo(() => {
+    try {
+      return getCalendars()[0]?.calendar;
+    } catch {
+      return undefined;
+    }
+  }, []);
 
   const apply = useCallback(async (next: LocaleCode, persist = true) => {
     const start = globalThis.performance?.now?.() ?? Date.now();
