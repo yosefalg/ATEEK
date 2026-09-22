@@ -139,7 +139,14 @@ export function LocaleProvider({ children }: PropsWithChildren) {
     formatDate: value => {
       const date = new Date(value);
       if (Number.isNaN(date.getTime())) return '';
-      return new Intl.DateTimeFormat(localeTag, { dateStyle: 'medium', calendar: calendar || undefined }).format(date);
+      try {
+        return new Intl.DateTimeFormat(localeTag, { dateStyle: 'medium', calendar: calendar || undefined }).format(date);
+      } catch {
+        // Native calendar identifiers can vary by Android/ICU version. A valid
+        // date must remain renderable even if Intl does not recognize the
+        // platform-provided calendar identifier.
+        return new Intl.DateTimeFormat(localeTag, { dateStyle: 'medium' }).format(date);
+      }
     },
   }), [apply, calendar, isRTL, lastSwitchMs, locale, localeTag, ready, switching]);
   return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;
