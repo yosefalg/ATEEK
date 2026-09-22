@@ -41,9 +41,15 @@ test('locale bootstrap rejects corrupt persisted values and falls back to the de
     /function deviceLocale\(\): LocaleCode \{[\s\S]*return normalize\(getLocales\(\)\[0\]\?\.languageCode\);[\s\S]*catch \{\s*return 'ar';\s*\}[\s\S]*\}/,
     'device locale lookup must normalize supported locale metadata and fail safely when native metadata is unavailable',
   );
-  assert.match(
-    source,
-    /const stored = persistedLocale\(storedRaw\);\s*const detected = stored \?\? deviceLocale\(\);/,
+
+  const bootstrapStart = source.indexOf('void Promise.race([storageRead, timeout]).then(storedRaw => {');
+  const catchStart = source.indexOf('}).catch(() => {', bootstrapStart);
+  assert.notEqual(bootstrapStart, -1, 'bounded bootstrap success path must exist');
+  assert.notEqual(catchStart, -1, 'bounded bootstrap failure path must exist');
+  const successBody = source.slice(bootstrapStart, catchStart);
+  assert.ok(
+    successBody.includes('const stored = persistedLocale(storedRaw);') &&
+      successBody.includes('const detected = stored ?? deviceLocale();'),
     'missing or corrupt persisted state must fall back through the guarded device locale helper',
   );
 });
