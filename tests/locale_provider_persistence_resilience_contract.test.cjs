@@ -21,8 +21,8 @@ test('rapid locale changes let only the newest switch settle busy state and timi
   );
   assert.match(
     source,
-    /if \(switchId === switchSequence\.current\) \{\s*setLastSwitchMs\(elapsed\);\s*setSwitching\(false\);\s*\}/s,
-    'an older queued persistence completion must not clear switching state or overwrite timing for a newer selection',
+    /if \(mounted\.current && switchId === switchSequence\.current\) \{\s*setLastSwitchMs\(elapsed\);\s*setSwitching\(false\);\s*\}/s,
+    'an older queued persistence completion or an unmounted provider must not clear switching state or overwrite timing for a newer selection',
   );
 });
 
@@ -50,8 +50,8 @@ test('locale bootstrap does not update readiness after unmount', () => {
   }
   assert.match(
     source.slice(cleanupStart),
-    /return \(\) => \{\s*active = false;\s*if \(timeoutId\) clearTimeout\(timeoutId\);\s*\};/s,
-    'bootstrap cleanup must invalidate late completions and cancel its timeout',
+    /return \(\) => \{\s*active = false;\s*mounted\.current = false;\s*if \(timeoutId\) clearTimeout\(timeoutId\);\s*\};/s,
+    'bootstrap cleanup must invalidate late completions, mark the provider unmounted, and cancel its timeout',
   );
 });
 
