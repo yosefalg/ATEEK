@@ -13,6 +13,19 @@ test('locale switching keeps runtime preference usable when persistence fails', 
   assert.match(source, /finally \{[\s\S]*setLastSwitchMs\(elapsed\);[\s\S]*setSwitching\(false\);/);
 });
 
+test('rapid locale changes let only the newest switch settle busy state and timing', () => {
+  assert.match(
+    source,
+    /const switchId = \+\+switchSequence\.current;/,
+    'each locale switch must receive a monotonically increasing sequence id',
+  );
+  assert.match(
+    source,
+    /if \(switchId === switchSequence\.current\) \{\s*setLastSwitchMs\(elapsed\);\s*setSwitching\(false\);\s*\}/s,
+    'an older queued persistence completion must not clear switching state or overwrite timing for a newer selection',
+  );
+});
+
 test('re-selecting the active locale is a zero-cost no-op', () => {
   assert.match(
     source,
