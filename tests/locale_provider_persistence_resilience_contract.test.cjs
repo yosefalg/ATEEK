@@ -4,8 +4,12 @@ const fs = require('node:fs');
 
 const source = fs.readFileSync('src/i18n/LocaleProvider.tsx', 'utf8');
 
-test('locale switching always clears busy state when persistence fails', () => {
-  assert.match(source, /try \{\s*if \(persist\) await AsyncStorage\.setItem\(LOCALE_KEY, next\);\s*\} finally \{/s);
+test('locale switching keeps runtime preference usable when persistence fails', () => {
+  assert.match(
+    source,
+    /if \(persist\) await AsyncStorage\.setItem\(LOCALE_KEY, next\)\.catch\(\(\) => undefined\);/,
+    'storage write failures must not reject an otherwise successful runtime locale switch',
+  );
   assert.match(source, /finally \{[\s\S]*setLastSwitchMs\(elapsed\);[\s\S]*setSwitching\(false\);/);
 });
 

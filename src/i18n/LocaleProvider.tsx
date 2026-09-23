@@ -77,7 +77,10 @@ export function LocaleProvider({ children }: PropsWithChildren) {
     i18n.locale = next;
     setLocaleState(next);
     try {
-      if (persist) await AsyncStorage.setItem(LOCALE_KEY, next);
+      // Locale switching is a runtime preference and must remain usable when
+      // device storage is temporarily unavailable. Persistence is best-effort;
+      // the selected locale remains active for the current app session.
+      if (persist) await AsyncStorage.setItem(LOCALE_KEY, next).catch(() => undefined);
     } finally {
       elapsed = (globalThis.performance?.now?.() ?? Date.now()) - start;
       setLastSwitchMs(elapsed);
