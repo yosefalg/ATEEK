@@ -33,7 +33,7 @@ export function SearchScreen({listings,favorites,onFavorite,onOpen,initialCatego
   const usernameRequestRef=useRef(0),usernameBusyRef=useRef(false);
   const locationRequestRef=useRef(0),locationBusyRef=useRef(false);
   const historyRef=useRef<string[]>([]),savedRef=useRef<Saved[]>([]);
-  const historyWriteRef=useRef<Promise<void>>(Promise.resolve()),savedWriteRef=useRef<Promise<void>>(Promise.resolve());
+  const historyWriteRef=useRef<Promise<void>>(Promise.resolve()),savedWriteRef=useRef<Promise<void>>(Promise.resolve()),sortWriteRef=useRef<Promise<void>>(Promise.resolve());
 
   useEffect(()=>{setCategory(initialCategory)},[initialCategory]);
   useEffect(()=>()=>{usernameRequestRef.current+=1;usernameBusyRef.current=false;locationRequestRef.current+=1;locationBusyRef.current=false},[]);
@@ -49,7 +49,7 @@ export function SearchScreen({listings,favorites,onFavorite,onOpen,initialCatego
     }
   }).catch(()=>{});return()=>{alive=false}},[]);
 
-  const persistSort=async(next:Sort)=>{setSort(next);try{await AsyncStorage.setItem(SORT,next)}catch{}};
+  const persistSort=async(next:Sort)=>{setSort(next);sortWriteRef.current=sortWriteRef.current.then(()=>AsyncStorage.setItem(SORT,next)).catch(()=>{});await sortWriteRef.current};
   const commitHistory=async(q:string)=>{const x=q.trim();if(x.length<2)return;const key=normalize(x),next=[x,...historyRef.current.filter(v=>normalize(v)!==key)].slice(0,8);historyRef.current=next;setHistory(next);historyWriteRef.current=historyWriteRef.current.then(()=>AsyncStorage.setItem(HISTORY,JSON.stringify(next))).catch(()=>{});await historyWriteRef.current};
   const changeQuery=(value:string)=>{usernameRequestRef.current+=1;usernameBusyRef.current=false;setUserBusy(false);setQuery(value)};
   const openUsername=async()=>{
