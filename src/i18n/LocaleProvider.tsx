@@ -136,7 +136,9 @@ export function LocaleProvider({ children }: PropsWithChildren) {
     ready,
     switching,
     lastSwitchMs,
-    setLocale: next => apply(next),
+    // Re-selecting the active locale is a no-op. Avoid an unnecessary storage
+    // write, switching state churn and downstream renders on repeated taps.
+    setLocale: next => next === locale ? Promise.resolve(0) : apply(next),
     t: (key, options) => String(i18n.t(key, options)),
     // Do not surface NaN/Infinity from malformed API or derived values into
     // production UI. Finite values retain the exact locale-aware formatting.
