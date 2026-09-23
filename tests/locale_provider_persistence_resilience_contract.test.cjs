@@ -29,8 +29,8 @@ test('rapid locale changes let only the newest switch settle busy state and timi
 test('re-selecting the active locale is a zero-cost no-op', () => {
   assert.match(
     source,
-    /setLocale: next => next === locale \? Promise\.resolve\(0\) : apply\(next\),/,
-    'the active locale must bypass persistence and switching-state churn',
+    /setLocale: next => next === activeLocale\.current \? Promise\.resolve\(0\) : apply\(next\),/,
+    'the synchronous active locale must bypass persistence and switching-state churn, including duplicate taps before React rerenders',
   );
 });
 
