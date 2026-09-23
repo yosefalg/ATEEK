@@ -13,6 +13,14 @@ test('locale switching keeps runtime preference usable when persistence fails', 
   assert.match(source, /finally \{[\s\S]*setLastSwitchMs\(elapsed\);[\s\S]*setSwitching\(false\);/);
 });
 
+test('re-selecting the active locale is a zero-cost no-op', () => {
+  assert.match(
+    source,
+    /setLocale: next => next === locale \? Promise\.resolve\(0\) : apply\(next\),/,
+    'the active locale must bypass persistence and switching-state churn',
+  );
+});
+
 test('locale bootstrap does not update readiness after unmount', () => {
   const bootstrapStart = source.indexOf('void Promise.race([storageRead, timeout]).then(storedRaw => {');
   const catchStart = source.indexOf('}).catch(() => {', bootstrapStart);
