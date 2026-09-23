@@ -61,6 +61,10 @@ export function LocaleProvider({ children }: PropsWithChildren) {
   // Serialize preference writes so rapid language changes cannot complete out
   // of order and leave storage disagreeing with the latest runtime selection.
   const persistenceQueue = useRef<Promise<void>>(Promise.resolve());
+  // Track the newest switch independently from persistence. An older queued
+  // write finishing must not clear the busy state or overwrite timing metrics
+  // while a newer language selection is still waiting to persist.
+  const switchSequence = useRef(0);
   // Calendar preference is stable for the lifetime of this provider. Keep the
   // native lookup off the render hot path and degrade safely if the platform
   // localization module cannot provide calendar metadata.
@@ -73,6 +77,7 @@ export function LocaleProvider({ children }: PropsWithChildren) {
   }, []);
 
   const apply = useCallback(async (next: LocaleCode, persist = true) => {
+    const switchId = ++switchSequence.current;
     const start = globalThis.performance?.now?.() ?? Date.now();
     let elapsed = 0;
     setSwitching(true);
@@ -92,8 +97,10 @@ export function LocaleProvider({ children }: PropsWithChildren) {
       }
     } finally {
       elapsed = (globalThis.performance?.now?.() ?? Date.now()) - start;
-      setLastSwitchMs(elapsed);
-      setSwitching(false);
+      if (switchId === switchSequence.current) {
+        setLastSwitchMs(elapsed);
+        setSwitching(false);
+      }
       if (__DEV__) console.info(`[ATEEK i18n] switch=${next} elapsed=${elapsed.toFixed(2)}ms rtl=${RTL.has(next)}`);
     }
     return elapsed;
