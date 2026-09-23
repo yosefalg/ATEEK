@@ -25,7 +25,12 @@ test('location lookup is single-flight and stale location completions cannot cha
 });
 
 test('history and saved-search writes stay serialized', () => {
-  assert.match(source, /historyWriteRef=useRef<Promise<void>>\(Promise\.resolve\(\)\),savedWriteRef=useRef<Promise<void>>\(Promise\.resolve\(\)\)/);
+  assert.match(source, /historyWriteRef=useRef<Promise<void>>\(Promise\.resolve\(\)\),savedWriteRef=useRef<Promise<void>>\(Promise\.resolve\(\)/);
   assert.match(source, /historyWriteRef\.current=historyWriteRef\.current\.then\(\(\)=>AsyncStorage\.setItem\(HISTORY,JSON\.stringify\(next\)\)\)\.catch\(\(\)=>\{\}\)/);
   assert.match(source, /savedWriteRef\.current=savedWriteRef\.current\.then\(\(\)=>AsyncStorage\.setItem\(SAVED,JSON\.stringify\(next\)\)\)\.catch\(\(\)=>\{persisted=false\}\)/);
+});
+
+test('sort preference writes stay serialized so rapid sort choices persist in order', () => {
+  assert.match(source, /sortWriteRef=useRef<Promise<void>>\(Promise\.resolve\(\)\)/);
+  assert.match(source, /sortWriteRef\.current=sortWriteRef\.current\.then\(\(\)=>AsyncStorage\.setItem\(SORT,next\)\)\.catch\(\(\)=>\{\}\);await sortWriteRef\.current/);
 });
