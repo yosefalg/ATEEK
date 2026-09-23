@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getCalendars, getLocales } from 'expo-localization';
 import { I18n } from 'i18n-js';
-import React, { createContext, PropsWithChildren, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, PropsWithChildren, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { I18nManager } from 'react-native';
 import ar from './locale/ar.json';
 import en from './locale/en.json';
@@ -58,6 +58,9 @@ export function LocaleProvider({ children }: PropsWithChildren) {
   const [ready, setReady] = useState(false);
   const [switching, setSwitching] = useState(false);
   const [lastSwitchMs, setLastSwitchMs] = useState<number | null>(null);
+  // Serialize preference writes so rapid language changes cannot complete out
+  // of order and leave storage disagreeing with the latest runtime selection.
+  const persistenceQueue = useRef<Promise<void>>(Promise.resolve());
   // Calendar preference is stable for the lifetime of this provider. Keep the
   // native lookup off the render hot path and degrade safely if the platform
   // localization module cannot provide calendar metadata.
@@ -79,8 +82,14 @@ export function LocaleProvider({ children }: PropsWithChildren) {
     try {
       // Locale switching is a runtime preference and must remain usable when
       // device storage is temporarily unavailable. Persistence is best-effort;
-      // the selected locale remains active for the current app session.
-      if (persist) await AsyncStorage.setItem(LOCALE_KEY, next).catch(() => undefined);
+      // the selected locale remains active for the current app session. Keep
+      // writes ordered so a slower earlier write cannot win after a rapid tap.
+      if (persist) {
+        persistenceQueue.current = persistenceQueue.current
+          .catch(() => undefined)
+          .then(() => AsyncStorage.setItem(LOCALE_KEY, next).catch(() => undefined));
+        await persistenceQueue.current;
+      }
     } finally {
       elapsed = (globalThis.performance?.now?.() ?? Date.now()) - start;
       setLastSwitchMs(elapsed);
