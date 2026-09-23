@@ -58,6 +58,10 @@ export function LocaleProvider({ children }: PropsWithChildren) {
   const [ready, setReady] = useState(false);
   const [switching, setSwitching] = useState(false);
   const [lastSwitchMs, setLastSwitchMs] = useState<number | null>(null);
+  // Keep the latest runtime selection synchronous with event handling. React
+  // state can lag behind two taps in the same frame, which would otherwise
+  // enqueue duplicate writes for the same language before the next render.
+  const activeLocale = useRef<LocaleCode>('ar');
   // Serialize preference writes so rapid language changes cannot complete out
   // of order and leave storage disagreeing with the latest runtime selection.
   const persistenceQueue = useRef<Promise<void>>(Promise.resolve());
@@ -80,6 +84,7 @@ export function LocaleProvider({ children }: PropsWithChildren) {
     const switchId = ++switchSequence.current;
     const start = globalThis.performance?.now?.() ?? Date.now();
     let elapsed = 0;
+    activeLocale.current = next;
     setSwitching(true);
     I18nManager.allowRTL(true);
     i18n.locale = next;
@@ -124,6 +129,7 @@ export function LocaleProvider({ children }: PropsWithChildren) {
       // than silently forcing Arabic through normalize().
       const stored = persistedLocale(storedRaw);
       const detected = stored ?? deviceLocale();
+      activeLocale.current = detected;
       i18n.locale = detected;
       I18nManager.allowRTL(true);
       setLocaleState(detected);
@@ -132,6 +138,7 @@ export function LocaleProvider({ children }: PropsWithChildren) {
       if (timeoutId) clearTimeout(timeoutId);
       if (!active) return;
       const detected = deviceLocale();
+      activeLocale.current = detected;
       i18n.locale = detected;
       I18nManager.allowRTL(true);
       setLocaleState(detected);
@@ -152,9 +159,9 @@ export function LocaleProvider({ children }: PropsWithChildren) {
     ready,
     switching,
     lastSwitchMs,
-    // Re-selecting the active locale is a no-op. Avoid an unnecessary storage
-    // write, switching state churn and downstream renders on repeated taps.
-    setLocale: next => next === locale ? Promise.resolve(0) : apply(next),
+    // Re-selecting the active locale is a no-op. Use the synchronous ref rather
+    // than render state so duplicate taps in one frame are coalesced too.
+    setLocale: next => next === activeLocale.current ? Promise.resolve(0) : apply(next),
     t: (key, options) => String(i18n.t(key, options)),
     // Do not surface NaN/Infinity from malformed API or derived values into
     // production UI. Finite values retain the exact locale-aware formatting.
