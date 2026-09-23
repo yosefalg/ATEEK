@@ -58,6 +58,7 @@ export function LocaleProvider({ children }: PropsWithChildren) {
   const [ready, setReady] = useState(false);
   const [switching, setSwitching] = useState(false);
   const [lastSwitchMs, setLastSwitchMs] = useState<number | null>(null);
+  const mounted = useRef(true);
   // Keep the latest runtime selection synchronous with event handling. React
   // state can lag behind two taps in the same frame, which would otherwise
   // enqueue duplicate writes for the same language before the next render.
@@ -102,7 +103,9 @@ export function LocaleProvider({ children }: PropsWithChildren) {
       }
     } finally {
       elapsed = (globalThis.performance?.now?.() ?? Date.now()) - start;
-      if (switchId === switchSequence.current) {
+      // Persistence may outlive the provider during navigation/reload. Never
+      // settle React state after unmount, and retain the newest-switch guard.
+      if (mounted.current && switchId === switchSequence.current) {
         setLastSwitchMs(elapsed);
         setSwitching(false);
       }
@@ -112,6 +115,7 @@ export function LocaleProvider({ children }: PropsWithChildren) {
   }, []);
 
   useEffect(() => {
+    mounted.current = true;
     let active = true;
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
     // Resolve storage failures to the same safe fallback path as a timeout. A
@@ -146,6 +150,7 @@ export function LocaleProvider({ children }: PropsWithChildren) {
     });
     return () => {
       active = false;
+      mounted.current = false;
       if (timeoutId) clearTimeout(timeoutId);
     };
   }, []);
