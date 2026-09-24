@@ -11,8 +11,8 @@ test('listing text inputs stay bounded before local draft persistence or publish
   assert.match(source, /description: description\.trim\(\) \|\| 'لا يوجد وصف إضافي\.'/);
 });
 
-test('listing inputs expose stable labels and lock during publish or AI analysis', () => {
-  assert.match(source, /const busy = publishing \|\| analyzing;/);
+test('listing inputs expose stable labels and lock during publish or any AI mutation', () => {
+  assert.match(source, /const busy = publishing \|\| analyzing \|\| improving;/);
   assert.match(source, /editable=\{!disabled\}/);
   assert.match(source, /accessibilityLabel=\{label\}/);
   assert.match(source, /accessibilityState=\{\{ disabled \}\}/);
