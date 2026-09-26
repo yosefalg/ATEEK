@@ -9,7 +9,7 @@ const context = { exports: {} };
 vm.runInNewContext(compiled, context);
 const { parsePrice } = context.exports;
 for (const [input, expected] of [
-  ['150000', 150000], ['١٥٠٬٠٠٠', 150000], ['۱۵۰۰۰۰', 150000],
+  ['150000', 150000], ['١٥٠٬٠٠٠', 150000], ['١٥٠،٠٠٠', 150000], ['۱۵۰۰۰۰', 150000],
   [' 12,500 ', 12500], ['0', null], ['-50', null], ['', null],
   ['abc100', null], ['12.5', null], ['Infinity', null], ['1e5', null],
   ['1000000000001', null], ['1000000000000', 1000000000000]
