@@ -9,8 +9,9 @@ test('spatial profile bus isolates subscriber failures and iterates a stable sna
   assert.doesNotMatch(source, /for \(const listener of listeners\) listener\(userId\);/);
 });
 
-test('spatial profile analytics failures are contained as best-effort telemetry', () => {
+test('spatial profile analytics contains asynchronous and synchronous RPC failures', () => {
   const source = fs.readFileSync('src/social/spatialSocialBus.ts', 'utf8');
-  assert.match(source, /Promise\.resolve\(supabase\.rpc\('ateek_profile_view', \{ p_profile: userId \}\)\)\.catch\(\(\) => \{/);
+  assert.match(source, /Promise\.resolve\(\)\.then\(\(\) => supabase\.rpc\('ateek_profile_view', \{ p_profile: userId \}\)\)\.catch\(\(\) => \{/);
+  assert.doesNotMatch(source, /Promise\.resolve\(supabase\.rpc\(/);
   assert.doesNotMatch(source, /if \(userId\) void supabase\.rpc\(/);
 });
