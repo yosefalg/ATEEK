@@ -5,10 +5,20 @@ const fs = require('node:fs');
 const source = fs.readFileSync('src/i18n/LocaleProvider.tsx', 'utf8');
 
 test('locale switching keeps runtime preference usable when persistence fails', () => {
+  const queueStart = source.indexOf('persistenceQueue.current = persistenceQueue.current');
+  const awaitQueue = source.indexOf('await persistenceQueue.current;', queueStart);
+  assert.notEqual(queueStart, -1, 'locale persistence must remain serialized through the existing queue');
+  assert.notEqual(awaitQueue, -1, 'runtime switching must wait for its ordered persistence attempt to settle');
+  const queueBody = source.slice(queueStart, awaitQueue);
   assert.match(
-    source,
-    /persistenceQueue\.current = persistenceQueue\.current\s*\.catch\(\(\) => undefined\)\s*\.then\(\(\) => Promise\.resolve\(\)\.then\(\(\) => AsyncStorage\.setItem\(LOCALE_KEY, next\)\)\.catch\(\(\) => undefined\)\);\s*await persistenceQueue\.current;/s,
-    'serialized storage writes must isolate both synchronous throws and asynchronous rejections without rejecting an otherwise successful runtime locale switch',
+    queueBody,
+    /\.catch\(\(\) => undefined\)/,
+    'a prior rejected queue entry must not poison later locale switches',
+  );
+  assert.match(
+    queueBody,
+    /\.then\(\(\) => Promise\.resolve\(\)\.then\(\(\) => AsyncStorage\.setItem\(LOCALE_KEY, next\)\)\.catch\(\(\) => undefined\)\)/,
+    'the native storage call must be deferred so both synchronous throws and asynchronous rejections are isolated',
   );
   assert.match(source, /finally \{[\s\S]*setLastSwitchMs\(elapsed\);[\s\S]*setSwitching\(false\);/);
 });
