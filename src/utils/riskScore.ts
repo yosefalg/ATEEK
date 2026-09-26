@@ -17,7 +17,7 @@ function medianOf(values: number[]): number {
   if (sorted.length % 2 === 1) return sorted[middle] ?? 0;
   const left = sorted[middle - 1] ?? 0;
   const right = sorted[middle] ?? left;
-  return (left + right) / 2;
+  return left / 2 + right / 2;
 }
 
 function lowerBound(values: number[], target: number) {
@@ -45,7 +45,7 @@ function medianWithoutListingPrice(sortedPrices: number[], listingPrice: number)
 
   const middle = Math.floor(peerCount / 2);
   if (peerCount % 2 === 1) return valueAtPeerIndex(middle);
-  return (valueAtPeerIndex(middle - 1) + valueAtPeerIndex(middle)) / 2;
+  return valueAtPeerIndex(middle - 1) / 2 + valueAtPeerIndex(middle) / 2;
 }
 
 export function scoreListingRisk(listing: Listing, peerPrices: number[]): ListingRisk {
