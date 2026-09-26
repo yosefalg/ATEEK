@@ -52,6 +52,8 @@ export function scoreListingRisk(listing: Listing, peerPrices: number[]): Listin
   let score = 0;
   const reasons: string[] = [];
   const median = medianOf(peerPrices);
+  const title = typeof listing.title === 'string' ? listing.title : '';
+  const description = typeof listing.description === 'string' ? listing.description : '';
 
   if (!listing.verified) {
     score += 18;
@@ -64,11 +66,11 @@ export function scoreListingRisk(listing: Listing, peerPrices: number[]): Listin
     score += 20;
     reasons.push('السعر أقل من متوسط السوق بشكل ملحوظ');
   }
-  if (listing.description.trim().length < 35) {
+  if (description.trim().length < 35) {
     score += 12;
     reasons.push('الوصف قصير ولا يوضح تفاصيل كافية');
   }
-  if (riskyWords.test(`${listing.title} ${listing.description}`)) {
+  if (riskyWords.test(`${title} ${description}`)) {
     score += 28;
     reasons.push('النص يتضمن طلبات أو عبارات تستحق التحقق');
   }
