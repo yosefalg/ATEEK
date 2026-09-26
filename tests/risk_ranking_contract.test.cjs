@@ -26,3 +26,9 @@ test('risk ranking uses logarithmic lookup and skips exactly one matching listin
   assert.match(source, /const sourceIndex = excludedIndex >= 0 && index >= excludedIndex \? index \+ 1 : index/);
   assert.match(source, /return sortedPrices\[sourceIndex\] \?\? 0/);
 });
+
+test('risk medians avoid overflow when finite malformed prices are extremely large', () => {
+  const source = fs.readFileSync('src/utils/riskScore.ts', 'utf8');
+  assert.match(source, /return left \/ 2 \+ right \/ 2/);
+  assert.match(source, /return valueAtPeerIndex\(middle - 1\) \/ 2 \+ valueAtPeerIndex\(middle\) \/ 2/);
+});
