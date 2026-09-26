@@ -10,6 +10,7 @@ test('stored privacy consent is structurally validated before it can suppress th
   assert.match(source, /typeof candidate\.analytics === 'boolean'/);
   assert.match(source, /typeof candidate\.marketing === 'boolean'/);
   assert.match(source, /typeof candidate\.savedAt === 'string'/);
+  assert.match(source, /Number\.isFinite\(Date\.parse\(candidate\.savedAt\)\)/);
   assert.match(source, /const parsed: unknown = JSON\.parse\(raw\);/);
   assert.match(source, /if \(!isStoredConsent\(parsed\)\) \{\s*setVisible\(true\);\s*return;\s*\}/s);
 });
