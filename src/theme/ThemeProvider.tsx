@@ -24,7 +24,7 @@ export function ThemeProvider({children}:{children:PropsWithChildren['children']
   const[visualTheme,setVisualThemeState]=useState<VisualTheme>('amoled');
   const[lowData,setLowDataState]=useState(false);
   const[animationsEnabled,setAnimationsEnabledState]=useState(true);
-  useEffect(()=>{let active=true;void AsyncStorage.multiGet([...STARTUP_KEYS]).then(entries=>{if(!active)return;const values=new Map(entries);const m=values.get(THEME_KEY)??null;const l=values.get(LOW_DATA_KEY)??null;const v=values.get(VISUAL_KEY)??null;const a=values.get(ANIM_KEY)??null;if(m==='dark'||m==='light'||m==='system')setModeState(m);if(v==='amoled'||v==='titanium')setVisualThemeState(v);setLowDataState(l==='1');setAnimationsEnabledState(a!=='0')}).catch(()=>{});return()=>{active=false}},[]);
+  useEffect(()=>{let active=true;void Promise.resolve().then(()=>AsyncStorage.multiGet([...STARTUP_KEYS])).then(entries=>{if(!active)return;const values=new Map(entries);const m=values.get(THEME_KEY)??null;const l=values.get(LOW_DATA_KEY)??null;const v=values.get(VISUAL_KEY)??null;const a=values.get(ANIM_KEY)??null;if(m==='dark'||m==='light'||m==='system')setModeState(m);if(v==='amoled'||v==='titanium')setVisualThemeState(v);setLowDataState(l==='1');setAnimationsEnabledState(a!=='0')}).catch(()=>{});return()=>{active=false}},[]);
   const setMode=(m:ThemeMode)=>{setModeState(m);persistPreference(()=>AsyncStorage.setItem(THEME_KEY,m))};
   const setVisualTheme=(v:VisualTheme)=>{setVisualThemeState(v);setModeState('dark');persistPreference(()=>AsyncStorage.multiSet([[VISUAL_KEY,v],[THEME_KEY,'dark']]))};
   const setLowData=(v:boolean)=>{setLowDataState(v);persistPreference(()=>AsyncStorage.setItem(LOW_DATA_KEY,v?'1':'0'))};
