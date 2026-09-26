@@ -19,7 +19,8 @@ function isStoredConsent(value: unknown): value is Consents {
     candidate.essential === true &&
     typeof candidate.analytics === 'boolean' &&
     typeof candidate.marketing === 'boolean' &&
-    typeof candidate.savedAt === 'string'
+    typeof candidate.savedAt === 'string' &&
+    Number.isFinite(Date.parse(candidate.savedAt))
   );
 }
 
