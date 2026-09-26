@@ -20,7 +20,8 @@ export function OnboardingGate({ children }: PropsWithChildren) {
       setDone(value);
     };
     const fallback = setTimeout(() => settleInitialRead(false), INITIAL_READ_TIMEOUT_MS);
-    AsyncStorage.getItem(KEY)
+    Promise.resolve()
+      .then(() => AsyncStorage.getItem(KEY))
       .then((v) => settleInitialRead(v === '1'))
       .catch(() => settleInitialRead(false));
     return () => {
