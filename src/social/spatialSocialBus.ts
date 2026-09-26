@@ -5,7 +5,7 @@ const listeners = new Set<Listener>();
 
 export function openSpatialProfile(userId?: string) {
   if (userId) {
-    void Promise.resolve(supabase.rpc('ateek_profile_view', { p_profile: userId })).catch(() => {
+    void Promise.resolve().then(() => supabase.rpc('ateek_profile_view', { p_profile: userId })).catch(() => {
       // Best-effort analytics must never surface an unhandled rejection or block navigation.
     });
   }
