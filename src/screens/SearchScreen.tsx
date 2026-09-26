@@ -15,6 +15,7 @@ type Saved={q:string;category:string};
 type Sort='newest'|'nearest'|'most_viewed';
 const HISTORY='ateek.search.history.v1',SAVED='ateek.search.saved.v1',SORT='ateek.listing.sort';
 const categoryOptions=[{id:'all',label:'الكل'},...categories];
+const safeCategory=(value:string)=>categoryOptions.some(x=>x.id===value)?value:'all';
 const sortOptions:[Sort,string,keyof typeof Ionicons.glyphMap][]=[
   ['newest','الأحدث','time-outline'],
   ['most_viewed','الأكثر مشاهدة','eye-outline'],
@@ -29,13 +30,13 @@ const parseSaved=(raw:string|null)=>{if(!raw)return[];try{const value=JSON.parse
 
 export function SearchScreen({listings,favorites,onFavorite,onOpen,initialCategory='all'}:{listings:Listing[];favorites:string[];onFavorite:(id:string)=>void;onOpen:(item:Listing)=>void;initialCategory?:string}){
   const{colors,lowData}=useAteekTheme();
-  const[query,setQuery]=useState(''),[category,setCategory]=useState(initialCategory),[history,setHistory]=useState<string[]>([]),[saved,setSaved]=useState<Saved[]>([]),[near,setNear]=useState<{lat:number;lon:number}|null>(null),[sort,setSort]=useState<Sort>('newest'),[userBusy,setUserBusy]=useState(false),[locationBusy,setLocationBusy]=useState(false);
+  const[query,setQuery]=useState(''),[category,setCategory]=useState(()=>safeCategory(initialCategory)),[history,setHistory]=useState<string[]>([]),[saved,setSaved]=useState<Saved[]>([]),[near,setNear]=useState<{lat:number;lon:number}|null>(null),[sort,setSort]=useState<Sort>('newest'),[userBusy,setUserBusy]=useState(false),[locationBusy,setLocationBusy]=useState(false);
   const usernameRequestRef=useRef(0),usernameBusyRef=useRef(false);
   const locationRequestRef=useRef(0),locationBusyRef=useRef(false);
   const historyRef=useRef<string[]>([]),savedRef=useRef<Saved[]>([]);
   const historyWriteRef=useRef<Promise<void>>(Promise.resolve()),savedWriteRef=useRef<Promise<void>>(Promise.resolve()),sortWriteRef=useRef<Promise<void>>(Promise.resolve());
 
-  useEffect(()=>{setCategory(initialCategory)},[initialCategory]);
+  useEffect(()=>{setCategory(safeCategory(initialCategory))},[initialCategory]);
   useEffect(()=>()=>{usernameRequestRef.current+=1;usernameBusyRef.current=false;locationRequestRef.current+=1;locationBusyRef.current=false},[]);
 
   useEffect(()=>{let alive=true;void AsyncStorage.multiGet([HISTORY,SAVED,SORT]).then(async entries=>{
