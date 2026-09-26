@@ -98,7 +98,9 @@ export function LocaleProvider({ children }: PropsWithChildren) {
       if (persist) {
         persistenceQueue.current = persistenceQueue.current
           .catch(() => undefined)
-          .then(() => AsyncStorage.setItem(LOCALE_KEY, next).catch(() => undefined));
+          // Defer the native call into the promise chain so an unexpected
+          // synchronous native-module throw is isolated like a normal reject.
+          .then(() => Promise.resolve().then(() => AsyncStorage.setItem(LOCALE_KEY, next)).catch(() => undefined));
         await persistenceQueue.current;
       }
     } finally {
@@ -118,10 +120,9 @@ export function LocaleProvider({ children }: PropsWithChildren) {
     mounted.current = true;
     let active = true;
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
-    // Resolve storage failures to the same safe fallback path as a timeout. A
-    // rejected AsyncStorage read must not strand bootstrap on the hard-coded
-    // Arabic initial state when the device locale is another supported locale.
-    const storageRead = AsyncStorage.getItem(LOCALE_KEY).catch(() => null);
+    // Resolve storage failures to the same safe fallback path as a timeout.
+    // Deferring getItem also contains an unexpected synchronous native throw.
+    const storageRead = Promise.resolve().then(() => AsyncStorage.getItem(LOCALE_KEY)).catch(() => null);
     const timeout = new Promise<null>(resolve => {
       timeoutId = setTimeout(() => resolve(null), LOCALE_BOOTSTRAP_TIMEOUT_MS);
     });
