@@ -7,8 +7,8 @@ const source = fs.readFileSync('src/i18n/LocaleProvider.tsx', 'utf8');
 test('locale switching keeps runtime preference usable when persistence fails', () => {
   assert.match(
     source,
-    /persistenceQueue\.current = persistenceQueue\.current\s*\.catch\(\(\) => undefined\)\s*\.then\(\(\) => AsyncStorage\.setItem\(LOCALE_KEY, next\)\.catch\(\(\) => undefined\)\);\s*await persistenceQueue\.current;/s,
-    'serialized storage write failures must not reject an otherwise successful runtime locale switch',
+    /persistenceQueue\.current = persistenceQueue\.current\s*\.catch\(\(\) => undefined\)\s*\.then\(\(\) => Promise\.resolve\(\)\.then\(\(\) => AsyncStorage\.setItem\(LOCALE_KEY, next\)\)\.catch\(\(\) => undefined\)\);\s*await persistenceQueue\.current;/s,
+    'serialized storage writes must isolate both synchronous throws and asynchronous rejections without rejecting an otherwise successful runtime locale switch',
   );
   assert.match(source, /finally \{[\s\S]*setLastSwitchMs\(elapsed\);[\s\S]*setSwitching\(false\);/);
 });
@@ -79,11 +79,11 @@ test('locale bootstrap rejects corrupt persisted values and falls back to the de
   );
 });
 
-test('locale bootstrap treats AsyncStorage read failures as an ordinary fallback', () => {
+test('locale bootstrap treats synchronous and asynchronous AsyncStorage read failures as an ordinary fallback', () => {
   assert.match(
     source,
-    /const storageRead = AsyncStorage\.getItem\(LOCALE_KEY\)\.catch\(\(\) => null\);/,
-    'storage read rejection must be converted to the same bounded fallback path as a timeout',
+    /const storageRead = Promise\.resolve\(\)\.then\(\(\) => AsyncStorage\.getItem\(LOCALE_KEY\)\)\.catch\(\(\) => null\);/,
+    'storage read throws and rejections must both be converted to the same bounded fallback path as a timeout',
   );
 });
 
