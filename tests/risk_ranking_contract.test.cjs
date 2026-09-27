@@ -61,3 +61,8 @@ test('risk wording strips invisible Unicode controls used to split risky phrases
   assert.match(source, /\\u2060-\\u2069/);
   assert.match(source, /\\uFEFF/);
 });
+
+test('risk wording strips Unicode variation selectors used to split risky phrases', () => {
+  const source = fs.readFileSync('src/utils/riskScore.ts', 'utf8');
+  assert.match(source, /\\uFE00-\\uFE0F/);
+});
