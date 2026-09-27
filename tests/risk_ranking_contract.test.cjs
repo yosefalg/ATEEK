@@ -55,6 +55,7 @@ test('risk wording normalizes Arabic diacritics and tatweel before matching', ()
 
 test('risk wording strips invisible Unicode controls used to split risky phrases', () => {
   const source = fs.readFileSync('src/utils/riskScore.ts', 'utf8');
+  assert.match(source, /\\u061C/);
   assert.match(source, /\\u200B-\\u200F/);
   assert.match(source, /\\u202A-\\u202E/);
   assert.match(source, /\\u2060-\\u2069/);
