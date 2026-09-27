@@ -77,3 +77,8 @@ test('risk wording strips supplementary Unicode tag controls used for invisible 
   assert.match(source, /\\u\{E0000\}-\\u\{E007F\}/);
   assert.match(source, /\]\/gu/);
 });
+
+test('risk wording strips interlinear annotation controls used for invisible splitting', () => {
+  const source = fs.readFileSync('src/utils/riskScore.ts', 'utf8');
+  assert.match(source, /\\uFFF9-\\uFFFB/);
+});
