@@ -45,3 +45,10 @@ test('risk wording recognizes spaced Arabic off-platform contact variants', () =
   assert.match(source, /خارج\\s\+التطبيق/);
   assert.match(source, /بدون\\s\+فحص/);
 });
+
+test('risk wording normalizes Arabic diacritics and tatweel before matching', () => {
+  const source = fs.readFileSync('src/utils/riskScore.ts', 'utf8');
+  assert.match(source, /function normalizeRiskText\(value: string\)/);
+  assert.match(source, /replace\(\/\[\\u0640\\u064B-\\u065F\\u0670\]\/g, ''\)/);
+  assert.match(source, /riskyWords\.test\(normalizeRiskText\(`/);
+});
