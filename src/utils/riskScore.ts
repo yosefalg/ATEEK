@@ -11,6 +11,13 @@ export type ListingRisk = {
 // matching that would flag unrelated words.
 const riskyWords = /(عربون|حو[ّ]?ل|تحويل|واتس\s*ا[بپ]|واتساب|خارج\s+التطبيق|مستعجل|سريع\s+جد[ًا]|بدون\s+فحص)/i;
 
+function normalizeRiskText(value: string) {
+  // Arabic presentation can contain tatweel/harakat between letters. Removing
+  // only non-semantic marks keeps matching conservative while avoiding trivial
+  // visual obfuscation such as "واتــس اب" or "تَحويل".
+  return value.normalize('NFKC').replace(/[\u0640\u064B-\u065F\u0670]/g, '');
+}
+
 function medianOf(values: number[]): number {
   const sorted = values
     .filter((value) => Number.isFinite(value) && value > 0)
@@ -73,7 +80,7 @@ export function scoreListingRisk(listing: Listing, peerPrices: number[]): Listin
     score += 12;
     reasons.push('الوصف قصير ولا يوضح تفاصيل كافية');
   }
-  if (riskyWords.test(`${title} ${description}`)) {
+  if (riskyWords.test(normalizeRiskText(`${title} ${description}`))) {
     score += 28;
     reasons.push('النص يتضمن طلبات أو عبارات تستحق التحقق');
   }
