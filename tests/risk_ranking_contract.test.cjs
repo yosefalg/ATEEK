@@ -32,3 +32,9 @@ test('risk medians avoid overflow when finite malformed prices are extremely lar
   assert.match(source, /return left \/ 2 \+ right \/ 2/);
   assert.match(source, /return valueAtPeerIndex\(middle - 1\) \/ 2 \+ valueAtPeerIndex\(middle\) \/ 2/);
 });
+
+test('risk lower-bound midpoint does not truncate indexes to unsigned 32-bit integers', () => {
+  const source = fs.readFileSync('src/utils/riskScore.ts', 'utf8');
+  assert.match(source, /const middle = low \+ Math\.floor\(\(high - low\) \/ 2\)/);
+  assert.doesNotMatch(source, /\(low \+ high\) >>> 1/);
+});

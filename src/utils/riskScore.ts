@@ -24,7 +24,7 @@ function lowerBound(values: number[], target: number) {
   let low = 0;
   let high = values.length;
   while (low < high) {
-    const middle = (low + high) >>> 1;
+    const middle = low + Math.floor((high - low) / 2);
     if ((values[middle] ?? Number.POSITIVE_INFINITY) < target) low = middle + 1;
     else high = middle;
   }
