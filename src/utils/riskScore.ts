@@ -13,12 +13,12 @@ const riskyWords = /(عربون|حو[ّ]?ل|تحويل|واتس\s*ا[بپ]|وا�
 
 function normalizeRiskText(value: string) {
   // Arabic presentation can contain tatweel/harakat, invisible directional
-  // controls, grapheme joiners, and BMP/supplementary variation selectors
-  // between letters. Removing only non-semantic marks keeps matching
+  // controls, soft hyphens, grapheme joiners, and BMP/supplementary variation
+  // selectors between letters. Removing only non-semantic marks keeps matching
   // conservative while preventing trivial visual obfuscation of risky wording.
   return value
     .normalize('NFKC')
-    .replace(/[\u034F\u061C\u0640\u064B-\u065F\u0670\u180B-\u180D\u180F\u200B-\u200F\u202A-\u202E\u2060-\u2069\uFE00-\uFE0F\uFEFF\u{E0100}-\u{E01EF}]/gu, '');
+    .replace(/[\u00AD\u034F\u061C\u0640\u064B-\u065F\u0670\u180B-\u180D\u180F\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFE00-\uFE0F\uFEFF\u{E0100}-\u{E01EF}]/gu, '');
 }
 
 function medianOf(values: number[]): number {
