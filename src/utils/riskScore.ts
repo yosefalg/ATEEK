@@ -6,7 +6,10 @@ export type ListingRisk = {
   reasons: string[];
 };
 
-const riskyWords = /(عربون|حوّل|تحويل|واتساب|خارج التطبيق|مستعجل|سريع جدًا|بدون فحص)/i;
+// Keep common off-platform contact/payment wording together. Flexible spacing
+// catches ordinary Arabic variants such as "واتس اب" without broad substring
+// matching that would flag unrelated words.
+const riskyWords = /(عربون|حو[ّ]?ل|تحويل|واتس\s*ا[بپ]|واتساب|خارج\s+التطبيق|مستعجل|سريع\s+جد[ًا]|بدون\s+فحص)/i;
 
 function medianOf(values: number[]): number {
   const sorted = values

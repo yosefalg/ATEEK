@@ -38,3 +38,10 @@ test('risk lower-bound midpoint does not truncate indexes to unsigned 32-bit int
   assert.match(source, /const middle = low \+ Math\.floor\(\(high - low\) \/ 2\)/);
   assert.doesNotMatch(source, /\(low \+ high\) >>> 1/);
 });
+
+test('risk wording recognizes spaced Arabic off-platform contact variants', () => {
+  const source = fs.readFileSync('src/utils/riskScore.ts', 'utf8');
+  assert.match(source, /واتس\\s\*ا\[بپ\]/);
+  assert.match(source, /خارج\\s\+التطبيق/);
+  assert.match(source, /بدون\\s\+فحص/);
+});
