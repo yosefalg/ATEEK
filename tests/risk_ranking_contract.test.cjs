@@ -67,4 +67,6 @@ test('risk wording strips Unicode variation selectors used to split risky phrase
   const source = fs.readFileSync('src/utils/riskScore.ts', 'utf8');
   assert.match(source, /\\u180B-\\u180D\\u180F/);
   assert.match(source, /\\uFE00-\\uFE0F/);
+  assert.match(source, /\\u\{E0100\}-\\u\{E01EF\}/);
+  assert.match(source, /\]\/gu/);
 });
