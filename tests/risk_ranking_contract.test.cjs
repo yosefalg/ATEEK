@@ -72,6 +72,11 @@ test('risk wording strips Unicode variation selectors used to split risky phrase
   assert.match(source, /\]\/gu/);
 });
 
+test('risk wording strips deprecated Mongolian vowel separator used for invisible splitting', () => {
+  const source = fs.readFileSync('src/utils/riskScore.ts', 'utf8');
+  assert.match(source, /\\u180E/);
+});
+
 test('risk wording strips supplementary Unicode tag controls used for invisible splitting', () => {
   const source = fs.readFileSync('src/utils/riskScore.ts', 'utf8');
   assert.match(source, /\\u\{E0000\}-\\u\{E007F\}/);
