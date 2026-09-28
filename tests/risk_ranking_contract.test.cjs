@@ -108,3 +108,8 @@ test('risk wording strips compatibility Hangul fillers used for visually empty p
   assert.match(source, /\\u3164/);
   assert.match(source, /\\uFFA0/);
 });
+
+test('risk wording strips deprecated Khmer invisible vowels used for phrase splitting', () => {
+  const source = fs.readFileSync('src/utils/riskScore.ts', 'utf8');
+  assert.match(source, /\\u17B4-\\u17B5/);
+});
