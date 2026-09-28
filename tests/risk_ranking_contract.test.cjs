@@ -87,3 +87,8 @@ test('risk wording strips zero width no-break space used for invisible splitting
   const source = fs.readFileSync('src/utils/riskScore.ts', 'utf8');
   assert.match(source, /\\uFEFF/);
 });
+
+test('risk wording strips braille blank used for visually empty phrase splitting', () => {
+  const source = fs.readFileSync('src/utils/riskScore.ts', 'utf8');
+  assert.match(source, /\\u2800/);
+});
