@@ -69,6 +69,7 @@ export function scoreListingRisk(listing: Listing, peerPrices: number[]): Listin
   const median = medianOf(peerPrices);
   const title = typeof listing.title === 'string' ? listing.title : '';
   const description = typeof listing.description === 'string' ? listing.description : '';
+  const normalizedDescription = normalizeRiskText(description);
 
   if (!listing.verified) {
     score += 18;
@@ -81,7 +82,7 @@ export function scoreListingRisk(listing: Listing, peerPrices: number[]): Listin
     score += 20;
     reasons.push('السعر أقل من متوسط السوق بشكل ملحوظ');
   }
-  if (description.trim().length < 35) {
+  if (normalizedDescription.trim().length < 35) {
     score += 12;
     reasons.push('الوصف قصير ولا يوضح تفاصيل كافية');
   }

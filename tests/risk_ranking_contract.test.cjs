@@ -113,3 +113,10 @@ test('risk wording strips deprecated Khmer invisible vowels used for phrase spli
   const source = fs.readFileSync('src/utils/riskScore.ts', 'utf8');
   assert.match(source, /\\u17B4-\\u17B5/);
 });
+
+test('risk short-description heuristic ignores visually blank Unicode padding', () => {
+  const source = fs.readFileSync('src/utils/riskScore.ts', 'utf8');
+  assert.match(source, /const normalizedDescription = normalizeRiskText\(description\)/);
+  assert.match(source, /if \(normalizedDescription\.trim\(\)\.length < 35\)/);
+  assert.doesNotMatch(source, /if \(description\.trim\(\)\.length < 35\)/);
+});
