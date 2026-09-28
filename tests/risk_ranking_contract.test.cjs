@@ -102,3 +102,9 @@ test('risk wording strips Hangul fillers used for visually empty phrase splittin
   const source = fs.readFileSync('src/utils/riskScore.ts', 'utf8');
   assert.match(source, /\\u115F-\\u1160/);
 });
+
+test('risk wording strips compatibility Hangul fillers used for visually empty phrase splitting', () => {
+  const source = fs.readFileSync('src/utils/riskScore.ts', 'utf8');
+  assert.match(source, /\\u3164/);
+  assert.match(source, /\\uFFA0/);
+});

@@ -20,7 +20,7 @@ function normalizeRiskText(value: string) {
   // preventing trivial visual obfuscation of risky wording.
   return value
     .normalize('NFKC')
-    .replace(/[\u00AD\u034F\u061C\u0640\u064B-\u065F\u0670\u115F-\u1160\u180B-\u180F\u200B-\u200F\u202A-\u202E\u2060-\u206F\u2800\uFE00-\uFE0F\uFEFF\uFFF9-\uFFFB\u{E0000}-\u{E007F}\u{E0100}-\u{E01EF}]/gu, '');
+    .replace(/[\u00AD\u034F\u061C\u0640\u064B-\u065F\u0670\u115F-\u1160\u180B-\u180F\u200B-\u200F\u202A-\u202E\u2060-\u206F\u2800\u3164\uFFA0\uFE00-\uFE0F\uFEFF\uFFF9-\uFFFB\u{E0000}-\u{E007F}\u{E0100}-\u{E01EF}]/gu, '');
 }
 
 function medianOf(values: number[]): number {
