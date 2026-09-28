@@ -97,3 +97,8 @@ test('risk wording strips braille blank used for visually empty phrase splitting
   const source = fs.readFileSync('src/utils/riskScore.ts', 'utf8');
   assert.match(source, /\\u2800/);
 });
+
+test('risk wording strips Hangul fillers used for visually empty phrase splitting', () => {
+  const source = fs.readFileSync('src/utils/riskScore.ts', 'utf8');
+  assert.match(source, /\\u115F-\\u1160/);
+});
