@@ -70,6 +70,7 @@ export function scoreListingRisk(listing: Listing, peerPrices: number[]): Listin
   const title = typeof listing.title === 'string' ? listing.title : '';
   const description = typeof listing.description === 'string' ? listing.description : '';
   const normalizedDescription = normalizeRiskText(description);
+  const normalizedListingText = normalizeRiskText(`${title} ${description}`);
 
   if (!listing.verified) {
     score += 18;
@@ -86,7 +87,7 @@ export function scoreListingRisk(listing: Listing, peerPrices: number[]): Listin
     score += 12;
     reasons.push('الوصف قصير ولا يوضح تفاصيل كافية');
   }
-  if (riskyWords.test(normalizeRiskText(`${title} ${description}`))) {
+  if (riskyWords.test(normalizedListingText)) {
     score += 28;
     reasons.push('النص يتضمن طلبات أو عبارات تستحق التحقق');
   }
