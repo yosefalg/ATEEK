@@ -69,8 +69,9 @@ export function scoreListingRisk(listing: Listing, peerPrices: number[]): Listin
   const median = medianOf(peerPrices);
   const title = typeof listing.title === 'string' ? listing.title : '';
   const description = typeof listing.description === 'string' ? listing.description : '';
+  const normalizedTitle = normalizeRiskText(title);
   const normalizedDescription = normalizeRiskText(description);
-  const normalizedListingText = normalizeRiskText(`${title} ${description}`);
+  const normalizedListingText = `${normalizedTitle} ${normalizedDescription}`;
 
   if (!listing.verified) {
     score += 18;

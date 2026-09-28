@@ -50,7 +50,9 @@ test('risk wording normalizes Arabic diacritics and tatweel before matching', ()
   const source = fs.readFileSync('src/utils/riskScore.ts', 'utf8');
   assert.match(source, /function normalizeRiskText\(value: string\)/);
   assert.match(source, /\\u0640\\u064B-\\u065F\\u0670/);
-  assert.match(source, /const normalizedListingText = normalizeRiskText\(`/);
+  assert.match(source, /const normalizedTitle = normalizeRiskText\(title\)/);
+  assert.match(source, /const normalizedDescription = normalizeRiskText\(description\)/);
+  assert.match(source, /const normalizedListingText = `\$\{normalizedTitle\} \$\{normalizedDescription\}`/);
   assert.match(source, /riskyWords\.test\(normalizedListingText\)/);
 });
 
@@ -120,4 +122,11 @@ test('risk short-description heuristic ignores visually blank Unicode padding', 
   assert.match(source, /const normalizedDescription = normalizeRiskText\(description\)/);
   assert.match(source, /if \(normalizedDescription\.trim\(\)\.length < 35\)/);
   assert.doesNotMatch(source, /if \(description\.trim\(\)\.length < 35\)/);
+});
+
+test('risk scoring normalizes title and description once each', () => {
+  const source = fs.readFileSync('src/utils/riskScore.ts', 'utf8');
+  assert.match(source, /const normalizedTitle = normalizeRiskText\(title\)/);
+  assert.match(source, /const normalizedDescription = normalizeRiskText\(description\)/);
+  assert.doesNotMatch(source, /normalizeRiskText\(`\$\{title\} \$\{description\}`\)/);
 });
