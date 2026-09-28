@@ -18,9 +18,13 @@ function normalizeRiskText(value: string) {
   // annotation controls, Unicode tag controls, and BMP/supplementary variation
   // selectors between letters. Removing only non-semantic/visually empty marks
   // keeps matching conservative while preventing trivial visual obfuscation.
+  // Collapse remaining whitespace so internal padding cannot make a sparse
+  // description appear sufficiently detailed to the short-description check.
   return value
     .normalize('NFKC')
-    .replace(/[\u00AD\u034F\u061C\u0640\u064B-\u065F\u0670\u0890-\u0891\u115F-\u1160\u17B4-\u17B5\u180B-\u180F\u200B-\u200F\u202A-\u202E\u2060-\u206F\u2800\u3164\uFFA0\uFE00-\uFE0F\uFEFF\uFFF9-\uFFFB\u{E0000}-\u{E007F}\u{E0100}-\u{E01EF}]/gu, '');
+    .replace(/[\u00AD\u034F\u061C\u0640\u064B-\u065F\u0670\u0890-\u0891\u115F-\u1160\u17B4-\u17B5\u180B-\u180F\u200B-\u200F\u202A-\u202E\u2060-\u206F\u2800\u3164\uFFA0\uFE00-\uFE0F\uFEFF\uFFF9-\uFFFB\u{E0000}-\u{E007F}\u{E0100}-\u{E01EF}]/gu, '')
+    .replace(/\s+/gu, ' ')
+    .trim();
 }
 
 function medianOf(values: number[]): number {
@@ -84,7 +88,7 @@ export function scoreListingRisk(listing: Listing, peerPrices: number[]): Listin
     score += 20;
     reasons.push('السعر أقل من متوسط السوق بشكل ملحوظ');
   }
-  if (normalizedDescription.trim().length < 35) {
+  if (normalizedDescription.length < 35) {
     score += 12;
     reasons.push('الوصف قصير ولا يوضح تفاصيل كافية');
   }
