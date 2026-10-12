@@ -45,3 +45,44 @@ test('release verification pins package identity and records verification eviden
   assert.ok(workflow.includes('apkanalyzer'));
   assert.ok(workflow.includes('sha256sum'));
 });
+
+
+const productionWorkflow = fs.readFileSync(path.join(process.cwd(), '.github/workflows/ateek-2.2.yml'), 'utf8');
+
+test('production release signing stays pinned, single-signer, and fail-closed', () => {
+  for (const secret of [
+    'ATEEK_ANDROID_KEYSTORE_B64',
+    'ATEEK_ANDROID_KEYSTORE_PASSWORD',
+    'ATEEK_ANDROID_KEY_ALIAS',
+    'ATEEK_ANDROID_KEY_PASSWORD',
+    'ATEEK_ANDROID_CERT_SHA256',
+  ]) {
+    assert.ok(productionWorkflow.includes(`secrets.${secret}`), `production workflow must use ${secret}`);
+  }
+
+  const validate = productionWorkflow.indexOf('- name: Validate release signing material');
+  const inject = productionWorkflow.indexOf('- name: Inject pinned release signing config');
+  const build = productionWorkflow.indexOf('- name: Build arm64 installable APK only');
+  const signer = productionWorkflow.indexOf('- name: Verify APK signer and capture certificate evidence');
+  const prepare = productionWorkflow.indexOf('- name: Prepare APK artifact');
+  assert.ok(validate >= 0 && validate < inject && inject < build && build < signer && signer < prepare,
+    'production must validate secrets, inject release signing, build, verify signer, then publish artifacts');
+
+  const buildStep = productionWorkflow.slice(build, signer);
+  for (const secret of [
+    'ATEEK_ANDROID_KEYSTORE_PASSWORD',
+    'ATEEK_ANDROID_KEY_ALIAS',
+    'ATEEK_ANDROID_KEY_PASSWORD',
+  ]) {
+    assert.ok(buildStep.includes(`secrets.${secret}`), `production build step must receive ${secret}`);
+  }
+
+  assert.ok(productionWorkflow.includes('echo "ATEEK_KEYSTORE_PATH=$RUNNER_TEMP/ateek-release.keystore" >> "$GITHUB_ENV"'));
+  assert.ok(productionWorkflow.includes('signingConfig signingConfigs.release'));
+  assert.ok(productionWorkflow.includes("grep -Eq '^Number of signers: 1$' metrics-out/APKSIGNER.txt"));
+  assert.ok(productionWorkflow.includes('certificate DN: .*CN=Android Debug'));
+  assert.ok(productionWorkflow.includes('Release signer mismatch'));
+  assert.ok(productionWorkflow.includes('test ! -e android/app/build/outputs/bundle/release/app-release.aab'));
+  assert.ok(productionWorkflow.includes('assembleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon'));
+  assert.ok(productionWorkflow.includes('Physical Android device test=NOT PERFORMED BY CI'));
+});
