@@ -29,3 +29,23 @@ test('release verifier is safe under set -o pipefail and cannot false-fail on ea
   assert.doesNotMatch(workflow, /printf '%s\\n' "\$BADGING" \| head -n 1/);
   assert.doesNotMatch(workflow, /find "\$ANDROID_HOME"[^\n]+\| head -n 1/);
 });
+
+test('production release signing uses the pinned ATEEK keystore and rejects debug signing', () => {
+  for (const secret of [
+    'ATEEK_ANDROID_KEYSTORE_B64',
+    'ATEEK_ANDROID_KEYSTORE_PASSWORD',
+    'ATEEK_ANDROID_KEY_ALIAS',
+    'ATEEK_ANDROID_KEY_PASSWORD',
+    'ATEEK_ANDROID_CERT_SHA256',
+  ]) {
+    assert.match(workflow, new RegExp(`secrets\\.${secret}`));
+  }
+  assert.match(workflow, /Validate release signing material/);
+  assert.match(workflow, /Inject pinned release signing config/);
+  assert.match(workflow, /signingConfig signingConfigs\.release/);
+  assert.match(workflow, /Could not replace generated release debug signing config/);
+  assert.match(workflow, /CN=Android Debug/);
+  assert.match(workflow, /Release signer mismatch/);
+  assert.match(workflow, /ACTUAL.*EXPECTED|EXPECTED.*ACTUAL/s);
+  assert.doesNotMatch(workflow, /signingConfig\s+signingConfigs\.debug/);
+});
