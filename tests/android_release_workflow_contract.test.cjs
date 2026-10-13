@@ -86,3 +86,21 @@ test('production release signing stays pinned, single-signer, and fail-closed', 
   assert.ok(productionWorkflow.includes('assembleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon'));
   assert.ok(productionWorkflow.includes('Physical Android device test=NOT PERFORMED BY CI'));
 });
+
+test('release keystore certificate matches the pinned fingerprint before signed build', () => {
+  for (const [name, candidate, buildName] of [
+    ['staging', workflow, '- name: Build arm64 staging APK only'],
+    ['production', productionWorkflow, '- name: Build arm64 installable APK only'],
+  ]) {
+    const validate = candidate.indexOf('- name: Validate release signing material');
+    const inject = candidate.indexOf('- name: Inject pinned release signing config');
+    const build = candidate.indexOf(buildName);
+    assert.ok(validate >= 0 && validate < inject && inject < build, name + ' must preflight before signing injection and build');
+    const preflight = candidate.slice(validate, inject);
+    assert.ok(preflight.includes('keytool -exportcert'), name + ' must export the keystore certificate');
+    assert.ok(preflight.includes('-storepass:env ATEEK_ANDROID_KEYSTORE_PASSWORD'), name + ' must avoid embedding the store password in command arguments');
+    assert.ok(preflight.includes('sha256sum "$CERT_PATH"'), name + ' must fingerprint the exported certificate');
+    assert.ok(preflight.includes('The keystore certificate does not match ATEEK_ANDROID_CERT_SHA256'), name + ' must fail closed on a certificate mismatch');
+    assert.ok(preflight.includes('refusing to build a signed APK'), name + ' must stop before a signed build on mismatch');
+  }
+});

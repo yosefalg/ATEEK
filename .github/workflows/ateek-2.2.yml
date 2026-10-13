@@ -177,10 +177,19 @@ jobs:
           [ "$missing" -eq 0 ]
           EXPECTED_CERT="$(printf '%s' "$ATEEK_ANDROID_CERT_SHA256" | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
           [[ "$EXPECTED_CERT" =~ ^[0-9a-f]{64}$ ]]
-          printf '%s' "$ATEEK_ANDROID_KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/ateek-release.keystore"
-          test -s "$RUNNER_TEMP/ateek-release.keystore"
-          chmod 600 "$RUNNER_TEMP/ateek-release.keystore"
-          echo "ATEEK_KEYSTORE_PATH=$RUNNER_TEMP/ateek-release.keystore" >> "$GITHUB_ENV"
+          KEYSTORE_PATH="$RUNNER_TEMP/ateek-release.keystore"
+          CERT_PATH="$RUNNER_TEMP/ateek-release-cert.der"
+          printf '%s' "$ATEEK_ANDROID_KEYSTORE_B64" | base64 --decode > "$KEYSTORE_PATH"
+          test -s "$KEYSTORE_PATH"
+          chmod 600 "$KEYSTORE_PATH"
+          keytool -exportcert -keystore "$KEYSTORE_PATH" -storepass:env ATEEK_ANDROID_KEYSTORE_PASSWORD -alias "$ATEEK_ANDROID_KEY_ALIAS" -file "$CERT_PATH" >/dev/null
+          test -s "$CERT_PATH"
+          ACTUAL_CERT="$(sha256sum "$CERT_PATH" | awk '{print $1}')"
+          if [ "$ACTUAL_CERT" != "$EXPECTED_CERT" ]; then
+            echo "::error title=Release keystore certificate mismatch::The keystore certificate does not match ATEEK_ANDROID_CERT_SHA256; refusing to build a signed APK"
+            exit 1
+          fi
+          echo "ATEEK_KEYSTORE_PATH=$KEYSTORE_PATH" >> "$GITHUB_ENV"
 
       - name: Inject pinned release signing config
         run: |
