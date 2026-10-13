@@ -77,7 +77,7 @@ test('production release signing stays pinned, single-signer, and fail-closed', 
     assert.ok(buildStep.includes(`secrets.${secret}`), `production build step must receive ${secret}`);
   }
 
-  assert.ok(productionWorkflow.includes('echo "ATEEK_KEYSTORE_PATH=$RUNNER_TEMP/ateek-release.keystore" >> "$GITHUB_ENV"'));
+  assert.ok(productionWorkflow.includes('echo "ATEEK_KEYSTORE_PATH=$KEYSTORE_PATH" >> "$GITHUB_ENV"'));
   assert.ok(productionWorkflow.includes('signingConfig signingConfigs.release'));
   assert.ok(productionWorkflow.includes("grep -Eq '^Number of signers: 1$' metrics-out/APKSIGNER.txt"));
   assert.ok(productionWorkflow.includes('certificate DN: .*CN=Android Debug'));
